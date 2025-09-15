@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "origins": ["https://koichinishizuka.com"],
+      "methods": ["GET", "HEAD", "OPTIONS"],
+      "headers": ["*"],
+      "expose_headers": ["ETag", "Content-Length"],
+      "max_age": 3600
+    }
+  ]
+}
