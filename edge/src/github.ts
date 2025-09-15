@@ -113,6 +113,8 @@ export async function getInstallationIdForRepo(jwt: string, ownerRepo: string, a
     headers: {
       Authorization: `Bearer ${jwt}`,
       Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
     },
   })
   if (res.status === 404) throw new RepoAccessError("FORBIDDEN_REPO")
@@ -126,21 +128,22 @@ export async function getInstallationIdForRepo(jwt: string, ownerRepo: string, a
 export async function createInstallationToken(
   jwt: string,
   installationId: number,
-  scope: { permissions?: { actions?: "read" | "write"; contents?: "read" | "write" } } = {
-    permissions: { actions: "write", contents: "read" },
-  },
+  scope?: { permissions?: { actions?: "read" | "write"; contents?: "read" | "write" } },
   apiBase = DEFAULT_API_BASE,
 ): Promise<string> {
   const url = `${apiBase}/app/installations/${installationId}/access_tokens`
-  const res = await fetch(url, {
+  const init: RequestInit = {
     method: "POST",
     headers: {
       Authorization: `Bearer ${jwt}`,
       Accept: "application/vnd.github+json",
       "content-type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
     },
-    body: JSON.stringify(scope),
-  })
+    body: JSON.stringify(scope ?? {}),
+  }
+  const res = await fetch(url, init)
   if (!res.ok) throw new GithubApiError("Failed to create installation token", res.status)
   const json = (await res.json()) as any
   const token = json.token as string
@@ -164,6 +167,8 @@ export async function dispatchWorkflow(
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "content-type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
     },
     body: JSON.stringify({ ref, inputs: { payload: JSON.stringify(payload) } }),
   })

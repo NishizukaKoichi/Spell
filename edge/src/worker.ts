@@ -276,9 +276,14 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
         return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'GitHub App not configured' }), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
       }
       try {
+        let stage: 'create_jwt' | 'get_installation' | 'create_token' | 'dispatch' = 'create_jwt'
         const jwt = await createAppJwt(appId, pem)
+        stage = 'get_installation'
         const instId = await getInstallationIdForRepo(jwt, ownerRepo, env.GITHUB_API_BASE)
-        const instTok = await createInstallationToken(jwt, instId, { permissions: { actions: 'write', contents: 'read' } }, env.GITHUB_API_BASE)
+        stage = 'create_token'
+        // Request default installation permissions (no explicit narrowing)
+        const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
+        stage = 'dispatch'
         await dispatchWorkflow(instTok, ownerRepo, workflowId, ref, { run_id: runId, spell_id: spellId, input: json?.input }, env.GITHUB_API_BASE)
       } catch (e: any) {
         try {
@@ -294,7 +299,7 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
           return withCORS(env, new Response(JSON.stringify({ code: 'FORBIDDEN_REPO', message: 'Repo not accessible by App' }), { status: 403, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
         }
         if (e instanceof GithubApiError) {
-          return withCORS(env, new Response(JSON.stringify({ code: 'GITHUB_API_ERROR', status: e.status }), { status: 502, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+          return withCORS(env, new Response(JSON.stringify({ code: 'GITHUB_API_ERROR', status: e.status, stage: (e as any).stage || undefined }), { status: 502, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
         }
         return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'Dispatch failed' }), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
       }
