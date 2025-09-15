@@ -30,6 +30,10 @@ import {
   getInstallationIdForRepo,
   createInstallationToken,
   dispatchWorkflow,
+  getLatestWorkflowRun,
+  getWorkflowRun,
+  listArtifactsForRun,
+  getArtifactDownloadUrl,
   RepoAccessError,
   WorkflowNotFoundError,
   GithubApiError,
@@ -233,6 +237,9 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
     started_at: number
     estimate_cents: number
     done_at?: number
+    gh_run_id?: number
+    artifact_url?: string
+    artifact_expires_at?: number
   }
 
   function kvKeyCast(id: string, env: Env) {
@@ -285,6 +292,13 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
         const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
         stage = 'dispatch'
         await dispatchWorkflow(instTok, ownerRepo, workflowId, ref, { run_id: runId, spell_id: spellId, input: json?.input }, env.GITHUB_API_BASE)
+        // Best-effort: capture the GH run id immediately after dispatch
+        try {
+          const latest = await getLatestWorkflowRun(instTok, ownerRepo, workflowId, ref, env.GITHUB_API_BASE)
+          if (latest && latest.id) {
+            ;(rec as any).gh_run_id = latest.id
+          }
+        } catch {}
       } catch (e: any) {
         try {
           const name = e?.name || 'Error'
@@ -330,6 +344,9 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
       estimate_cents: rec.estimate_cents,
       started_at: rec.started_at,
       finished_at: rec.done_at,
+      gh_run_id: rec.gh_run_id,
+      artifact_url: rec.artifact_url,
+      artifact_expires_at: rec.artifact_expires_at,
     })
   }
 
@@ -349,27 +366,91 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
           chunk += `data: ${JSON.stringify(obj)}\n\n`
           controller.enqueue(enc.encode(chunk))
         }
-        send({ stage: 'queued', pct: 0, message: 'queued' }, 'progress')
-        await new Promise((r) => setTimeout(r, 500))
-        send({ stage: 'start', pct: 5, message: 'starting' }, 'progress')
-        for (let i = 10; i <= 90; i += 20) {
-          await new Promise((r) => setTimeout(r, 600))
-          send({ stage: 'run', pct: i, message: `processing ${i}%` }, 'progress')
-        }
-        await new Promise((r) => setTimeout(r, 600))
-        send({ stage: 'finalize', pct: 100, message: 'completed' }, 'progress')
-        send({ status: 'succeeded' }, 'completed')
-        controller.close()
-        // mark as succeeded in KV (best-effort)
+        // Load cast record
+        let rec: CastRecord | null = null
         try {
           const raw = await env.KV.get(kvKeyCast(castId, env))
-          if (raw) {
-            const rec = JSON.parse(raw) as CastRecord
-            rec.status = 'succeeded'
-            rec.done_at = Date.now()
-            await env.KV.put(kvKeyCast(castId, env), JSON.stringify(rec), { expirationTtl: 60 * 60 })
-          }
+          if (raw) rec = JSON.parse(raw) as CastRecord
         } catch {}
+        if (!rec) {
+          send({ message: 'cast not found' }, 'error')
+          controller.close()
+          return
+        }
+        send({ stage: rec.status || 'queued', pct: 0, message: 'queued' }, 'progress')
+
+        // Attempt to map to a real GitHub run and poll status
+        const appId = env.GITHUB_APP_ID
+        const pem = env.GITHUB_APP_PRIVATE_KEY
+        const ownerRepo = 'NishizukaKoichi/Spell'
+        const workflowId = 'spell-run.yml'
+        const ref = 'main'
+        if (!appId || !pem) {
+          send({ message: 'github app not configured' }, 'log')
+          controller.close()
+          return
+        }
+        try {
+          const jwt = await createAppJwt(appId, pem)
+          const instId = await getInstallationIdForRepo(jwt, ownerRepo, env.GITHUB_API_BASE)
+          const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
+
+          // Poll loop
+          let attempts = 0
+          const maxAttempts = 60 // ~120s at 2s interval
+          while (attempts < maxAttempts) {
+            attempts++
+            try {
+              if (!rec.gh_run_id) {
+                // keep trying to resolve the latest run id
+                try {
+                  const latest = await getLatestWorkflowRun(instTok, ownerRepo, workflowId, ref, env.GITHUB_API_BASE)
+                  if (latest && latest.id) {
+                    rec.gh_run_id = latest.id
+                    await env.KV.put(kvKeyCast(castId, env), JSON.stringify(rec), { expirationTtl: 60 * 60 })
+                  }
+                } catch {}
+                send({ stage: 'queued', message: 'waiting for run' }, 'progress')
+              } else {
+                const run = await getWorkflowRun(instTok, ownerRepo, rec.gh_run_id, env.GITHUB_API_BASE)
+                const st = run.status as string // queued | in_progress | completed
+                const concl = run.conclusion as string | null // success | failure | cancelled | null
+                if (st === 'queued') send({ stage: 'queued', message: 'queued' }, 'progress')
+                else if (st === 'in_progress') send({ stage: 'running', message: 'in_progress' }, 'progress')
+                else if (st === 'completed') {
+                  // Try to fetch artifact URL
+                  try {
+                    const arts = await listArtifactsForRun(instTok, ownerRepo, rec.gh_run_id, env.GITHUB_API_BASE)
+                    const chosen = arts.find((a: any) => a.name === 'result') || arts[0]
+                    if (chosen) {
+                      const url = await getArtifactDownloadUrl(instTok, ownerRepo, chosen.id, env.GITHUB_API_BASE)
+                      if (url) {
+                        rec.artifact_url = url
+                        rec.artifact_expires_at = Date.now() + 10 * 60 * 1000 // assume ~10min URL lifetime
+                        await env.KV.put(kvKeyCast(castId, env), JSON.stringify(rec), { expirationTtl: 60 * 60 })
+                        send({ url }, 'artifact_ready')
+                      }
+                    }
+                  } catch {}
+                  // Mark done
+                  rec.status = concl === 'success' ? 'succeeded' : 'failed'
+                  rec.done_at = Date.now()
+                  await env.KV.put(kvKeyCast(castId, env), JSON.stringify(rec), { expirationTtl: 60 * 60 })
+                  if (rec.status === 'succeeded') send({ status: 'succeeded' }, 'completed')
+                  else send({ status: 'failed' }, 'failed')
+                  break
+                }
+              }
+            } catch (e) {
+              // log minimal
+              try { console.warn('sse poll error', (e as any)?.message || String(e)) } catch {}
+            }
+            await new Promise((r) => setTimeout(r, 2000))
+          }
+        } catch (_) {
+          // ignore, end stream
+        }
+        controller.close()
       },
     })
     return new Response(stream, { status: 200, headers })

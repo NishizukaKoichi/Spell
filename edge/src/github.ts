@@ -177,6 +177,94 @@ export async function dispatchWorkflow(
   if (!res.ok) throw new GithubApiError("Failed to dispatch workflow", res.status)
 }
 
+export async function getLatestWorkflowRun(
+  token: string,
+  ownerRepo: string,
+  workflowId: string,
+  ref: string,
+  apiBase = DEFAULT_API_BASE,
+): Promise<any | null> {
+  const [owner, repo] = ownerRepo.split("/")
+  const url = `${apiBase}/repos/${owner}/${repo}/actions/workflows/${encodeURIComponent(workflowId)}/runs?per_page=1&branch=${encodeURIComponent(ref)}&event=workflow_dispatch`
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
+    },
+  })
+  if (!res.ok) throw new GithubApiError("Failed to list workflow runs", res.status)
+  const json = (await res.json()) as any
+  const runs = (json.workflow_runs as any[]) || []
+  return runs.length ? runs[0] : null
+}
+
+export async function getWorkflowRun(
+  token: string,
+  ownerRepo: string,
+  runId: number,
+  apiBase = DEFAULT_API_BASE,
+): Promise<any> {
+  const [owner, repo] = ownerRepo.split("/")
+  const url = `${apiBase}/repos/${owner}/${repo}/actions/runs/${runId}`
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
+    },
+  })
+  if (!res.ok) throw new GithubApiError("Failed to get workflow run", res.status)
+  return await res.json()
+}
+
+export async function listArtifactsForRun(
+  token: string,
+  ownerRepo: string,
+  runId: number,
+  apiBase = DEFAULT_API_BASE,
+): Promise<any[]> {
+  const [owner, repo] = ownerRepo.split("/")
+  const url = `${apiBase}/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
+    },
+  })
+  if (!res.ok) throw new GithubApiError("Failed to list artifacts", res.status)
+  const json = (await res.json()) as any
+  return (json.artifacts as any[]) || []
+}
+
+export async function getArtifactDownloadUrl(
+  token: string,
+  ownerRepo: string,
+  artifactId: number,
+  apiBase = DEFAULT_API_BASE,
+): Promise<string | null> {
+  const [owner, repo] = ownerRepo.split("/")
+  const url = `${apiBase}/repos/${owner}/${repo}/actions/artifacts/${artifactId}/zip`
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "spell-edge/1.0",
+    },
+    redirect: "manual",
+  } as RequestInit)
+  if (res.status === 302) {
+    return res.headers.get("location")
+  }
+  if (!res.ok) throw new GithubApiError("Failed to get artifact url", res.status)
+  return null
+}
+
 export class GithubApiError extends Error {
   status: number
   constructor(message: string, status: number) {
