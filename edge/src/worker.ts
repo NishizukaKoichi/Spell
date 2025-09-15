@@ -281,6 +281,12 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
         const instTok = await createInstallationToken(jwt, instId, { permissions: { actions: 'write', contents: 'read' } }, env.GITHUB_API_BASE)
         await dispatchWorkflow(instTok, ownerRepo, workflowId, ref, { run_id: runId, spell_id: spellId, input: json?.input }, env.GITHUB_API_BASE)
       } catch (e: any) {
+        try {
+          const name = e?.name || 'Error'
+          const msg = e?.message || String(e)
+          const status = e?.status
+          console.warn('workflow dispatch error', { name, status, msg })
+        } catch (_) {}
         if (e instanceof WorkflowNotFoundError) {
           return withCORS(env, new Response(JSON.stringify({ code: 'WORKFLOW_NOT_FOUND', message: 'Workflow not found' }), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
         }
@@ -288,7 +294,7 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
           return withCORS(env, new Response(JSON.stringify({ code: 'FORBIDDEN_REPO', message: 'Repo not accessible by App' }), { status: 403, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
         }
         if (e instanceof GithubApiError) {
-          return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'GitHub API error' }), { status: 502, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+          return withCORS(env, new Response(JSON.stringify({ code: 'GITHUB_API_ERROR', status: e.status }), { status: 502, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
         }
         return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'Dispatch failed' }), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
       }

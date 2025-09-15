@@ -18,18 +18,62 @@ function b64urlJSON(obj: unknown): string {
 }
 
 function parsePem(pem: string): { type: "pkcs8"; data: ArrayBuffer } {
-  // Expect PKCS#8: -----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----
-  const clean = pem.trim()
-  if (clean.includes("BEGIN RSA PRIVATE KEY")) {
-    throw new Error("Unsupported key format: PKCS#1 (RSA PRIVATE KEY). Provide PKCS#8 'BEGIN PRIVATE KEY'.")
+  // Support both PKCS#8 (BEGIN PRIVATE KEY) and PKCS#1 (BEGIN RSA PRIVATE KEY)
+  const clean = pem.replace(/\\n/g, "\n").trim()
+  const pkcs8 = clean.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/)
+  if (pkcs8) {
+    const b64 = pkcs8[1].replace(/\s+/g, "")
+    const raw = atob(b64)
+    const buf = new Uint8Array(raw.length)
+    for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i)
+    return { type: "pkcs8", data: buf.buffer }
   }
-  const m = clean.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/)
-  if (!m) throw new Error("Invalid PEM: missing BEGIN/END PRIVATE KEY block")
-  const b64 = m[1].replace(/\s+/g, "")
-  const raw = atob(b64)
-  const buf = new Uint8Array(raw.length)
-  for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i)
-  return { type: "pkcs8", data: buf.buffer }
+  const pkcs1 = clean.match(/-----BEGIN RSA PRIVATE KEY-----([\s\S]+?)-----END RSA PRIVATE KEY-----/)
+  if (pkcs1) {
+    const b64 = pkcs1[1].replace(/\s+/g, "")
+    const raw = atob(b64)
+    const rsa = new Uint8Array(raw.length)
+    for (let i = 0; i < raw.length; i++) rsa[i] = raw.charCodeAt(i)
+    const pk8 = wrapPkcs1ToPkcs8(rsa)
+    return { type: "pkcs8", data: pk8.buffer }
+  }
+  throw new Error("Invalid PEM: missing PRIVATE KEY block")
+}
+
+function derLen(len: number): Uint8Array {
+  if (len < 128) return new Uint8Array([len])
+  if (len < 256) return new Uint8Array([0x81, len])
+  return new Uint8Array([0x82, (len >> 8) & 0xff, len & 0xff])
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((n, p) => n + p.length, 0)
+  const out = new Uint8Array(total)
+  let off = 0
+  for (const p of parts) {
+    out.set(p, off)
+    off += p.length
+  }
+  return out
+}
+
+function wrapPkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
+  // PrivateKeyInfo ::= SEQUENCE {
+  //   version Version (0),
+  //   privateKeyAlgorithm AlgorithmIdentifier (rsaEncryption),
+  //   privateKey OCTET STRING (PKCS#1 RSAPrivateKey)
+  // }
+  const version = new Uint8Array([0x02, 0x01, 0x00]) // INTEGER 0
+  const algId = new Uint8Array([
+    0x30, 0x0d, // SEQUENCE len=13
+    0x06, 0x09, // OID len=9
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // 1.2.840.113549.1.1.1 rsaEncryption
+    0x05, 0x00, // NULL
+  ])
+  const pkcs1Octet = concatBytes(new Uint8Array([0x04]), derLen(pkcs1.length), pkcs1)
+  const seqLen = version.length + algId.length + pkcs1Octet.length
+  const top = concatBytes(new Uint8Array([0x30]), derLen(seqLen), version, algId, pkcs1Octet)
+  return top
 }
 
 async function importPrivateKeyRS256(pem: string): Promise<CryptoKey> {
@@ -150,4 +194,3 @@ export class WorkflowNotFoundError extends Error {
     this.name = "WorkflowNotFoundError"
   }
 }
-
