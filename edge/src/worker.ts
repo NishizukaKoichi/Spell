@@ -21,9 +21,19 @@ interface Env {
   GITHUB_OAUTH_CLIENT_ID?: string
   GITHUB_OAUTH_CLIENT_SECRET?: string
   GITHUB_APP_ID?: string
+  GITHUB_API_BASE?: string
   NATS_AUTH_TOKEN?: string
   OTLP_HEADERS?: string
 }
+import {
+  createAppJwt,
+  getInstallationIdForRepo,
+  createInstallationToken,
+  dispatchWorkflow,
+  RepoAccessError,
+  WorkflowNotFoundError,
+  GithubApiError,
+} from './github'
 
 const text = (body: string, status = 200, headers: HeadersInit = {}) =>
   new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", ...headers } })
@@ -233,9 +243,19 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
     if (req.method === 'OPTIONS') return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
     if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
     const idem = req.headers.get('Idempotency-Key') || crypto.randomUUID()
+    let json: any = {}
+    try {
+      if (req.headers.get('content-type')?.includes('application/json')) {
+        json = await req.json()
+      }
+    } catch (_) {}
+    const mode = (json?.mode as string) || 'workflow'
+
     const now = Date.now()
     const castId = `${Math.floor(now / 1000)}${Math.floor(Math.random() * 1000)}`
     const runId = `c_${crypto.randomUUID()}`
+
+    // Base record
     const rec: CastRecord = {
       id: castId,
       run_id: runId,
@@ -244,6 +264,36 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
       started_at: now,
       estimate_cents: 25,
     }
+
+    // Workflow mode: dispatch GitHub Actions run via GitHub App
+    if (mode === 'workflow') {
+      const ownerRepo = 'NishizukaKoichi/Spell'
+      const workflowId = 'spell-run.yml'
+      const ref = 'main'
+      const appId = env.GITHUB_APP_ID
+      const pem = env.GITHUB_APP_PRIVATE_KEY
+      if (!appId || !pem) {
+        return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'GitHub App not configured' }), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+      }
+      try {
+        const jwt = await createAppJwt(appId, pem)
+        const instId = await getInstallationIdForRepo(jwt, ownerRepo, env.GITHUB_API_BASE)
+        const instTok = await createInstallationToken(jwt, instId, { permissions: { actions: 'write', contents: 'read' } }, env.GITHUB_API_BASE)
+        await dispatchWorkflow(instTok, ownerRepo, workflowId, ref, { run_id: runId, spell_id: spellId, input: json?.input }, env.GITHUB_API_BASE)
+      } catch (e: any) {
+        if (e instanceof WorkflowNotFoundError) {
+          return withCORS(env, new Response(JSON.stringify({ code: 'WORKFLOW_NOT_FOUND', message: 'Workflow not found' }), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+        }
+        if (e instanceof RepoAccessError) {
+          return withCORS(env, new Response(JSON.stringify({ code: 'FORBIDDEN_REPO', message: 'Repo not accessible by App' }), { status: 403, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+        }
+        if (e instanceof GithubApiError) {
+          return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'GitHub API error' }), { status: 502, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+        }
+        return withCORS(env, new Response(JSON.stringify({ code: 'INTERNAL', message: 'Dispatch failed' }), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+      }
+    }
+
     await env.KV.put(kvKeyCast(castId, env), JSON.stringify(rec), { expirationTtl: 60 * 60 })
     const body = {
       run_id: runId,
@@ -252,6 +302,8 @@ async function signJWT(payload: Record<string, any>, env: Env): Promise<string> 
       estimate_cents: rec.estimate_cents,
       progress_sse: `/api/v1/casts/${castId}/events`,
       idempotency_key: idem,
+      mode,
+      gh: mode === 'workflow' ? { ownerRepo: 'NishizukaKoichi/Spell', workflowId: 'spell-run.yml', ref: 'main' } : undefined,
     }
     return okJSON(env, body)
   }
