@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Star, Users, Code, TrendingUp, Award, MapPin } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -72,10 +73,13 @@ export default function WizardsPage() {
             <Card className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 border-purple-500/20 overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <img
+                  <Image
                     src={featuredWizard.avatar || "/placeholder.svg"}
                     alt={featuredWizard.name}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full object-cover border-2 border-purple-500/50"
+                    priority
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -126,9 +130,11 @@ export default function WizardsPage() {
                 <Card key={wizard.id} className="bg-card/50 border-border/50">
                   <CardContent className="p-4">
                     <div className="flex gap-4">
-                      <img
+                      <Image
                         src={wizard.avatar || "/placeholder.svg"}
                         alt={wizard.name}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       <div className="flex-1 min-w-0">
@@ -176,9 +182,11 @@ export default function WizardsPage() {
                         <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full text-white font-bold text-sm">
                           {index + 1}
                         </div>
-                        <img
+                        <Image
                           src={wizard.avatar || "/placeholder.svg"}
                           alt={wizard.name}
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                         <div className="flex-1 min-w-0">

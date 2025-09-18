@@ -18,6 +18,7 @@ export interface Spell {
   spell_key: string
   name: string
   summary: string
+  description?: string
   visibility: "public" | "unlisted" | "private"
   execution_mode: "workflow" | "service" | "clone"
   pricing_json: {
@@ -36,6 +37,14 @@ export interface Spell {
     name: string
     avatar: string
   }
+  tags?: string[]
+  rating?: number
+  executions?: number
+  isActive?: boolean
+  price?: number
+  currency?: string
+  featured?: boolean
+  lastUpdated?: string
   stats?: {
     executions: number
     success_rate: number

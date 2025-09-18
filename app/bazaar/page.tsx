@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Star, Download, Clock, Users, TrendingUp, Sparkles } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -80,10 +81,13 @@ export default function BazaarPage() {
             <Card className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-blue-500/20 overflow-hidden">
               <CardContent className="p-0">
                 <div className="relative">
-                  <img
+                  <Image
                     src={featuredSpell.author?.avatar || "/developer-working.png"}
                     alt={featuredSpell.name}
+                    width={960}
+                    height={384}
                     className="w-full h-48 object-cover"
+                    priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
@@ -133,9 +137,11 @@ export default function BazaarPage() {
                 <Card key={spell.id} className="bg-card/50 border-border/50">
                   <CardContent className="p-4">
                     <div className="flex gap-4">
-                      <img
+                      <Image
                         src={spell.author?.avatar || "/placeholder.svg"}
                         alt={spell.name}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 rounded-lg object-cover bg-muted"
                       />
                       <div className="flex-1 min-w-0">
@@ -184,9 +190,11 @@ export default function BazaarPage() {
                         <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full text-white font-bold text-sm">
                           {index + 1}
                         </div>
-                        <img
+                        <Image
                           src={spell.author?.avatar || "/placeholder.svg"}
                           alt={spell.name}
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded-lg object-cover bg-muted"
                         />
                         <div className="flex-1 min-w-0">

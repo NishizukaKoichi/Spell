@@ -2,6 +2,13 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { Spell, Cast, Wizard, User } from "./types"
 
+interface MarketplaceStats {
+  totalSpells: number
+  totalExecutions: number
+  averageRating: number
+  activeDevelopers: number
+}
+
 interface SpellStore {
   // State
   currentUser: User | null
@@ -10,6 +17,7 @@ interface SpellStore {
   mySpells: Spell[]
   casts: Cast[]
   wizards: Wizard[]
+  stats: MarketplaceStats
 
   // UI State
   activeTab: "bazaar" | "grimoire" | "wizards"
@@ -29,8 +37,12 @@ interface SpellStore {
   downloadSpell: (spellId: number) => void
   registerSpell: (spellId: number) => void
   unregisterSpell: (spellId: number) => void
+  executeSpell: (spellId: number) => void
   castSpell: (spellId: number, input: any) => Promise<Cast>
   createSpell: (spell: Omit<Spell, "id" | "created_at">) => void
+  updateSpell: (spellId: number, patch: Partial<Spell>) => void
+  deleteSpell: (spellId: number) => void
+  updateStats: () => void
 
   // Data fetching
   fetchBazaarSpells: () => Promise<void>
@@ -50,6 +62,8 @@ const sampleSpells: Spell[] = [
     spell_key: "com.example.pdf-generator",
     name: "PDF生成API",
     summary: "HTMLからPDFを生成する高性能なAPI。カスタムテンプレート対応、日本語フォント完全サポート。",
+    description:
+      "RESTエンドポイントにHTMLを送るだけで高品質なPDFに変換します。透かしやパスワード保護、ページレイアウト調整も柔軟に設定可能です。",
     visibility: "public",
     execution_mode: "service",
     pricing_json: {
@@ -71,6 +85,14 @@ const sampleSpells: Spell[] = [
       name: "DevTeam",
       avatar: "/developer-working.png",
     },
+    tags: ["ドキュメント", "PDF", "自動化"],
+    rating: 4.8,
+    executions: 1234,
+    isActive: true,
+    price: 500,
+    currency: "¥",
+    featured: true,
+    lastUpdated: "3時間前",
     stats: {
       executions: 1234,
       success_rate: 0.98,
@@ -83,6 +105,8 @@ const sampleSpells: Spell[] = [
     spell_key: "com.example.image-optimizer",
     name: "画像最適化バッチ",
     summary: "複数画像の一括最適化。WebP変換、リサイズ、圧縮を自動実行。CI/CDパイプライン対応。",
+    description:
+      "GitHub Actions から呼び出すだけで画像を自動最適化。CDN 配信やレスポンシブ画像向けのプリセットも用意しています。",
     visibility: "public",
     execution_mode: "workflow",
     pricing_json: {
@@ -104,6 +128,14 @@ const sampleSpells: Spell[] = [
       name: "ImagePro",
       avatar: "/photographer.png",
     },
+    tags: ["画像処理", "CI/CD", "最適化"],
+    rating: 4.7,
+    executions: 892,
+    isActive: true,
+    price: 100,
+    currency: "¥",
+    featured: false,
+    lastUpdated: "6時間前",
     stats: {
       executions: 892,
       success_rate: 0.99,
@@ -116,6 +148,8 @@ const sampleSpells: Spell[] = [
     spell_key: "com.example.data-analysis",
     name: "データ分析テンプレート",
     summary: "Pythonベースのデータ分析環境。Jupyter Notebook、pandas、matplotlib込み。",
+    description:
+      "ワンクリックでデータ分析用のリポジトリを生成。分析テンプレート、CI、ダッシュボード雛形まで同梱しています。",
     visibility: "public",
     execution_mode: "clone",
     pricing_json: {
@@ -137,6 +171,14 @@ const sampleSpells: Spell[] = [
       name: "Analytics",
       avatar: "/data-analyst-workspace.png",
     },
+    tags: ["データ", "テンプレート", "自動化"],
+    rating: 4.9,
+    executions: 567,
+    isActive: true,
+    price: 800,
+    currency: "¥",
+    featured: true,
+    lastUpdated: "1日前",
     stats: {
       executions: 567,
       success_rate: 0.97,
@@ -191,6 +233,15 @@ export const useSpellStore = create<SpellStore>()(
       mySpells: [],
       casts: [],
       wizards: sampleWizards,
+      stats: {
+        totalSpells: sampleSpells.length,
+        totalExecutions: sampleSpells.reduce((sum, spell) => sum + (spell.executions ?? 0), 0),
+        averageRating:
+          sampleSpells.length > 0
+            ? sampleSpells.reduce((sum, spell) => sum + (spell.rating ?? 0), 0) / sampleSpells.length
+            : 0,
+        activeDevelopers: new Set(sampleWizards.map((wizard) => wizard.github_username)).size,
+      },
 
       // UI State
       activeTab: "bazaar",
@@ -231,6 +282,26 @@ export const useSpellStore = create<SpellStore>()(
         }))
       },
 
+      executeSpell: (spellId) => {
+        set((state) => ({
+          spells: state.spells.map((spell) =>
+            spell.id === spellId
+              ? {
+                  ...spell,
+                  executions: (spell.executions ?? spell.stats?.executions ?? 0) + 1,
+                  stats: spell.stats
+                    ? {
+                        ...spell.stats,
+                        executions: spell.stats.executions + 1,
+                      }
+                    : undefined,
+                }
+              : spell,
+          ),
+        }))
+        get().updateStats()
+      },
+
       castSpell: async (spellId, input) => {
         // 実際のAPI呼び出しをシミュレート
         const cast: Cast = {
@@ -255,6 +326,7 @@ export const useSpellStore = create<SpellStore>()(
           casts: [...state.casts, cast],
         }))
 
+        get().executeSpell(spellId)
         return cast
       },
 
@@ -263,10 +335,43 @@ export const useSpellStore = create<SpellStore>()(
           ...spellData,
           id: Date.now(),
           created_at: new Date().toISOString(),
+          status: spellData.status ?? 'draft',
         }
         set((state) => ({
           mySpells: [...state.mySpells, newSpell],
         }))
+        set((state) => ({ spells: [...state.spells, newSpell] }))
+        get().updateStats()
+      },
+
+      updateSpell: (spellId, patch) => {
+        set((state) => ({
+          spells: state.spells.map((spell) => (spell.id === spellId ? { ...spell, ...patch } : spell)),
+          mySpells: state.mySpells.map((spell) => (spell.id === spellId ? { ...spell, ...patch } : spell)),
+        }))
+        get().updateStats()
+      },
+
+      deleteSpell: (spellId) => {
+        set((state) => ({
+          spells: state.spells.filter((spell) => spell.id !== spellId),
+          mySpells: state.mySpells.filter((spell) => spell.id !== spellId),
+          casts: state.casts.filter((cast) => cast.spell_id !== spellId),
+        }))
+        get().updateStats()
+      },
+
+      updateStats: () => {
+        const spells = get().spells
+        const ratings = spells.filter((spell) => typeof spell.rating === 'number').map((spell) => spell.rating ?? 0)
+        set({
+          stats: {
+            totalSpells: spells.length,
+            totalExecutions: spells.reduce((sum, spell) => sum + (spell.executions ?? spell.stats?.executions ?? 0), 0),
+            averageRating: ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : 0,
+            activeDevelopers: new Set(get().wizards.map((wizard) => wizard.github_username)).size,
+          },
+        })
       },
 
       // Data fetching (現在はモック)

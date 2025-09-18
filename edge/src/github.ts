@@ -26,7 +26,7 @@ function parsePem(pem: string): { type: "pkcs8"; data: ArrayBuffer } {
     const raw = atob(b64)
     const buf = new Uint8Array(raw.length)
     for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i)
-    return { type: "pkcs8", data: buf.buffer }
+    return { type: "pkcs8", data: buf.buffer.slice(0) as ArrayBuffer }
   }
   const pkcs1 = clean.match(/-----BEGIN RSA PRIVATE KEY-----([\s\S]+?)-----END RSA PRIVATE KEY-----/)
   if (pkcs1) {
@@ -35,7 +35,7 @@ function parsePem(pem: string): { type: "pkcs8"; data: ArrayBuffer } {
     const rsa = new Uint8Array(raw.length)
     for (let i = 0; i < raw.length; i++) rsa[i] = raw.charCodeAt(i)
     const pk8 = wrapPkcs1ToPkcs8(rsa)
-    return { type: "pkcs8", data: pk8.buffer }
+    return { type: "pkcs8", data: pk8.buffer.slice(0) as ArrayBuffer }
   }
   throw new Error("Invalid PEM: missing PRIVATE KEY block")
 }
@@ -198,6 +198,27 @@ export async function getLatestWorkflowRun(
   const json = (await res.json()) as any
   const runs = (json.workflow_runs as any[]) || []
   return runs.length ? runs[0] : null
+}
+
+export async function cancelWorkflowRun(
+  token: string,
+  ownerRepo: string,
+  runId: number,
+  apiBase = DEFAULT_API_BASE,
+): Promise<void> {
+  const [owner, repo] = ownerRepo.split('/')
+  const url = `${apiBase}/repos/${owner}/${repo}/actions/runs/${runId}/cancel`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'spell-edge/1.0',
+    },
+  })
+  if (res.status === 404) throw new WorkflowNotFoundError('WORKFLOW_NOT_FOUND')
+  if (!res.ok) throw new GithubApiError('Failed to cancel workflow run', res.status)
 }
 
 export async function getWorkflowRun(
