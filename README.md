@@ -48,3 +48,7 @@ Rust ランナーを利用する場合は `core` ディレクトリで `cargo ru
 ## ライセンス
 
 未定義（社内利用を想定）。
+
+## 環境変数のポイント
+
+- `NEXT_PUBLIC_EDGE_BASE_URL` を UI 側で設定すると、Workers (`https://koichinishizuka.com` など) に対して直接 fetch / SSE を発行できます。Cookie ベースのセッションは `/api/session` / `/api/logout` を通じて取得・破棄します。

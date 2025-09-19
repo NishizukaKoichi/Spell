@@ -138,6 +138,21 @@ function randomHex(bytes: number): string {
   return Array.from(buf).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+function base64UrlEncodeBytes(bytes: Uint8Array): string {
+  let bin = ''
+  bytes.forEach((b) => (bin += String.fromCharCode(b)))
+  return btoa(bin).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+function base64UrlEncodeString(input: string): string {
+  return base64UrlEncodeBytes(new TextEncoder().encode(input))
+}
+
+function base64UrlDecode(input: string): string {
+  const padded = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(input.length / 4) * 4, '=')
+  return atob(padded)
+}
+
 type TraceContext = {
   traceparent: string
   trace_id: string
@@ -1434,17 +1449,49 @@ async function handleCastCancel(req: Request, env: Env, castId: string): Promise
 
 async function signJWT(payload: Record<string, any>, env: Env): Promise<string> {
   const header = { alg: 'HS256', typ: 'JWT' }
-  const enc = (obj: any) =>
-    btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj)))).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')
   const iss = env.JWT_ISSUER || ''
   const aud = env.JWT_AUDIENCE || ''
   const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7
   const body = { iss, aud, exp, ...payload }
-  const base = `${enc(header)}.${enc(body)}`
+  const base = `${base64UrlEncodeString(JSON.stringify(header))}.${base64UrlEncodeString(JSON.stringify(body))}`
   const key = env.SESSION_SECRET || ''
   const sigHex = await hmacSHA256(key, base)
-  const sigB64 = btoa(String.fromCharCode(...sigHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)))).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  const sigB64 = base64UrlEncodeBytes(new Uint8Array(sigHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16))))
   return `${base}.${sigB64}`
+}
+
+async function verifyJWT(token: string | null | undefined, env: Env): Promise<Record<string, any> | null> {
+  if (!token || !env.SESSION_SECRET) return null
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  const [headerPart, payloadPart, signaturePart] = parts
+  const expectedHex = await hmacSHA256(env.SESSION_SECRET, `${headerPart}.${payloadPart}`)
+  const expectedSig = base64UrlEncodeBytes(new Uint8Array(expectedHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16))))
+  if (!timingSafeEqual(expectedSig, signaturePart)) return null
+  try {
+    const payloadJson = base64UrlDecode(payloadPart)
+    const payload = JSON.parse(payloadJson) as Record<string, any>
+    if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null
+    return payload
+  } catch (_) {
+    return null
+  }
+}
+
+function parseCookies(header: string | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!header) return out
+  const parts = header.split(';')
+  for (const part of parts) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    const key = trimmed.slice(0, eq)
+    const value = trimmed.slice(eq + 1)
+    out[key] = decodeURIComponent(value)
+  }
+  return out
 }
 
 async function handleStripeWebhook(request: Request, env: Env): Promise<Response> {
@@ -1658,6 +1705,35 @@ async function handleOAuthGithubCallback(req: Request, env: Env): Promise<Respon
   return new Response(JSON.stringify({ ok: true, user }), { status: 200, headers: { 'content-type': 'application/json', ...headers } })
 }
 
+async function handleSession(request: Request, env: Env): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (request.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(request.headers.get('traceparent'))
+  const cookies = parseCookies(request.headers.get('cookie'))
+  const claims = await verifyJWT(cookies['sid'], env)
+  const headers = { ...corsHeaders(env), 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' }
+  if (!claims) {
+    return withCORS(env, new Response(JSON.stringify({ authenticated: false }), { status: 401, headers }))
+  }
+  logEvent('info', 'session_resolved', { sub: claims.sub }, trace)
+  return withCORS(env, new Response(JSON.stringify({ authenticated: true, user: { sub: claims.sub, name: claims.name } }), { status: 200, headers }))
+}
+
+function buildLogoutCookie(): string {
+  return 'sid=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'
+}
+
+async function handleLogout(request: Request, env: Env): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (request.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const headers = { ...corsHeaders(env), 'Set-Cookie': buildLogoutCookie() }
+  return withCORS(env, new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...headers, 'content-type': 'application/json; charset=utf-8' } }))
+}
+
 async function handleArtifact(req: Request, env: Env, pathname: string): Promise<Response> {
   const origin = env.R2_PUBLIC_BASE_URL
   const parts = pathname.split('/').filter(Boolean)
@@ -1866,6 +1942,14 @@ const handler = {
 
     if (pathname === '/health' || pathname === '/api/health') {
       return withCORS(env, text('ok', 200))
+    }
+
+    if (pathname === '/api/session') {
+      return handleSession(request, env)
+    }
+
+    if (pathname === '/api/logout') {
+      return handleLogout(request, env)
     }
 
     if (pathname === '/api/stripe/webhook') {
