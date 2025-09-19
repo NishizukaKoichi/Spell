@@ -10,7 +10,7 @@ export type Session = {
 
 const API_BASE = (process.env.NEXT_PUBLIC_EDGE_BASE_URL || '').replace(/\/$/, '')
 
-function resolveUrl(path: string) {
+export function resolveUrl(path: string) {
   if (!API_BASE) return path
   return `${API_BASE}${path}`
 }

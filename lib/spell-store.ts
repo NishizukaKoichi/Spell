@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { Spell, Cast, Wizard, User } from "./types"
+import { resolveUrl } from "./session"
 
 interface MarketplaceStats {
   totalSpells: number
@@ -54,193 +55,21 @@ interface SpellStore {
   getRegisteredSpells: () => Spell[]
 }
 
-// サンプルデータ
-const sampleSpells: Spell[] = [
-  {
-    id: 1,
-    tenant_id: 1,
-    spell_key: "com.example.pdf-generator",
-    name: "PDF生成API",
-    summary: "HTMLからPDFを生成する高性能なAPI。カスタムテンプレート対応、日本語フォント完全サポート。",
-    description:
-      "RESTエンドポイントにHTMLを送るだけで高品質なPDFに変換します。透かしやパスワード保護、ページレイアウト調整も柔軟に設定可能です。",
-    visibility: "public",
-    execution_mode: "service",
-    pricing_json: {
-      model: "flat",
-      currency: "JPY",
-      amount_cents: 50000,
-    },
-    input_schema_json: {
-      type: "object",
-      properties: {
-        html: { type: "string" },
-        options: { type: "object" },
-      },
-    },
-    status: "published",
-    published_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    author: {
-      name: "DevTeam",
-      avatar: "/developer-working.png",
-    },
-    tags: ["ドキュメント", "PDF", "自動化"],
-    rating: 4.8,
-    executions: 1234,
-    isActive: true,
-    price: 500,
-    currency: "¥",
-    featured: true,
-    lastUpdated: "3時間前",
-    stats: {
-      executions: 1234,
-      success_rate: 0.98,
-      avg_runtime_ms: 2500,
-    },
-  },
-  {
-    id: 2,
-    tenant_id: 1,
-    spell_key: "com.example.image-optimizer",
-    name: "画像最適化バッチ",
-    summary: "複数画像の一括最適化。WebP変換、リサイズ、圧縮を自動実行。CI/CDパイプライン対応。",
-    description:
-      "GitHub Actions から呼び出すだけで画像を自動最適化。CDN 配信やレスポンシブ画像向けのプリセットも用意しています。",
-    visibility: "public",
-    execution_mode: "workflow",
-    pricing_json: {
-      model: "metered",
-      currency: "JPY",
-      amount_cents: 10000,
-    },
-    input_schema_json: {
-      type: "object",
-      properties: {
-        images: { type: "array" },
-        format: { type: "string" },
-      },
-    },
-    status: "published",
-    published_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    author: {
-      name: "ImagePro",
-      avatar: "/photographer.png",
-    },
-    tags: ["画像処理", "CI/CD", "最適化"],
-    rating: 4.7,
-    executions: 892,
-    isActive: true,
-    price: 100,
-    currency: "¥",
-    featured: false,
-    lastUpdated: "6時間前",
-    stats: {
-      executions: 892,
-      success_rate: 0.99,
-      avg_runtime_ms: 15000,
-    },
-  },
-  {
-    id: 3,
-    tenant_id: 1,
-    spell_key: "com.example.data-analysis",
-    name: "データ分析テンプレート",
-    summary: "Pythonベースのデータ分析環境。Jupyter Notebook、pandas、matplotlib込み。",
-    description:
-      "ワンクリックでデータ分析用のリポジトリを生成。分析テンプレート、CI、ダッシュボード雛形まで同梱しています。",
-    visibility: "public",
-    execution_mode: "clone",
-    pricing_json: {
-      model: "one_time",
-      currency: "JPY",
-      amount_cents: 80000,
-    },
-    input_schema_json: {
-      type: "object",
-      properties: {
-        repo_name: { type: "string" },
-        description: { type: "string" },
-      },
-    },
-    status: "published",
-    published_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    author: {
-      name: "Analytics",
-      avatar: "/data-analyst-workspace.png",
-    },
-    tags: ["データ", "テンプレート", "自動化"],
-    rating: 4.9,
-    executions: 567,
-    isActive: true,
-    price: 800,
-    currency: "¥",
-    featured: true,
-    lastUpdated: "1日前",
-    stats: {
-      executions: 567,
-      success_rate: 0.97,
-      avg_runtime_ms: 5000,
-    },
-  },
-]
-
-const sampleWizards: Wizard[] = [
-  {
-    id: 1,
-    name: "DevTeam",
-    avatar: "/developer-working.png",
-    bio: "エンタープライズ向けAPI開発チーム。高品質で信頼性の高いSpellを提供します。",
-    github_username: "devteam-official",
-    published_spells: 12,
-    total_executions: 15420,
-    success_rate: 0.98,
-    joined_at: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "ImagePro",
-    avatar: "/photographer.png",
-    bio: "画像処理・メディア変換のスペシャリスト。CI/CD統合に特化したワークフローを開発。",
-    github_username: "imagepro-tools",
-    published_spells: 8,
-    total_executions: 8920,
-    success_rate: 0.99,
-    joined_at: "2024-02-20",
-  },
-  {
-    id: 3,
-    name: "Analytics",
-    avatar: "/data-analyst-workspace.png",
-    bio: "データサイエンス・機械学習のテンプレート開発者。研究機関との連携多数。",
-    github_username: "analytics-lab",
-    published_spells: 15,
-    total_executions: 12340,
-    success_rate: 0.97,
-    joined_at: "2024-01-08",
-  },
-]
-
 export const useSpellStore = create<SpellStore>()(
   persist(
     (set, get) => ({
       // Initial State
       currentUser: null,
-      spells: sampleSpells,
+      spells: [],
       purchasedSpells: [],
       mySpells: [],
       casts: [],
-      wizards: sampleWizards,
+      wizards: [],
       stats: {
-        totalSpells: sampleSpells.length,
-        totalExecutions: sampleSpells.reduce((sum, spell) => sum + (spell.executions ?? 0), 0),
-        averageRating:
-          sampleSpells.length > 0
-            ? sampleSpells.reduce((sum, spell) => sum + (spell.rating ?? 0), 0) / sampleSpells.length
-            : 0,
-        activeDevelopers: new Set(sampleWizards.map((wizard) => wizard.github_username)).size,
+        totalSpells: 0,
+        totalExecutions: 0,
+        averageRating: 0,
+        activeDevelopers: 0,
       },
 
       // UI State
@@ -376,8 +205,22 @@ export const useSpellStore = create<SpellStore>()(
 
       // Data fetching (現在はモック)
       fetchBazaarSpells: async () => {
-        // 実際のAPI呼び出し: GET /v1/spells
-        // set({ spells: response.items })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/spells'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch spells: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as { items?: Spell[] }
+          const items = Array.isArray(data.items) ? data.items : []
+          set({ spells: items })
+          get().updateStats()
+        } catch (err) {
+          console.error('fetchBazaarSpells failed', err)
+        }
       },
 
       fetchMySpells: async () => {

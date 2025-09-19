@@ -443,6 +443,75 @@ async function computeInputHash(input: unknown): Promise<string> {
     .join('')
 }
 
+type SpellRow = {
+  id: number
+  tenant_id: number
+  spell_key: string
+  version: string
+  name: string
+  summary: string
+  description: string | null
+  visibility: string
+  execution_mode: string
+  pricing_json: string | null
+  input_schema_json: string | null
+  repo_ref: string | null
+  workflow_id: string | null
+  template_repo: string | null
+  status: string
+  published_at: string | null
+  created_at: string
+}
+
+function parsePricing(json: string | null): { model: 'flat' | 'metered' | 'one_time'; currency: string; amount_cents: number } {
+  if (!json) return { model: 'flat', currency: 'USD', amount_cents: 0 }
+  try {
+    const parsed = JSON.parse(json)
+    const model = (parsed?.model ?? 'flat') as 'flat' | 'metered' | 'one_time'
+    const currency = typeof parsed?.currency === 'string' ? parsed.currency.toUpperCase() : 'USD'
+    const amount = typeof parsed?.amount_cents === 'number' ? Math.max(0, Math.round(parsed.amount_cents)) : 0
+    return { model, currency, amount_cents: amount }
+  } catch (_) {
+    return { model: 'flat', currency: 'USD', amount_cents: 0 }
+  }
+}
+
+function parseInputSchema(json: string | null): Record<string, any> {
+  if (!json) return {}
+  try {
+    const parsed = JSON.parse(json)
+    if (parsed && typeof parsed === 'object') return parsed
+  } catch (_) {}
+  return {}
+}
+
+function mapSpellRow(row: SpellRow): SpellRow & { pricing: ReturnType<typeof parsePricing>; inputSchema: Record<string, any> } {
+  const pricing = parsePricing(row.pricing_json)
+  const inputSchema = parseInputSchema(row.input_schema_json)
+  return { ...row, pricing, inputSchema }
+}
+
+function spellRowToResponse(row: SpellRow & { pricing: ReturnType<typeof parsePricing>; inputSchema: Record<string, any> }) {
+  return {
+    id: row.id,
+    tenant_id: row.tenant_id,
+    spell_key: row.spell_key,
+    name: row.name,
+    summary: row.summary,
+    description: row.description ?? undefined,
+    visibility: (row.visibility as any) ?? 'private',
+    execution_mode: (row.execution_mode as any) ?? 'service',
+    pricing_json: row.pricing,
+    input_schema_json: row.inputSchema,
+    repo_ref: row.repo_ref ?? undefined,
+    workflow_id: row.workflow_id ?? undefined,
+    template_repo: row.template_repo ?? undefined,
+    status: (row.status as any) ?? 'draft',
+    published_at: row.published_at ?? undefined,
+    created_at: row.created_at,
+  }
+}
+
 async function saveCastRecord(env: Env, rec: CastRecord): Promise<void> {
   if (env.DATABASE_URL) {
     const castDbId = optionalDbId(rec.id)
@@ -1227,6 +1296,46 @@ async function handleCastEvents(req: Request, env: Env, castId: string): Promise
   return new Response(stream, { status: 200, headers })
 }
 
+async function handleSpellsList(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const url = new URL(req.url)
+  const search = url.searchParams.get('query')?.trim()
+  let limit = parseInt(url.searchParams.get('limit') || '20', 10)
+  if (!Number.isFinite(limit) || limit <= 0) limit = 20
+  limit = Math.min(Math.max(limit, 1), 100)
+
+  let items: any[] = []
+
+  if (env.DATABASE_URL) {
+    try {
+      const where: string[] = [`visibility IN ('public','unlisted')`]
+      const params: Array<string | number> = []
+      if (search) {
+        where.push('(name LIKE ? OR summary LIKE ? OR spell_key LIKE ?)')
+        const q = `%${search}%`
+        params.push(q, q, q)
+      }
+      const sql = `SELECT id, tenant_id, spell_key, version, name, summary, description, visibility, execution_mode, pricing_json, input_schema_json, repo_ref, workflow_id, template_repo, status, published_at, created_at
+        FROM spells
+        WHERE ${where.join(' AND ')}
+        ORDER BY (published_at IS NULL), published_at DESC, id DESC
+        LIMIT ?`
+      params.push(limit)
+      const rows = await runQuery<SpellRow>(env, sql, params)
+      items = rows.map((row) => spellRowToResponse(mapSpellRow(row)))
+    } catch (err) {
+      logEvent('warn', 'spells_list_db_error', { error: String(err) }, trace)
+      items = []
+    }
+  }
+
+  return okJSON(env, { items })
+}
+
 async function handleCastVerdict(req: Request, env: Env, castId: string): Promise<Response> {
   if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
   const trace = parseTraceparent(req.headers.get('traceparent'))
@@ -1968,6 +2077,9 @@ const handler = {
     }
 
     if (pathname.startsWith('/api/v1/')) {
+      if (pathname === '/api/v1/spells') {
+        return handleSpellsList(request, env)
+      }
       const castMatch = pathname.match(/^\/api\/v1\/spells\/(\d+):cast$/)
       if (castMatch) {
         return handleCastCreate(request, env, castMatch[1])
