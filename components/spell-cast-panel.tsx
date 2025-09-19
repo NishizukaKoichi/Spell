@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Play, Loader2, Download, Clock, Hash, FileText, ShieldX } from "lucide-react"
+import { Play, Loader2, Download, Clock, Hash, FileText, ShieldX, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -95,6 +95,9 @@ export function SpellCastPanel({ spell, variant = "default" }: SpellCastPanelPro
     }
   }
 
+  const progressLabel = castState?.progress?.message ?? castState?.progress?.stage
+  const percent = castState?.progress?.pct
+
   return (
     <div className={variant === "compact" ? "space-y-2" : "space-y-3"}>
       <Button className="w-full" size={variant === "compact" ? "sm" : "default"} onClick={handleCast} disabled={isCasting}>
@@ -117,10 +120,11 @@ export function SpellCastPanel({ spell, variant = "default" }: SpellCastPanelPro
             )}
           </div>
 
-          {castState.progress?.message && (
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{castState.progress.message}</span>
+          {progressLabel && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Activity className="h-3 w-3" />
+              <span>{progressLabel}</span>
+              {Number.isFinite(percent) && percent != null ? <span>{Math.round(percent)}%</span> : null}
             </div>
           )}
 
@@ -164,8 +168,11 @@ export function SpellCastPanel({ spell, variant = "default" }: SpellCastPanelPro
                   <span>{castState.artifact.sha256.slice(0, 12)}…</span>
                 </div>
               )}
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{formatExpiry(castState.artifact.ttlExpiresAt)}</span>
+              </div>
               <div>サイズ: {formatBytes(castState.artifact.sizeBytes)}</div>
-              <div>有効期限: {formatExpiry(castState.artifact.ttlExpiresAt)}</div>
             </div>
           )}
         </div>
