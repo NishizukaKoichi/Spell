@@ -2,9 +2,11 @@
 import { connect, StringCodec, credsAuthenticator, tokenAuthenticator } from 'nats'
 import { readFile } from 'node:fs/promises'
 import JSZip from 'jszip'
+import path from 'node:path'
 import process from 'node:process'
 import os from 'node:os'
 import { webcrypto } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 
 const crypto = webcrypto
 
@@ -20,7 +22,7 @@ function requireEnv(key, fallback) {
   throw new Error(`Missing required environment variable ${key}`)
 }
 
-async function buildConnection() {
+export async function buildConnection() {
   const servers = requireEnv('NATS_URL')
   const name = process.env.SERVICE_RUNNER_ID || `service-runner-${os.hostname()}-${process.pid}`
   const options = { servers, name }
@@ -33,7 +35,7 @@ async function buildConnection() {
   return connect(options)
 }
 
-async function createArtifact(run) {
+export async function createArtifact(run) {
   const zip = new JSZip()
   zip.file('result.json', JSON.stringify({
     run_id: run.run_id,
@@ -46,7 +48,7 @@ async function createArtifact(run) {
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } })
 }
 
-async function uploadArtifact(baseUrl, prefix, runId, buffer) {
+export async function uploadArtifact(baseUrl, prefix, runId, buffer) {
   const key = `${prefix.replace(/\/$/, '')}/${runId}/result.zip`
   const target = new URL(`/api/artifacts/${key}`, baseUrl)
   const res = await fetch(target, { method: 'PUT', body: buffer })
@@ -65,7 +67,7 @@ async function uploadArtifact(baseUrl, prefix, runId, buffer) {
   }
 }
 
-async function postVerdict(baseUrl, token, castId, payload) {
+export async function postVerdict(baseUrl, token, castId, payload) {
   const target = new URL(`/api/v1/casts/${castId}:verdict`, baseUrl)
   const res = await fetch(target, {
     method: 'POST',
@@ -81,12 +83,12 @@ async function postVerdict(baseUrl, token, castId, payload) {
   }
 }
 
-function ttlEpochMs(days) {
+export function ttlEpochMs(days) {
   const ttlDays = Number.isFinite(Number(days)) && Number(days) > 0 ? Number(days) : 7
   return Date.now() + ttlDays * 24 * 60 * 60 * 1000
 }
 
-async function handleRun(opts, job, state) {
+export async function handleRun(opts, job, state) {
   const { baseUrl, internalToken, artifactPrefix, artifactTtlDays } = opts
   if (job.mode && job.mode !== 'service') {
     log(`Skipping run ${job.run_id} (mode=${job.mode})`)
@@ -136,7 +138,7 @@ async function handleRun(opts, job, state) {
   }
 }
 
-async function main() {
+export async function main() {
   const baseUrl = requireEnv('WORKER_BASE_URL', 'https://koichinishizuka.com')
   const internalToken = requireEnv('INTERNAL_API_TOKEN')
   const artifactPrefix = process.env.RUNNER_ARTIFACT_PREFIX || 'artifacts'
@@ -189,7 +191,12 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Fatal runner error', err)
-  process.exit(1)
-})
+const modulePath = fileURLToPath(import.meta.url)
+const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : null
+
+if (entryPath && entryPath === modulePath) {
+  main().catch((err) => {
+    console.error('Fatal runner error', err)
+    process.exit(1)
+  })
+}
