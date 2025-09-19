@@ -257,7 +257,7 @@ CORS は `Origin: https://app.example.com` のみ許可。
 4. 成果物は `result.zip` + `sbom.spdx.json` + `result.sha256` を取得可能。
 5. 監査 JSONL に欠落がない。
 6. 初期 SLO (Edge/Core/E2E) を満たす。
-7. Stripe Webhook は raw 検証 + 冪等。
+7. Stripe Webhook は raw 検証 + 冪等（`payment_intent.succeeded` / `charge.refunded` / `invoice.payment_failed` を処理）。
 8. Cancel API が冪等に動作。
 9. SSE 再接続でイベント欠落がない。
 10. GitHub Artifact → R2 ミラーが 1 分以内に完了。
@@ -279,4 +279,3 @@ CORS は `Origin: https://app.example.com` のみ許可。
 
 - SSE メッセージ例、Cap 判定擬似コード、状態遷移図などを `docs/ARCHITECTURE.md` に収録。
 - 杖向け失敗語彙（サウンド/トースト）もここで管理。
-

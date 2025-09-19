@@ -1,6 +1,6 @@
 # Service Runner
 
-Cloudflare Workers から `mode: "service"` でキューに登録された詠唱は、NATS JetStream を経由してサービスランナーが処理します。ランナーは成果物を生成して R2 へアップロードし、`/api/v1/casts/{id}:verdict` に結果を返します。
+Cloudflare Workers から `mode: "service"` でキューに登録された詠唱は、NATS JetStream を経由してサービスランナーが処理します。ランナーは成果物を生成して R2 へアップロードし、`/api/v1/casts/{id}:verdict` に結果を返します。Edge 側では Stripe Webhook の各イベント（成功・返金・支払い失敗）で台帳が更新されるため、ランナーが返す `status` / `cost_cents` が課金フローの基準になります。
 
 ## 必要な環境変数
 
@@ -46,5 +46,6 @@ pnpm runner:service
 3. `GET /api/v1/casts/{id}` で `status` が `succeeded` に遷移し、`artifact_url` / `artifact_sha256` / `artifact_size_bytes` が設定されていることを確認。
 4. `GET /api/v1/casts/{id}/events` の SSE で `artifact_ready` → `completed` のイベントが流れることを確認。
 5. 詠唱中に `POST /api/v1/casts/{id}:cancel` を実行し、ランナーがキャンセルを検知して `status: "canceled"` を返すことを確認。
+6. Stripe Dashboard / CLI から `payment_intent.succeeded` / `charge.refunded` / `invoice.payment_failed` をトリガーし、Workers 側の台帳（`billing_ledger`）とメトリクスが更新されることを確認。
 
 これでサービスランナーの基本的な機能確認が完了します。

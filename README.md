@@ -20,7 +20,7 @@ pnpm runner:service  # Node.js 版サービスランナーを起動
 
 # テスト
 pnpm test         # すべての Vitest を実行（Edge + Service Runner）
-pnpm test:edge    # Edge ワーカーのテストのみ
+pnpm test:edge    # Edge ワーカーのテストのみ（Stripe webhook 等）
 pnpm test:runner  # Node.js サービスランナーのテストのみ
 
 # Cloudflare Workers
