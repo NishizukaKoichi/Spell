@@ -18,6 +18,7 @@ interface SpellStore {
   mySpells: Spell[]
   casts: Cast[]
   wizards: Wizard[]
+  isFetchingWizards: boolean
   stats: MarketplaceStats
 
   // UI State
@@ -65,6 +66,7 @@ export const useSpellStore = create<SpellStore>()(
       mySpells: [],
       casts: [],
       wizards: [],
+      isFetchingWizards: false,
       stats: {
         totalSpells: 0,
         totalExecutions: 0,
@@ -245,8 +247,23 @@ export const useSpellStore = create<SpellStore>()(
 
 
       fetchWizards: async () => {
-        // 実際のAPI呼び出し: GET /v1/wizards
-        // set({ wizards: response.items })
+        set({ isFetchingWizards: true })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/wizards'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch wizards: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as { items?: Wizard[] }
+          set({ wizards: Array.isArray(data.items) ? data.items : [] })
+        } catch (err) {
+          console.error('fetchWizards failed', err)
+        } finally {
+          set({ isFetchingWizards: false })
+        }
       },
 
       // Getters

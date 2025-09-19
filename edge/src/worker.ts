@@ -513,6 +513,18 @@ function spellRowToResponse(row: SpellRow & { pricing: ReturnType<typeof parsePr
   }
 }
 
+type WizardRow = {
+  id: number
+  name: string
+  avatar: string | null
+  bio: string | null
+  github_username: string | null
+  published_spells: number | null
+  total_executions: number | null
+  success_rate: number | null
+  joined_at: string | null
+}
+
 async function saveCastRecord(env: Env, rec: CastRecord): Promise<void> {
   if (env.DATABASE_URL) {
     const castDbId = optionalDbId(rec.id)
@@ -1860,6 +1872,50 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   return withCORS(env, new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...headers, 'content-type': 'application/json; charset=utf-8' } }))
 }
 
+async function handleWizardsList(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const search = new URL(req.url).searchParams.get('query')?.trim()
+
+  let items: any[] = []
+  if (env.DATABASE_URL) {
+    try {
+      const where: string[] = ['1=1']
+      const params: Array<string | number> = []
+      if (search) {
+        where.push('(name LIKE ? OR github_username LIKE ? OR bio LIKE ?)')
+        const q = `%${search}%`
+        params.push(q, q, q)
+      }
+      const sql = `SELECT id, name, avatar, bio, github_username, published_spells, total_executions, success_rate, joined_at
+        FROM wizards
+        WHERE ${where.join(' AND ')}
+        ORDER BY total_executions DESC, success_rate DESC
+        LIMIT 50`
+      const rows = await runQuery<WizardRow>(env, sql, params)
+      items = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        avatar: row.avatar ?? undefined,
+        bio: row.bio ?? undefined,
+        github_username: row.github_username ?? undefined,
+        published_spells: row.published_spells ?? 0,
+        total_executions: row.total_executions ?? 0,
+        success_rate: row.success_rate ?? 0,
+        joined_at: row.joined_at ?? undefined,
+      }))
+    } catch (err) {
+      logEvent('warn', 'wizards_list_db_error', { error: String(err) }, trace)
+      items = []
+    }
+  }
+
+  return okJSON(env, { items })
+}
+
 async function handleArtifact(req: Request, env: Env, pathname: string): Promise<Response> {
   const origin = env.R2_PUBLIC_BASE_URL
   const parts = pathname.split('/').filter(Boolean)
@@ -2096,6 +2152,9 @@ const handler = {
     if (pathname.startsWith('/api/v1/')) {
       if (pathname === '/api/v1/spells') {
         return handleSpellsList(request, env)
+      }
+      if (pathname === '/api/v1/wizards') {
+        return handleWizardsList(request, env)
       }
       const castMatch = pathname.match(/^\/api\/v1\/spells\/(\d+):cast$/)
       if (castMatch) {
