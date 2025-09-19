@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Spell, Cast, Wizard, User } from "./types"
+import type { Spell, Cast, Wizard } from "./types"
 import { resolveUrl } from "./session"
 
 interface MarketplaceStats {
@@ -12,7 +12,6 @@ interface MarketplaceStats {
 
 interface SpellStore {
   // State
-  currentUser: User | null
   spells: Spell[]
   isFetchingSpells: boolean
   purchasedSpells: Spell[]
@@ -60,7 +59,6 @@ export const useSpellStore = create<SpellStore>()(
   persist(
     (set, get) => ({
       // Initial State
-      currentUser: null,
       spells: [],
       isFetchingSpells: false,
       purchasedSpells: [],
