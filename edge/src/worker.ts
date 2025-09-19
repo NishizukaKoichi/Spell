@@ -215,7 +215,7 @@ function computeArtifactExpiry(env: Env): number {
   return Date.now() + ttlDays * 24 * 60 * 60 * 1000
 }
 
-async function mirrorGithubArtifactToR2(env: Env, runId: string, url: string): Promise<{
+export async function mirrorGithubArtifactToR2(env: Env, runId: string, url: string): Promise<{
   artifactUrl: string
   sha256: string
   sizeBytes: number

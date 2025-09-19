@@ -384,6 +384,49 @@ describe('cast lifecycle via PlanetScale path', () => {
     expect(estimateEntries.length).toBeGreaterThanOrEqual(1)
   })
 
+  it('streams workflow SSE events with artifact mirrored to R2', async () => {
+    const env = freshEnv()
+    env.GITHUB_APP_ID = '123'
+    env.GITHUB_APP_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\nMIIBVwIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAuX0us0MI6N87p7pu\n0pJCLPZ7L+G2kzzkZXF1tcHTTX3e8DqRL3OjaxAg/P6nxsVXni4eWh05rq6ArlTc\nVmO6dwIDAQABAkAmLF730cdpShUMHbOWcZH/AsLiCFYI8a9kaI0s5momkMumZ5qX\nPz9vywgq6Z9erjRzCQXDpUe1koXSPo6e7/jBAiEA6C0BpvyEukgqS0bkkCm1cW0X\nADVY6jwxKF1uHmIiMa8CIQDDDsS/bRMyCV2wE8pQnH3UX0YPD+s/COM24kTx5cDI\ndQIge5cDIeEJD7BqXc9E+u6KDAdAm8YGtS+wGGyRyvE4sECIDb1rssZCvGSqtEtD\nWwrHgMHqmpYJv1nVbWcv16O3MHuvAiEAmjVWeItPxX2VINeodIZ6Tn6PvxI6Bfq5\nxoVI476S7ik=\n-----END PRIVATE KEY-----'
+    env.R2 = {
+      async put() {
+        return null
+      },
+      async get() {
+        return null
+      },
+      async delete() {},
+    }
+
+    const artifacts = [{ id: 1, name: 'result' }]
+    const mirror = { artifactUrl: 'https://r2.test/run-1/result.zip', sha256: 'abc'.padEnd(64, '0'), sizeBytes: 123, expiresAt: Date.now() + 60000 }
+
+    const github = await import('../src/github')
+    vi.spyOn(github, 'listArtifactsForRun').mockResolvedValue(artifacts)
+    vi.spyOn(github, 'getArtifactDownloadUrl').mockResolvedValue('https://github.com/download')
+    vi.spyOn(await import('../src/worker'), 'mirrorGithubArtifactToR2' as any).mockResolvedValue(mirror)
+    vi.spyOn(github, 'getWorkflowRun').mockImplementation(async () => ({ status: 'completed', conclusion: 'success' }))
+
+    const castRequest = new Request('https://spell.test/api/v1/spells/999:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'workflow-sse',
+      },
+      body: JSON.stringify({ mode: 'workflow' }),
+    })
+
+    const res = await handler.fetch(castRequest, env)
+    const json = await res.json()
+
+    const sseReq = new Request(`https://spell.test/api/v1/casts/${json.cast_id}/events`)
+    const sseRes = await handler.fetch(sseReq, env)
+    const body = await sseRes.text()
+
+    expect(body).toContain('artifact_ready')
+    expect(body).toContain('completed')
+  })
+
   it('processes payment_intent.succeeded webhook and writes charge entry', async () => {
     const env = freshEnv()
     env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
