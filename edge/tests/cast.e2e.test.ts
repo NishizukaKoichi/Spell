@@ -64,7 +64,7 @@ const executeMock = vi.fn(async (sql: string, params: Array<any>) => {
   if (trimmed.startsWith('UPDATE CASTS SET')) {
     const id = Number(params[16])
     const row = castsById.get(id)
-    if (!row) throw new Error('cast not found for update')
+    if (!row) return { rowsAffected: 0 }
     row.status = params[0]
     row.cost_cents = params[1]
     row.artifact_url = params[2]
@@ -140,6 +140,33 @@ vi.mock('../src/db', () => ({
   runQuery: async () => [],
   runQuerySingle: (...args: [any, string, Array<any>]) => runQuerySingleMock(...args),
 }))
+
+vi.mock('../src/github', () => {
+  class RepoAccessError extends Error {}
+  class WorkflowNotFoundError extends Error {}
+  class GithubApiError extends Error {
+    status: number
+    constructor(message: string, status: number) {
+      super(message)
+      this.status = status
+    }
+  }
+
+  return {
+    createAppJwt: vi.fn(async () => 'jwt'),
+    getInstallationIdForRepo: vi.fn(async () => 123),
+    createInstallationToken: vi.fn(async () => 'inst-token'),
+    dispatchWorkflow: vi.fn(async () => {}),
+    cancelWorkflowRun: vi.fn(async () => {}),
+    getLatestWorkflowRun: vi.fn(async () => ({ id: 777 })),
+    getWorkflowRun: vi.fn(async () => ({ status: 'completed', conclusion: 'success' })),
+    listArtifactsForRun: vi.fn(async () => []),
+    getArtifactDownloadUrl: vi.fn(async () => null),
+    RepoAccessError,
+    WorkflowNotFoundError,
+    GithubApiError,
+  }
+})
 
 const kvStore = new Map<string, string>()
 const auditStore = new Map<string, string>()
@@ -327,6 +354,36 @@ describe('cast lifecycle via PlanetScale path', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('creates a workflow-mode cast and triggers GitHub dispatch', async () => {
+    const env = freshEnv()
+    env.GITHUB_APP_ID = '123'
+    env.GITHUB_APP_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\nMIIBVwIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAuX0us0MI6N87p7pu\n0pJCLPZ7L+G2kzzkZXF1tcHTTX3e8DqRL3OjaxAg/P6nxsVXni4eWh05rq6ArlTc\nVmO6dwIDAQABAkAmLF730cdpShUMHbOWcZH/AsLiCFYI8a9kaI0s5momkMumZ5qX\nPz9vywgq6Z9erjRzCQXDpUe1koXSPo6e7/jBAiEA6C0BpvyEukgqS0bkkCm1cW0X\nADVY6jwxKF1uHmIiMa8CIQDDDsS/bRMyCV2wE8pQnH3UX0YPD+s/COM24kTx5cDI\ndQIge5cDIeEJD7BqXc9E+u6KDAdAm8YGtS+wGGyRyvE4sECIDb1rssZCvGSqtEtD\nWwrHgMHqmpYJv1nVbWcv16O3MHuvAiEAmjVWeItPxX2VINeodIZ6Tn6PvxI6Bfq5\nxoVI476S7ik=\n-----END PRIVATE KEY-----'
+
+    const castRequest = new Request('https://spell.test/api/v1/spells/789:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'workflow-idem',
+      },
+      body: JSON.stringify({ mode: 'workflow', input: { hello: 'world' } }),
+    })
+
+    const res = await handler.fetch(castRequest, env)
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.mode).toBe('workflow')
+
+    const github = await import('../src/github')
+    expect(github.dispatchWorkflow).toHaveBeenCalledTimes(1)
+    expect(github.getLatestWorkflowRun).toHaveBeenCalledTimes(1)
+
+    const stored = castsById.get(json.cast_id)
+    expect(stored?.mode).toBe('workflow')
+
+    const estimateEntries = ledgerRecords.filter((entry) => entry.kind === 'estimate')
+    expect(estimateEntries.length).toBeGreaterThanOrEqual(1)
+  })
+
   it('processes payment_intent.succeeded webhook and writes charge entry', async () => {
     const env = freshEnv()
     env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
@@ -372,5 +429,101 @@ describe('cast lifecycle via PlanetScale path', () => {
     const chargeEntries = ledgerRecords.filter((entry) => entry.kind === 'charge')
     expect(chargeEntries.length).toBeGreaterThanOrEqual(1)
     expect(chargeEntries.some((entry) => entry.amount === 8800)).toBe(true)
+  })
+
+  it('processes charge.refunded webhook and writes refund entry', async () => {
+    const env = freshEnv()
+    env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+
+    const event = {
+      id: 'evt_refund_001',
+      type: 'charge.refunded',
+      created: Math.floor(Date.now() / 1000),
+      data: {
+        object: {
+          object: 'charge',
+          id: 'ch_001',
+          amount_refunded: 3200,
+          currency: 'jpy',
+          payment_intent: 'pi_test_456',
+          metadata: {
+            tenant_id: '1',
+            cast_id: '205',
+            spell_id: '305',
+            note: 'partial refund',
+          },
+        },
+      },
+    }
+
+    const body = JSON.stringify(event)
+    const timestamp = Math.floor(Date.now() / 1000)
+    const signature = createHmac('sha256', env.STRIPE_WEBHOOK_SECRET)
+      .update(`${timestamp}.${body}`)
+      .digest('hex')
+
+    const webhookReq = new Request('https://spell.test/api/stripe/webhook', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'stripe-signature': `t=${timestamp},v1=${signature}`,
+      },
+      body,
+    })
+
+    const webhookRes = await handler.fetch(webhookReq, env)
+    expect(webhookRes.status).toBe(200)
+
+    const refundEntries = ledgerRecords.filter((entry) => entry.kind === 'refund')
+    expect(refundEntries.length).toBeGreaterThanOrEqual(1)
+    expect(refundEntries.some((entry) => entry.amount === 3200)).toBe(true)
+  })
+
+  it('processes invoice.payment_failed webhook and writes credit entry', async () => {
+    const env = freshEnv()
+    env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+
+    const event = {
+      id: 'evt_invoice_failed_001',
+      type: 'invoice.payment_failed',
+      created: Math.floor(Date.now() / 1000),
+      data: {
+        object: {
+          object: 'invoice',
+          id: 'in_001',
+          amount_due: 7600,
+          currency: 'jpy',
+          customer: 'cus_001',
+          metadata: {
+            tenant_id: '1',
+            cast_id: '205',
+            spell_id: '305',
+            note: 'invoice failed',
+          },
+        },
+      },
+    }
+
+    const body = JSON.stringify(event)
+    const timestamp = Math.floor(Date.now() / 1000)
+    const signature = createHmac('sha256', env.STRIPE_WEBHOOK_SECRET)
+      .update(`${timestamp}.${body}`)
+      .digest('hex')
+
+    const webhookReq = new Request('https://spell.test/api/stripe/webhook', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'stripe-signature': `t=${timestamp},v1=${signature}`,
+      },
+      body,
+    })
+
+    const webhookRes = await handler.fetch(webhookReq, env)
+    expect(webhookRes.status).toBe(200)
+
+    const creditEntries = ledgerRecords.filter((entry) => entry.kind === 'credit')
+    expect(creditEntries.length).toBeGreaterThanOrEqual(1)
+    expect(creditEntries.some((entry) => entry.amount === 7600)).toBe(true)
   })
 })

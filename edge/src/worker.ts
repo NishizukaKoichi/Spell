@@ -1533,6 +1533,76 @@ async function processStripeEvent(env: Env, event: any, trace: TraceContext): Pr
     }
     await appendLedgerEntry(env, entry, trace)
     recordMetric('stripe.charge.cents', cents, { currency }, trace)
+  } else if (type === 'charge.refunded') {
+    const charge = event?.data?.object
+    if (!charge || charge.object !== 'charge') {
+      throw new Error('charge.refunded missing charge object')
+    }
+    const metadata = (charge.metadata || {}) as Record<string, string>
+    const tenantId = (metadata.tenant_id || env.DEFAULT_TENANT_ID || 'tenant_default').toString()
+    const castId = metadata.cast_id ? metadata.cast_id.toString() : undefined
+    const spellId = metadata.spell_id ? metadata.spell_id.toString() : undefined
+    const amountRefundedRaw = typeof charge.amount_refunded === 'number' ? charge.amount_refunded : typeof charge.amount === 'number' ? charge.amount : null
+    if (amountRefundedRaw === null) throw new Error('charge.refunded missing amount_refunded')
+    const cents = Math.max(0, Math.round(amountRefundedRaw))
+    const currency = typeof charge.currency === 'string' ? charge.currency.toUpperCase() : 'USD'
+    const occurredAt = typeof event?.created === 'number' && Number.isFinite(event.created) ? Math.floor(event.created * 1000) : Date.now()
+    const entry: LedgerEntry = {
+      id: `led_${crypto.randomUUID()}`,
+      tenant_id: tenantId,
+      cast_id: castId,
+      spell_id: spellId,
+      kind: 'refund',
+      cents,
+      currency,
+      occurred_at: occurredAt,
+      meta: {
+        stripe_event_type: type,
+        charge_id: charge.id,
+        payment_intent_id: typeof charge.payment_intent === 'string' ? charge.payment_intent : undefined,
+        metadata,
+      },
+      external_id: typeof event.id === 'string' ? event.id : undefined,
+      source: 'stripe',
+      reason: 'refund',
+    }
+    await appendLedgerEntry(env, entry, trace)
+    recordMetric('stripe.refund.cents', cents, { currency }, trace)
+  } else if (type === 'invoice.payment_failed') {
+    const invoice = event?.data?.object
+    if (!invoice || invoice.object !== 'invoice') {
+      throw new Error('invoice.payment_failed missing invoice object')
+    }
+    const metadata = (invoice.metadata || {}) as Record<string, string>
+    const tenantId = (metadata.tenant_id || env.DEFAULT_TENANT_ID || 'tenant_default').toString()
+    const castId = metadata.cast_id ? metadata.cast_id.toString() : undefined
+    const spellId = metadata.spell_id ? metadata.spell_id.toString() : undefined
+    const amountDueRaw = typeof invoice.amount_due === 'number' ? invoice.amount_due : null
+    if (amountDueRaw === null) throw new Error('invoice.payment_failed missing amount_due')
+    const cents = Math.max(0, Math.round(amountDueRaw))
+    const currency = typeof invoice.currency === 'string' ? invoice.currency.toUpperCase() : 'USD'
+    const occurredAt = typeof event?.created === 'number' && Number.isFinite(event.created) ? Math.floor(event.created * 1000) : Date.now()
+    const entry: LedgerEntry = {
+      id: `led_${crypto.randomUUID()}`,
+      tenant_id: tenantId,
+      cast_id: castId,
+      spell_id: spellId,
+      kind: 'credit',
+      cents,
+      currency,
+      occurred_at: occurredAt,
+      meta: {
+        stripe_event_type: type,
+        invoice_id: invoice.id,
+        customer: typeof invoice.customer === 'string' ? invoice.customer : undefined,
+        metadata,
+      },
+      external_id: typeof event.id === 'string' ? event.id : undefined,
+      source: 'stripe',
+      reason: 'credit',
+    }
+    await appendLedgerEntry(env, entry, trace)
+    recordMetric('stripe.invoice.failed.cents', cents, { currency }, trace)
   }
 }
 
