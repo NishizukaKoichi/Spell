@@ -18,6 +18,11 @@ pnpm install         # 依存関係をインストール
 pnpm build           # Next.js 本番ビルド
 pnpm runner:service  # Node.js 版サービスランナーを起動
 
+# テスト
+pnpm test         # すべての Vitest を実行（Edge + Service Runner）
+pnpm test:edge    # Edge ワーカーのテストのみ
+pnpm test:runner  # Node.js サービスランナーのテストのみ
+
 # Cloudflare Workers
 pnpm cf:deploy       # edge/src/worker.ts をデプロイ
 

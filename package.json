@@ -14,7 +14,10 @@
     "cf:secrets:list": "npx -y wrangler@latest -c edge/wrangler.toml secret list",
     "cf:deploy": "npx -y wrangler@latest -c edge/wrangler.toml deploy",
     "runner:service": "node core/service-runner.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:edge": "vitest run edge/tests",
+    "test:runner": "vitest run core/tests",
+    "test:watch": "vitest watch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
