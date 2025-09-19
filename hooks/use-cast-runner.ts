@@ -10,6 +10,7 @@ import {
   isTerminalStatus,
   reduceCastEvent,
 } from "@/lib/cast-events"
+import { useSpellStore } from "@/lib/spell-store"
 
 export interface UseCastRunnerOptions {
   onEvent?: (event: CastEvent) => void
@@ -57,6 +58,13 @@ export function useCastRunner(options: UseCastRunnerOptions = {}): UseCastRunner
     const stop = onCastProgress(response.cast_id, (event) => {
       setState((prev) => (prev ? reduceCastEvent(prev, event) : prev))
       onEvent?.(event)
+      if (event.type === "completed" || event.type === "failed") {
+        const store = useSpellStore.getState()
+        if (event.type === "completed") {
+          void store.fetchBazaarSpells()
+        }
+        void store.fetchMySpells()
+      }
     })
     stopRef.current = stop
     return initial
