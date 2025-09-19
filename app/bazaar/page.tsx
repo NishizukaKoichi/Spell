@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Star, Download, Clock, Users, TrendingUp, Sparkles } from "lucide-react"
+import { Search, Filter, Star, Download, Clock, Users, TrendingUp, Sparkles, RefreshCcw } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,15 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSpellStore } from "@/lib/spell-store"
+import { LoadingSkeleton } from "@/components/loading-skeleton"
+import { cn } from "@/lib/utils"
 
 export default function BazaarPage() {
   const router = useRouter()
 
   const {
+    spells,
+    isFetchingSpells,
     searchQuery,
     selectedCategory,
     selectedMode,
@@ -27,6 +31,28 @@ export default function BazaarPage() {
   } = useSpellStore()
 
   const filteredSpells = getFilteredBazaarSpells()
+  const isLoading = isFetchingSpells && spells.length === 0
+  const hasResults = filteredSpells.length > 0
+
+  const categoryCards = useMemo(() => {
+    const now = Date.now()
+    const published = spells.filter((spell) => spell.status === "published")
+    const newCount = published.filter((spell) => {
+      const publishedAt = Date.parse(spell.published_at ?? spell.created_at)
+      return Number.isFinite(publishedAt) && now - publishedAt <= 7 * 24 * 60 * 60 * 1000
+    }).length
+    const popularCount = published.filter((spell) => (spell.stats?.executions ?? 0) > 0).length
+    const workflowCount = published.filter((spell) => spell.execution_mode === "workflow").length
+    const serviceCount = published.filter((spell) => spell.execution_mode === "service").length
+    const templateCount = published.filter((spell) => spell.execution_mode === "clone").length
+    return [
+      { name: "新着", count: newCount, icon: Sparkles },
+      { name: "人気", count: popularCount, icon: TrendingUp },
+      { name: "ワークフロー", count: workflowCount, icon: Users },
+      { name: "サービス", count: serviceCount, icon: Filter },
+      { name: "テンプレート", count: templateCount, icon: Clock },
+    ]
+  }, [spells])
 
   useEffect(() => {
     fetchBazaarSpells()
@@ -75,7 +101,7 @@ export default function BazaarPage() {
 
       <div className="p-4 space-y-6">
         {/* 今日の呪文 */}
-        {featuredSpell && (
+        {featuredSpell && !isLoading ? (
           <section>
             <h2 className="text-xl font-bold mb-4 text-foreground">今日の呪文</h2>
             <Card className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-blue-500/20 overflow-hidden">
@@ -115,6 +141,12 @@ export default function BazaarPage() {
               </CardContent>
             </Card>
           </section>
+        ) : (
+          <section className="space-y-3">
+            <LoadingSkeleton className="h-48 w-full" />
+            <LoadingSkeleton className="h-6 w-48" />
+            <LoadingSkeleton className="h-4 w-full" />
+          </section>
         )}
 
         {/* カテゴリタブ */}
@@ -133,9 +165,16 @@ export default function BazaarPage() {
                   すべて表示
                 </Button>
               </div>
-              {filteredSpells.slice(0, 5).map((spell) => (
-                <Card key={spell.id} className="bg-card/50 border-border/50">
-                  <CardContent className="p-4">
+              {isLoading && !hasResults ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, idx) => (
+                    <LoadingSkeleton key={idx} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : hasResults ? (
+                filteredSpells.slice(0, 5).map((spell) => (
+                  <Card key={spell.id} className="bg-card/50 border-border/50">
+                    <CardContent className="p-4">
                     <div className="flex gap-4">
                       <Image
                         src={spell.author?.avatar || "/placeholder.svg"}
@@ -169,8 +208,11 @@ export default function BazaarPage() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                  </Card>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">表示できる呪文がありません。</div>
+              )}
             </TabsContent>
 
             <TabsContent value="popular" className="space-y-4">
@@ -180,58 +222,66 @@ export default function BazaarPage() {
                   すべて表示
                 </Button>
               </div>
-              {[...filteredSpells]
-                .sort((a, b) => (b.stats?.executions || 0) - (a.stats?.executions || 0))
-                .slice(0, 5)
-                .map((spell, index) => (
-                  <Card key={spell.id} className="bg-card/50 border-border/50">
-                    <CardContent className="p-4">
-                      <div className="flex gap-4">
-                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full text-white font-bold text-sm">
-                          {index + 1}
-                        </div>
-                        <Image
-                          src={spell.author?.avatar || "/placeholder.svg"}
-                          alt={spell.name}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-lg object-cover bg-muted"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <h4 className="font-semibold text-foreground truncate">{spell.name}</h4>
-                            <span className="text-sm font-medium text-blue-500 ml-2">
-                              ¥{Math.floor(spell.pricing_json.amount_cents / 100)}
-                            </span>
+              {hasResults ? (
+                [...filteredSpells]
+                  .sort((a, b) => (b.stats?.executions || 0) - (a.stats?.executions || 0))
+                  .slice(0, 5)
+                  .map((spell, index) => (
+                    <Card key={spell.id} className="bg-card/50 border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex gap-4">
+                          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full text-white font-bold text-sm">
+                            {index + 1}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>4.8</span>
+                          <Image
+                            src={spell.author?.avatar || "/placeholder.svg"}
+                            alt={spell.name}
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 rounded-lg object-cover bg-muted"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-1">
+                              <h4 className="font-semibold text-foreground truncate">{spell.name}</h4>
+                              <span className="text-sm font-medium text-blue-500 ml-2">
+                                ¥{Math.floor(spell.pricing_json.amount_cents / 100)}
+                              </span>
                             </div>
-                            <span>{spell.stats?.executions || 0}実行</span>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>{(spell.stats?.success_rate ?? 0).toFixed(2)}</span>
+                              </div>
+                              <span>{spell.stats?.executions || 0}実行</span>
+                            </div>
                           </div>
+                          <Button size="sm" variant="outline" onClick={() => downloadSpell(spell.id)}>
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => downloadSpell(spell.id)}>
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+              ) : (
+                <div className="text-sm text-muted-foreground">人気の呪文はまだ登録されていません。</div>
+              )}
             </TabsContent>
 
             <TabsContent value="categories" className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">カテゴリ</h3>
               <div className="grid grid-cols-1 gap-3">
-                {categories.map((category) => {
+                {categoryCards.map((category) => {
                   const Icon = category.icon
+                  const isActive = selectedCategory === category.name
                   return (
                     <Card
                       key={category.name}
-                      className="bg-card/50 border-border/50 hover:bg-card/70 transition-colors cursor-pointer"
-                      onClick={() => setSelectedCategory(category.name)}
+                      className={cn(
+                        "bg-card/50 border-border/50 transition-colors cursor-pointer",
+                        isActive ? "border-primary" : "hover:bg-card/70",
+                      )}
+                      onClick={() => setSelectedCategory(isActive ? "すべて" : category.name)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -255,6 +305,12 @@ export default function BazaarPage() {
               </div>
             </TabsContent>
           </Tabs>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedCategory("すべて")}>全て表示</Button>
+            <Button variant="outline" size="sm" onClick={() => fetchBazaarSpells()}>
+              <RefreshCcw className="h-4 w-4 mr-2" /> 再読み込み
+            </Button>
+          </div>
         </section>
       </div>
     </div>

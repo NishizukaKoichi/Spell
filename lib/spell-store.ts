@@ -14,6 +14,7 @@ interface SpellStore {
   // State
   currentUser: User | null
   spells: Spell[]
+  isFetchingSpells: boolean
   purchasedSpells: Spell[]
   mySpells: Spell[]
   casts: Cast[]
@@ -61,6 +62,7 @@ export const useSpellStore = create<SpellStore>()(
       // Initial State
       currentUser: null,
       spells: [],
+      isFetchingSpells: false,
       purchasedSpells: [],
       mySpells: [],
       casts: [],
@@ -205,6 +207,7 @@ export const useSpellStore = create<SpellStore>()(
 
       // Data fetching (現在はモック)
       fetchBazaarSpells: async () => {
+        set({ isFetchingSpells: true })
         try {
           const res = await fetch(resolveUrl('/api/v1/spells'), {
             credentials: 'include',
@@ -220,6 +223,8 @@ export const useSpellStore = create<SpellStore>()(
           get().updateStats()
         } catch (err) {
           console.error('fetchBazaarSpells failed', err)
+        } finally {
+          set({ isFetchingSpells: false })
         }
       },
 
@@ -250,6 +255,24 @@ export const useSpellStore = create<SpellStore>()(
 
         if (selectedMode !== "all") {
           filtered = filtered.filter((spell) => spell.execution_mode === selectedMode)
+        }
+
+        const now = Date.now()
+        if (selectedCategory && selectedCategory !== "すべて") {
+          if (selectedCategory === "新着") {
+            filtered = filtered.filter((spell) => {
+              const published = Date.parse(spell.published_at ?? spell.created_at)
+              return Number.isFinite(published) && now - published <= 7 * 24 * 60 * 60 * 1000
+            })
+          } else if (selectedCategory === "人気") {
+            filtered = filtered.filter((spell) => (spell.stats?.executions ?? 0) > 0)
+          } else if (selectedCategory === "ワークフロー") {
+            filtered = filtered.filter((spell) => spell.execution_mode === "workflow")
+          } else if (selectedCategory === "サービス") {
+            filtered = filtered.filter((spell) => spell.execution_mode === "service")
+          } else if (selectedCategory === "テンプレート") {
+            filtered = filtered.filter((spell) => spell.execution_mode === "clone")
+          }
         }
 
         return filtered
