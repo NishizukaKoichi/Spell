@@ -1309,12 +1309,28 @@ async function handleSpellsList(req: Request, env: Env): Promise<Response> {
   if (!Number.isFinite(limit) || limit <= 0) limit = 20
   limit = Math.min(Math.max(limit, 1), 100)
 
+  const includeOwned = url.searchParams.has('owned')
+
+  let tenantFilter: number | null = null
+  if (includeOwned) {
+    const cookies = parseCookies(req.headers.get('cookie'))
+    const claims = await verifyJWT(cookies['sid'], env)
+    if (!claims?.tenant_id) {
+      return withCORS(env, new Response(JSON.stringify({ items: [] }), { status: 200, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+    tenantFilter = Number(claims.tenant_id)
+  }
+
   let items: any[] = []
 
   if (env.DATABASE_URL) {
     try {
       const where: string[] = [`visibility IN ('public','unlisted')`]
       const params: Array<string | number> = []
+      if (tenantFilter !== null) {
+        where.push('tenant_id = ?')
+        params.push(tenantFilter)
+      }
       if (search) {
         where.push('(name LIKE ? OR summary LIKE ? OR spell_key LIKE ?)')
         const q = `%${search}%`

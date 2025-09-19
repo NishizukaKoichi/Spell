@@ -229,9 +229,22 @@ export const useSpellStore = create<SpellStore>()(
       },
 
       fetchMySpells: async () => {
-        // 実際のAPI呼び出し: GET /v1/spells?author=me
-        // set({ mySpells: response.items })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/spells?owned=1'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch my spells: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as { items?: Spell[] }
+          set({ mySpells: Array.isArray(data.items) ? data.items : [] })
+        } catch (err) {
+          console.error('fetchMySpells failed', err)
+        }
       },
+
 
       fetchWizards: async () => {
         // 実際のAPI呼び出し: GET /v1/wizards

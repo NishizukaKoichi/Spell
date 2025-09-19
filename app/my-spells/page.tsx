@@ -1,15 +1,20 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSpellStore } from "@/lib/spell-store"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SpellCastPanel } from "@/components/spell-cast-panel"
+import { LoadingSkeleton } from "@/components/loading-skeleton"
 
 export default function MySpellsPage() {
-  const { mySpells, updateSpell, deleteSpell, executeSpell } = useSpellStore()
+  const { mySpells, updateSpell, deleteSpell, executeSpell, fetchMySpells, isFetchingSpells } = useSpellStore()
   const [query, setQuery] = useState("")
+
+  useEffect(() => {
+    fetchMySpells()
+  }, [fetchMySpells])
 
   const filtered = useMemo(() => {
     if (!query) return mySpells
@@ -33,7 +38,16 @@ export default function MySpellsPage() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {filtered.length === 0 && <p className="text-sm text-muted-foreground">作成した Spell が見つかりません。</p>}
+        {isFetchingSpells && mySpells.length === 0 && (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, idx) => (
+              <LoadingSkeleton key={idx} className="h-32" />
+            ))}
+          </div>
+        )}
+        {!isFetchingSpells && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground">作成した Spell が見つかりません。</p>
+        )}
         {filtered.map((spell) => {
           const executions = spell.executions ?? spell.stats?.executions ?? 0
           const revenue = (spell.price ?? 0) * executions
