@@ -1,14 +1,17 @@
 import type { CastEvent, CastEventType } from "@/lib/cast-events"
+import { resolveUrl } from "./session"
 
 export async function castSpell(spellId: number | string, input: any) {
   const idem = crypto.randomUUID()
-  const res = await fetch(`/api/v1/spells/${spellId}:cast`, {
+  const res = await fetch(resolveUrl(`/api/v1/spells/${spellId}:cast`), {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "Idempotency-Key": idem,
     },
     body: JSON.stringify({ input }),
+    credentials: "include",
+    cache: "no-store",
   })
   if (!res.ok) {
     const text = await res.text().catch(() => "")
@@ -33,7 +36,7 @@ const SSE_EVENT_TYPES: CastEventType[] = [
 ]
 
 export function onCastProgress(castId: number, handler: (event: CastEvent) => void) {
-  const es = new EventSource(`/api/v1/casts/${castId}/events`)
+  const es = new EventSource(resolveUrl(`/api/v1/casts/${castId}/events`), { withCredentials: true })
 
   const wrap = (type: CastEventType) => (evt: MessageEvent) => {
     let data: any = evt.data
@@ -53,7 +56,10 @@ export function onCastProgress(castId: number, handler: (event: CastEvent) => vo
 }
 
 export async function cancelCast(castId: number | string) {
-  const res = await fetch(`/api/v1/casts/${castId}:cancel`, { method: "POST" })
+  const res = await fetch(resolveUrl(`/api/v1/casts/${castId}:cancel`), {
+    method: "POST",
+    credentials: "include",
+  })
   if (!res.ok && res.status !== 204) {
     const text = await res.text().catch(() => "")
     throw new Error(`Cancel failed: ${res.status} ${text}`)

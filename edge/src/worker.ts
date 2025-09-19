@@ -87,6 +87,7 @@ function corsHeaders(env: Env): Record<string, string> {
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'content-type,authorization,stripe-signature',
     'Access-Control-Max-Age': '600',
+    'Access-Control-Allow-Credentials': 'true',
   }
 }
 
