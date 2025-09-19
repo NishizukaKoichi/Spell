@@ -45,6 +45,10 @@ Rust ランナーを利用する場合は `core` ディレクトリで `cargo ru
 - `docs/ARCHITECTURE.md` – 採択スタック、API 仕様、DoD などの詳細
 - `docs/service-runner.md` – サービスランナーの環境変数、起動手順、検証フロー
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) で `pnpm lint` と `pnpm test` を実行します。Pull Request の作成や `main` への push 時に自動でチェックが走ります。
+
 ## ライセンス
 
 未定義（社内利用を想定）。
