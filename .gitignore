@@ -40,3 +40,8 @@ edge/.wrangler/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Build artifacts
+.wrangler/
+core/target/
+*.log
