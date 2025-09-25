@@ -71,6 +71,7 @@ import {
   getWorkflowRun,
   listArtifactsForRun,
   getArtifactDownloadUrl,
+  generateRepoFromTemplate,
   RepoAccessError,
   WorkflowNotFoundError,
   GithubApiError,
@@ -103,6 +104,24 @@ function okJSON(env: Env, data: unknown) {
     status: 200,
     headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(env) },
   })
+}
+
+function jsonError(env: Env, status: number, code: string, message: string, details?: Record<string, unknown>) {
+  const payload: Record<string, unknown> = {
+    code,
+    message,
+    request_id: crypto.randomUUID(),
+  }
+  if (details && Object.keys(details).length > 0) {
+    payload.details = details
+  }
+  return withCORS(
+    env,
+    new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(env) },
+    }),
+  )
 }
 
 async function hmacSHA256(key: string, data: string): Promise<string> {
@@ -152,6 +171,81 @@ function base64UrlEncodeString(input: string): string {
 function base64UrlDecode(input: string): string {
   const padded = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(input.length / 4) * 4, '=')
   return atob(padded)
+}
+
+function normalizeRepositoryName(name: string): string {
+  if (!name) return ''
+  const collapsed = name
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9-_.]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_.]+/, '')
+    .replace(/[-_.]+$/, '')
+  return collapsed
+}
+
+type SseEventEntry = {
+  id: string
+  event: string
+  data: Record<string, unknown>
+  ts: number
+}
+
+const SSE_BUFFER_LIMIT = 100
+
+function kvKeySse(castId: string | number, env: Env) {
+  return `${env.CAP_KV_PREFIX || 'cap'}:sse:${castId}`
+}
+
+function newSseEventId(): string {
+  return `e${Date.now().toString(36)}${randomHex(4)}`
+}
+
+async function loadSseEvents(env: Env, castId: string | number, trace?: TraceContext): Promise<SseEventEntry[]> {
+  if (!env.KV) return []
+  const key = kvKeySse(castId, env)
+  try {
+    const raw = await env.KV.get(key)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed as SseEventEntry[]
+  } catch (e) {
+    logEvent('warn', 'sse_event_load_error', { error: String(e), cast_id: castId }, trace)
+  }
+  return []
+}
+
+async function appendSseEvent(
+  env: Env,
+  castId: string | number,
+  event: string,
+  data: Record<string, unknown>,
+  trace: TraceContext,
+): Promise<SseEventEntry | null> {
+  if (!env.KV) return null
+  const entry: SseEventEntry = { id: newSseEventId(), event, data, ts: Date.now() }
+  const key = kvKeySse(castId, env)
+  try {
+    let existing: SseEventEntry[] = []
+    const raw = await env.KV.get(key)
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) existing = parsed as SseEventEntry[]
+      } catch (parseErr) {
+        logEvent('warn', 'sse_event_parse_error', { error: String(parseErr), cast_id: castId }, trace)
+      }
+    }
+    existing.push(entry)
+    if (existing.length > SSE_BUFFER_LIMIT) {
+      existing = existing.slice(existing.length - SSE_BUFFER_LIMIT)
+    }
+    await env.KV.put(key, JSON.stringify(existing), { expirationTtl: 60 * 60 * 24 * 14 })
+  } catch (err) {
+    logEvent('warn', 'sse_event_store_error', { error: String(err), cast_id: castId, event }, trace)
+  }
+  return entry
 }
 
 type TraceContext = {
@@ -231,6 +325,58 @@ function computeArtifactExpiry(env: Env): number {
   return Date.now() + ttlDays * 24 * 60 * 60 * 1000
 }
 
+type TenantCapSettings = {
+  monthly_cents?: number
+  total_cents?: number
+}
+
+function kvKeyTenantCap(tenantId: string, env: Env): string {
+  return `${env.CAP_KV_PREFIX || 'cap'}:tenant_cap:${tenantId}`
+}
+
+function normalizeCapValue(value: unknown): number | undefined {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : NaN
+  if (!Number.isFinite(parsed) || parsed < 0) return undefined
+  return Math.round(parsed)
+}
+
+async function getTenantCapSettings(env: Env, tenantId: string, trace: TraceContext): Promise<TenantCapSettings> {
+  if (!env.KV) return {}
+  try {
+    const raw = await env.KV.get(kvKeyTenantCap(tenantId, env))
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    return {
+      monthly_cents: normalizeCapValue(parsed.monthly_cents),
+      total_cents: normalizeCapValue(parsed.total_cents),
+    }
+  } catch (e) {
+    logEvent('warn', 'tenant_cap_read_error', { error: String(e), tenant_id: tenantId }, trace)
+    return {}
+  }
+}
+
+async function saveTenantCapSettings(env: Env, tenantId: string, caps: TenantCapSettings, trace: TraceContext): Promise<void> {
+  if (!env.KV) throw new Error('KV not configured for tenant caps')
+  const key = kvKeyTenantCap(tenantId, env)
+  const hasValues = caps.monthly_cents !== undefined || caps.total_cents !== undefined
+  try {
+    if (!hasValues) {
+      await env.KV.delete(key)
+      return
+    }
+    const payload = {
+      monthly_cents: caps.monthly_cents,
+      total_cents: caps.total_cents,
+      updated_at: Date.now(),
+    }
+    await env.KV.put(key, JSON.stringify(payload), { expirationTtl: 60 * 60 * 24 * 365 })
+  } catch (e) {
+    logEvent('warn', 'tenant_cap_write_error', { error: String(e), tenant_id: tenantId }, trace)
+    throw e
+  }
+}
+
 export async function mirrorGithubArtifactToR2(env: Env, runId: string, url: string): Promise<{
   artifactUrl: string
   sha256: string
@@ -269,9 +415,20 @@ async function publishToNats(env: Env, subject: string, body: Record<string, unk
     },
     body: JSON.stringify(body),
   })
+  if (res.status === 409) {
+    return
+  }
   if (!res.ok) {
     const textBody = await res.text().catch(() => '')
     throw new Error(`nats publish failed: ${res.status} ${textBody}`)
+  }
+  try {
+    const ack = await res.clone().json()
+    if (ack && typeof ack === 'object' && 'error' in ack && ack.error) {
+      logEvent('warn', 'nats_publish_ack_error', { subject, error: ack.error }, trace)
+    }
+  } catch (_) {
+    // ignore body parse issues
   }
 }
 
@@ -290,6 +447,14 @@ type LedgerEntry = {
   external_id?: string
   source?: string
   reason?: string
+}
+
+type GithubOAuthTokenRecord = {
+  access_token: string
+  login?: string | null
+  token_type?: string | null
+  scope?: string | null
+  fetched_at?: number
 }
 
 type CastRecord = {
@@ -317,6 +482,7 @@ type CastRecord = {
   failure_reason?: string
   p95_ms?: number
   error_rate?: number
+  input_hash: string
 }
 
 type IdempotencyRecord = {
@@ -337,7 +503,6 @@ function buildCastResponse(rec: CastRecord) {
     mode: rec.mode,
     timeout_sec: rec.timeout_sec,
     region: rec.region,
-    gh: rec.mode === 'workflow' ? { ownerRepo: 'NishizukaKoichi/Spell', workflowId: 'spell-run.yml', ref: 'main' } : undefined,
   }
 }
 
@@ -398,6 +563,7 @@ type CastRow = {
   input_hash: string
   created_at: string | null
   updated_at: string | null
+  spell_name?: string | null
 }
 
 function mapCastRow(row: CastRow): CastRecord {
@@ -432,6 +598,7 @@ function mapCastRow(row: CastRow): CastRecord {
     failure_reason: row.failure_reason || undefined,
     p95_ms: optionalNumber(row.p95_ms),
     error_rate: row.error_rate === null || row.error_rate === undefined ? undefined : Number(row.error_rate),
+    input_hash: row.input_hash || '',
   }
 }
 
@@ -442,6 +609,15 @@ async function computeInputHash(input: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+async function computeRunSubject(spellId: string | number, inputHash: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(`${spellId}:${inputHash}`))
+  const hash = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `run.${hash}`
 }
 
 type SpellRow = {
@@ -510,6 +686,20 @@ function spellRowToResponse(row: SpellRow & { pricing: ReturnType<typeof parsePr
     status: (row.status as any) ?? 'draft',
     published_at: row.published_at ?? undefined,
     created_at: row.created_at,
+  }
+}
+
+function castRowToSummary(row: CastRow): Record<string, unknown> {
+  return {
+    id: row.id,
+    spell_id: row.spell_id,
+    spell_name: row.spell_name ?? undefined,
+    run_id: row.run_id,
+    status: row.status,
+    estimate_cents: row.estimate_cents,
+    cost_cents: row.cost_cents,
+    created_at: row.created_at,
+    finished_at: row.finished_at,
   }
 }
 
@@ -589,6 +779,10 @@ function kvKeyRun(runId: string, env: Env) {
 
 function kvKeyIdempotency(tenantId: string, key: string, env: Env) {
   return `${env.CAP_KV_PREFIX || 'cap'}:idem:${tenantId}:${key}`
+}
+
+function kvKeyGithubToken(sub: string, env: Env) {
+  return `${env.CAP_KV_PREFIX || 'cap'}:gh_token:${sub}`
 }
 
 async function appendAuditSnapshot(env: Env, entry: Record<string, unknown>, trace: TraceContext): Promise<void> {
@@ -748,6 +942,45 @@ function toMysqlDateTime(date: Date): string {
   return date.toISOString().slice(0, 19).replace('T', ' ')
 }
 
+type AuthContext = {
+  tenantId: string
+  tenantNumeric: number
+  claims: Record<string, unknown>
+  role?: string
+}
+
+type RequireAuthOptions = {
+  roles?: string[]
+}
+
+async function requireAuthContext(
+  req: Request,
+  env: Env,
+  opts: RequireAuthOptions = {},
+): Promise<{ ok: true; context: AuthContext } | { ok: false; response: Response }> {
+  const cookies = parseCookies(req.headers.get('cookie'))
+  const claims = await verifyJWT(cookies['sid'], env)
+  if (!claims) {
+    return { ok: false, response: jsonError(env, 401, 'UNAUTHORIZED', '認証が必要です') }
+  }
+  const role = typeof claims.role === 'string' ? claims.role : undefined
+  if (opts.roles && opts.roles.length) {
+    if (!role || !opts.roles.includes(role)) {
+      return {
+        ok: false,
+        response: jsonError(env, 403, 'FORBIDDEN', '権限がありません', role ? { role } : undefined),
+      }
+    }
+  }
+  const tenantValue = claims.tenant_id ?? env.DEFAULT_TENANT_ID
+  if (tenantValue === undefined || tenantValue === null || tenantValue === '') {
+    return { ok: false, response: jsonError(env, 400, 'TENANT_UNAVAILABLE', 'tenant_id を特定できません') }
+  }
+  const tenantId = String(tenantValue)
+  const tenantNumeric = requiredDbId(tenantId, 0)
+  return { ok: true, context: { tenantId, tenantNumeric, claims, role } }
+}
+
 function parseEstimateFromPricing(pricingJson: string | null | undefined): number | null {
   if (!pricingJson) return null
   try {
@@ -762,30 +995,100 @@ function parseEstimateFromPricing(pricingJson: string | null | undefined): numbe
   return null
 }
 
-async function getSpellEstimate(env: Env, spellId: string, trace: TraceContext): Promise<number> {
+type WorkflowConfig = {
+  ownerRepo: string
+  workflowId: string
+  ref: string
+}
+
+type RepoRefParts = {
+  ownerRepo: string
+  ref: string
+}
+
+function parseRepoReference(repoRef: string | null | undefined): RepoRefParts | null {
+  if (!repoRef) return null
+  const trimmed = repoRef.trim()
+  if (!trimmed) return null
+  const [repoPart, refPart] = trimmed.split('@', 2)
+  if (!repoPart || !repoPart.includes('/')) return null
+  const ownerRepo = repoPart.trim()
+  const ref = refPart && refPart.trim() ? refPart.trim() : 'main'
+  return { ownerRepo, ref }
+}
+
+async function loadWorkflowConfig(
+  env: Env,
+  spellId: string | number,
+  tenantId: string | number,
+  trace?: TraceContext,
+): Promise<WorkflowConfig | null> {
+  let repoRef: string | null | undefined = null
+  let workflowId: string | null | undefined = null
+  if (env.DATABASE_URL) {
+    try {
+      const row = await runQuerySingle<{ repo_ref: string | null; workflow_id: string | null }>(
+        env,
+        'SELECT repo_ref, workflow_id FROM spells WHERE id = ? AND tenant_id = ? LIMIT 1',
+        [requiredDbId(spellId, 0), requiredDbId(tenantId, 0)],
+      )
+      if (!row) return null
+      repoRef = row.repo_ref
+      workflowId = row.workflow_id
+    } catch (err) {
+      logEvent('warn', 'workflow_config_db_error', { error: String(err), spell_id: String(spellId) }, trace)
+      return null
+    }
+  } else {
+    try {
+      const raw = await env.KV.get(kvKeySpell(String(spellId), env))
+      if (!raw) return null
+      const parsed = JSON.parse(raw) as { repo_ref?: string; workflow_id?: string; tenant_id?: string | number }
+      if (String(parsed.tenant_id ?? '') !== String(tenantId)) return null
+      repoRef = parsed.repo_ref
+      workflowId = parsed.workflow_id
+    } catch (err) {
+      logEvent('warn', 'workflow_config_kv_error', { error: String(err), spell_id: String(spellId) }, trace)
+      return null
+    }
+  }
+  const base = parseRepoReference(repoRef)
+  if (!base) return null
+  if (!workflowId || !workflowId.trim()) return null
+  return { ownerRepo: base.ownerRepo, ref: base.ref, workflowId: workflowId.trim() }
+}
+
+async function getSpellEstimate(env: Env, spellId: string, tenantId: string, trace: TraceContext): Promise<number> {
   if (env.DATABASE_URL) {
     try {
       const row = await runQuerySingle<{ pricing_json?: string | null }>(
         env,
-        'SELECT pricing_json FROM spells WHERE id = ?',
-        [requiredDbId(spellId, 0)],
+        'SELECT pricing_json FROM spells WHERE id = ? AND tenant_id = ?',
+        [requiredDbId(spellId, 0), requiredDbId(tenantId, 0)],
       )
       const estimate = parseEstimateFromPricing(row?.pricing_json)
       if (estimate !== null) return estimate
     } catch (e) {
-      logEvent('warn', 'spell_estimate_db_error', { error: String(e), spell_id: spellId }, trace)
+      logEvent('warn', 'spell_estimate_db_error', { error: String(e), spell_id: spellId, tenant_id: tenantId }, trace)
     }
   } else {
     try {
       const raw = await env.KV.get(kvKeySpell(spellId, env))
       if (raw) {
-        const parsed = JSON.parse(raw) as { estimate_cents?: number }
+        const parsed = JSON.parse(raw) as { estimate_cents?: number; tenant_id?: string | number; pricing?: Record<string, unknown> }
+        if (String(parsed?.tenant_id ?? '') !== String(tenantId)) return parseInt(env.DEFAULT_SPELL_ESTIMATE_CENTS || '25', 10) || 25
         if (typeof parsed?.estimate_cents === 'number' && Number.isFinite(parsed.estimate_cents)) {
           return Math.max(0, Math.round(parsed.estimate_cents))
         }
+        if (parsed?.pricing) {
+          try {
+            const fallback = parsePricing(JSON.stringify(parsed.pricing))
+            if (typeof fallback.amount_cents === 'number') return fallback.amount_cents
+          } catch (_) {}
+        }
       }
     } catch (e) {
-      logEvent('warn', 'spell_estimate_parse_error', { error: String(e), spell_id: spellId }, trace)
+      logEvent('warn', 'spell_estimate_parse_error', { error: String(e), spell_id: spellId, tenant_id: tenantId }, trace)
     }
   }
   const fallbackRaw = parseInt(env.DEFAULT_SPELL_ESTIMATE_CENTS || '25', 10)
@@ -834,6 +1137,57 @@ async function getMonthlyEstimateUsage(env: Env, tenantId: string, ts: number, t
   }
 }
 
+async function getTotalEstimateUsage(env: Env, tenantId: string, trace: TraceContext): Promise<number> {
+  if (env.DATABASE_URL) {
+    try {
+      const row = await runQuerySingle<{ total?: string | number | null }>(
+        env,
+        'SELECT COALESCE(SUM(amount_cents), 0) AS total FROM billing_ledger WHERE tenant_id = ? AND kind = ?',
+        [requiredDbId(tenantId, 0), 'estimate'],
+      )
+      const total = row?.total
+      if (typeof total === 'number') return total
+      if (typeof total === 'string') {
+        const parsed = parseInt(total, 10)
+        if (Number.isFinite(parsed)) return parsed
+      }
+    } catch (e) {
+      logEvent('warn', 'ledger_usage_total_db_error', { error: String(e), tenant_id: tenantId }, trace)
+    }
+    return 0
+  }
+
+  if (!env.KV) return 0
+  const prefix = `${env.CAP_KV_PREFIX || 'cap'}:ledger:${tenantId}:`
+  let cursor: string | undefined
+  let total = 0
+  try {
+    while (true) {
+      const list = await env.KV.list({ prefix, cursor, limit: 100 })
+      for (const key of list.keys) {
+        try {
+          const raw = await env.KV.get(key.name)
+          if (!raw) continue
+          const lines = raw.split('\n').filter(Boolean)
+          for (const line of lines) {
+            try {
+              const entry = JSON.parse(line) as LedgerEntry
+              if (entry.kind === 'estimate' && typeof entry.cents === 'number') total += entry.cents
+            } catch (_) {}
+          }
+        } catch (err) {
+          logEvent('warn', 'ledger_usage_total_read_error', { error: String(err), tenant_id: tenantId }, trace)
+        }
+      }
+      if (list.list_complete || !list.cursor) break
+      cursor = list.cursor
+    }
+  } catch (e) {
+    logEvent('warn', 'ledger_usage_total_list_error', { error: String(e), tenant_id: tenantId }, trace)
+  }
+  return total
+}
+
 async function appendEstimateLedgerEntry(env: Env, rec: CastRecord, trace: TraceContext): Promise<void> {
   const entry: LedgerEntry = {
     id: `led_${crypto.randomUUID()}`,
@@ -856,6 +1210,10 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
   if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
   const trace = parseTraceparent(req.headers.get('traceparent'))
 
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'maker', 'operator'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric, claims } = auth.context
+
   const idemHeader = req.headers.get('Idempotency-Key')
   if (!idemHeader || !idemHeader.trim()) {
     const err = { code: 'VALIDATION_ERROR', message: 'Idempotency-Key header required' }
@@ -872,13 +1230,7 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
 
   const modeInput = (json?.mode as string) || 'workflow'
   const mode: 'workflow' | 'service' | 'clone' = modeInput === 'service' ? 'service' : modeInput === 'clone' ? 'clone' : 'workflow'
-  if (mode === 'clone') {
-    const err = { code: 'NOT_IMPLEMENTED', message: 'clone mode not yet supported' }
-    return withCORS(env, new Response(JSON.stringify(err), { status: 501, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
-  }
-
-  const tenantId = (env.DEFAULT_TENANT_ID || '1').toString()
-  const tenantNumeric = requiredDbId(tenantId, 1)
+  const cloneInput = mode === 'clone' && json && typeof json === 'object' ? (json.input ?? {}) : {}
 
   if (env.DATABASE_URL) {
     try {
@@ -915,25 +1267,39 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
   }
 
   const now = Date.now()
-  const estimateCents = await getSpellEstimate(env, spellId, trace)
+  const estimateCents = await getSpellEstimate(env, spellId, tenantId, trace)
   const usageCents = await getMonthlyEstimateUsage(env, tenantId, now, trace)
-  const capRaw = parseInt(env.DEFAULT_TENANT_CAP_CENTS || '1000', 10)
-  const capCents = Number.isFinite(capRaw) && capRaw > 0 ? capRaw : 1000
+  const capSettings = await getTenantCapSettings(env, tenantId, trace)
+  const defaultCapRaw = parseInt(env.DEFAULT_TENANT_CAP_CENTS || '1000', 10)
+  const monthlyCap = capSettings.monthly_cents ?? (Number.isFinite(defaultCapRaw) && defaultCapRaw >= 0 ? defaultCapRaw : null)
+
+  if (monthlyCap !== null && usageCents + estimateCents > monthlyCap) {
+    const body = {
+      code: 'BUDGET_CAP_EXCEEDED',
+      message: '見積費用が上限を超過しました',
+      details: { estimate_cents: estimateCents, cap_cents: monthlyCap, usage_cents: usageCents, scope: 'monthly' },
+      request_id: crypto.randomUUID(),
+    }
+    recordMetric('cast.cap.denied', 1, { tenant_id: tenantId, reason: 'monthly_cap' }, trace)
+    return withCORS(env, new Response(JSON.stringify(body), { status: 402, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  if (capSettings.total_cents !== undefined) {
+    const totalUsage = await getTotalEstimateUsage(env, tenantId, trace)
+    if (totalUsage + estimateCents > capSettings.total_cents) {
+      const body = {
+        code: 'BUDGET_CAP_EXCEEDED',
+        message: '見積費用が上限を超過しました',
+        details: { estimate_cents: estimateCents, cap_cents: capSettings.total_cents, usage_cents: totalUsage, scope: 'lifetime' },
+        request_id: crypto.randomUUID(),
+      }
+      recordMetric('cast.cap.denied', 1, { tenant_id: tenantId, reason: 'lifetime_cap' }, trace)
+      return withCORS(env, new Response(JSON.stringify(body), { status: 402, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+  }
 
   const budgetCapRaw = json?.budget_cap_cents
   const budgetCapCents = typeof budgetCapRaw === 'number' && Number.isFinite(budgetCapRaw) && budgetCapRaw >= 0 ? Math.round(budgetCapRaw) : undefined
-
-  if (usageCents + estimateCents > capCents) {
-    const body = {
-      code: 'BUDGET_CAP_EXCEEDED',
-      message: 'Estimated cost exceeds tenant monthly cap',
-      estimate_cents: estimateCents,
-      usage_cents: usageCents,
-      cap_cents: capCents,
-      request_id: crypto.randomUUID(),
-    }
-    return withCORS(env, new Response(JSON.stringify(body), { status: 402, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
-  }
 
   if (budgetCapCents !== undefined && estimateCents > budgetCapCents) {
     const body = {
@@ -957,6 +1323,7 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
   const inputHash = await computeInputHash(inputPayload)
 
   let cast: CastRecord
+  let templateRepo: string | undefined
 
   if (env.DATABASE_URL) {
     const spellNumeric = requiredDbId(spellId, 0)
@@ -964,17 +1331,21 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
       return withCORS(env, new Response(JSON.stringify({ code: 'SPELL_NOT_FOUND', message: 'Spell not found' }), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
     }
     try {
-      const spellRow = await runQuerySingle<{ id: number; tenant_id: number }>(
+      const spellRow = await runQuerySingle<{
+        id: number
+        tenant_id: number
+        template_repo: string | null
+        repo_ref: string | null
+        workflow_id: string | null
+      }>(
         env,
-        'SELECT id, tenant_id FROM spells WHERE id = ? LIMIT 1',
-        [spellNumeric],
+        'SELECT id, tenant_id, template_repo, repo_ref, workflow_id FROM spells WHERE id = ? AND tenant_id = ? LIMIT 1',
+        [spellNumeric, tenantNumeric],
       )
       if (!spellRow) {
         return withCORS(env, new Response(JSON.stringify({ code: 'SPELL_NOT_FOUND', message: 'Spell not found' }), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
       }
-      if (spellRow.tenant_id !== tenantNumeric) {
-        return withCORS(env, new Response(JSON.stringify({ code: 'FORBIDDEN', message: 'Spell does not belong to tenant' }), { status: 403, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
-      }
+      templateRepo = spellRow.template_repo ?? undefined
 
       const casterUserId = requiredDbId(env.DEFAULT_CASTER_USER_ID || tenantNumeric, tenantNumeric)
       const conn = getDatabase(env)
@@ -1000,8 +1371,8 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
       const insertedId = result.insertId
       const castRow = await runQuerySingle<CastRow>(
         env,
-        'SELECT * FROM casts WHERE id = ? LIMIT 1',
-        [parseInt(String(insertedId), 10)],
+        'SELECT * FROM casts WHERE id = ? AND tenant_id = ? LIMIT 1',
+        [parseInt(String(insertedId), 10), tenantNumeric],
       )
       if (!castRow) throw new Error('cast_not_found_after_insert')
       cast = mapCastRow(castRow)
@@ -1024,15 +1395,31 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
       timeout_sec: timeoutSec,
       region,
       budget_cap_cents: budgetCapCents,
+      input_hash: inputHash,
+    }
+    try {
+      const rawSpell = await env.KV.get(kvKeySpell(spellId, env))
+      if (rawSpell) {
+        const parsedSpell = JSON.parse(rawSpell) as { template_repo?: string }
+        if (parsedSpell?.template_repo && !templateRepo) templateRepo = parsedSpell.template_repo
+      }
+    } catch (e) {
+      logEvent('warn', 'kv_spell_parse_error', { error: String(e) }, trace)
     }
   }
 
   const castDbId = optionalDbId(cast.id)
 
   if (mode === 'workflow') {
-    const ownerRepo = 'NishizukaKoichi/Spell'
-    const workflowId = 'spell-run.yml'
-    const ref = 'main'
+    const workflowCfg = await loadWorkflowConfig(env, cast.spell_id, cast.tenant_id, trace)
+    if (!workflowCfg) {
+      if (env.DATABASE_URL && castDbId !== null) {
+        await getDatabase(env).execute('DELETE FROM casts WHERE id = ?', [castDbId])
+      }
+      const body = { code: 'WORKFLOW_NOT_FOUND', message: 'Workflow configuration is missing', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 400, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+    const { ownerRepo, ref, workflowId: workflowFile } = workflowCfg
     const appId = env.GITHUB_APP_ID
     const pem = env.GITHUB_APP_PRIVATE_KEY
     if (!appId || !pem) {
@@ -1049,9 +1436,9 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
       stage = 'create_token'
       const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
       stage = 'dispatch'
-      await dispatchWorkflow(instTok, ownerRepo, workflowId, ref, { run_id: runId, spell_id: spellId, input: inputPayload }, env.GITHUB_API_BASE)
+      await dispatchWorkflow(instTok, ownerRepo, workflowFile, ref, { run_id: runId, spell_id: spellId, input: inputPayload }, env.GITHUB_API_BASE)
       try {
-        const latest = await getLatestWorkflowRun(instTok, ownerRepo, workflowId, ref, env.GITHUB_API_BASE)
+        const latest = await getLatestWorkflowRun(instTok, ownerRepo, workflowFile, ref, env.GITHUB_API_BASE)
         if (latest && latest.id) {
           cast.gh_run_id = latest.id
           if (env.DATABASE_URL && castDbId !== null) {
@@ -1079,7 +1466,8 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
     }
   } else if (mode === 'service') {
     try {
-      await publishToNats(env, `spell.run.${spellId}`, {
+      const runSubject = await computeRunSubject(cast.spell_id, cast.input_hash)
+      await publishToNats(env, runSubject, {
         run_id: cast.run_id,
         cast_id: cast.id,
         tenant_id: cast.tenant_id,
@@ -1098,6 +1486,167 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
       }
       return withCORS(env, new Response(JSON.stringify({ code: 'RUNTIME_UNAVAILABLE', message: 'Service runner unavailable' }), { status: 503, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
     }
+  } else if (mode === 'clone') {
+    if (!templateRepo) {
+      const body = { code: 'CLONE_UNAVAILABLE', message: 'Spell template repository is not configured', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 400, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+    const subject = typeof claims?.sub === 'string' ? claims.sub : null
+    if (!subject) {
+      const body = { code: 'GITHUB_OAUTH_REQUIRED', message: 'GitHub OAuth session required for clone mode', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 401, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+    let tokenRecord: GithubOAuthTokenRecord | null = null
+    try {
+      const rawToken = await env.KV.get(kvKeyGithubToken(subject, env))
+      if (rawToken) tokenRecord = JSON.parse(rawToken) as GithubOAuthTokenRecord
+    } catch (e) {
+      logEvent('warn', 'github_token_fetch_error', { error: String(e) }, trace)
+    }
+    if (!tokenRecord?.access_token) {
+      const body = { code: 'GITHUB_OAUTH_REQUIRED', message: 'GitHub OAuth grant has expired; please reconnect', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 401, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+
+    cast.status = 'running'
+    await saveCastRecord(env, cast)
+    try {
+      await appendSseEvent(env, cast.id, 'progress', { stage: 'running', message: 'clone_start' }, trace)
+    } catch (e) {
+      logEvent('warn', 'clone_sse_running_error', { error: String(e) }, trace)
+    }
+
+    const ownerInput = typeof cloneInput?.owner === 'string' ? cloneInput.owner : undefined
+    const repoInput = typeof cloneInput?.repo === 'string' ? cloneInput.repo : typeof cloneInput?.repo_name === 'string' ? cloneInput.repo_name : undefined
+    const visibilityInput = typeof cloneInput?.visibility === 'string' ? cloneInput.visibility.toLowerCase() : undefined
+    const includeAllBranches = Boolean(cloneInput?.include_all_branches)
+    const description = typeof cloneInput?.description === 'string' ? cloneInput.description : undefined
+
+    const defaultOwner = tokenRecord.login || subject.replace(/^github:/, '')
+    const owner = ownerInput && ownerInput.trim() ? ownerInput.trim() : defaultOwner
+    if (!owner) {
+      const body = { code: 'CLONE_OWNER_REQUIRED', message: 'Unable to resolve target owner for template clone', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 400, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+
+    let repoName = repoInput && typeof repoInput === 'string' ? repoInput : `spell-${cast.spell_id}-${cast.id}`
+    repoName = normalizeRepositoryName(repoName)
+    if (!repoName) repoName = `spell-${randomHex(4)}`
+    const isPrivate = visibilityInput === 'public' ? false : true
+
+    try {
+      const cloneResult = await generateRepoFromTemplate(tokenRecord.access_token, templateRepo, {
+        owner,
+        name: repoName,
+        private: isPrivate,
+        description,
+        include_all_branches: includeAllBranches,
+      })
+
+      cast.status = 'succeeded'
+      cast.cost_cents = cast.estimate_cents
+      cast.done_at = Date.now()
+      cast.logs_url = (cloneResult?.html_url as string | undefined) || (cloneResult?.full_name ? `https://github.com/${cloneResult.full_name}` : undefined)
+      cast.failure_reason = undefined
+      await saveCastRecord(env, cast)
+      try {
+        await appendSseEvent(
+          env,
+          cast.id,
+          'completed',
+          { status: 'succeeded', cost_cents: cast.cost_cents ?? undefined, repo: cloneResult?.full_name || `${owner}/${repoName}` },
+          trace,
+        )
+      } catch (e) {
+        logEvent('warn', 'clone_sse_completed_error', { error: String(e) }, trace)
+      }
+
+      if (cast.cost_cents && cast.cost_cents > 0) {
+        const chargeEntry: LedgerEntry = {
+          id: `led_${crypto.randomUUID()}`,
+          tenant_id: cast.tenant_id,
+          cast_id: cast.id,
+          spell_id: cast.spell_id,
+          kind: 'charge',
+          cents: cast.cost_cents,
+          currency: 'USD',
+          occurred_at: cast.done_at ?? Date.now(),
+          meta: { source: 'clone', repo: cloneResult?.full_name || `${owner}/${repoName}` },
+          source: 'system',
+          reason: 'usage',
+        }
+        try {
+          await appendLedgerEntry(env, chargeEntry, trace)
+        } catch (err) {
+          logEvent('warn', 'clone_charge_ledger_error', { error: String(err) }, trace)
+        }
+      }
+
+      try {
+        await appendFinalizeLedgerEntry(env, cast, trace)
+      } catch (err) {
+        logEvent('warn', 'clone_finalize_ledger_error', { error: String(err) }, trace)
+      }
+
+      try {
+        await appendAuditSnapshot(
+          env,
+          {
+            run_id: cast.run_id,
+            cast_id: cast.id,
+            spell_id: cast.spell_id,
+            tenant_id: cast.tenant_id,
+            phase: 'clone_completed',
+            repo_full_name: cloneResult?.full_name || `${owner}/${repoName}`,
+            occurred_at: new Date(cast.done_at ?? Date.now()).toISOString(),
+          },
+          trace,
+        )
+      } catch (err) {
+        logEvent('warn', 'clone_audit_error', { error: String(err) }, trace)
+      }
+    } catch (err: any) {
+      const status = err instanceof GithubApiError ? err.status : 500
+      const message = err instanceof Error ? err.message : 'Clone failed'
+      cast.status = 'failed'
+      cast.failure_reason = message
+      cast.done_at = Date.now()
+      await saveCastRecord(env, cast)
+      try {
+        await appendSseEvent(env, cast.id, 'failed', { status: 'failed', reason: message }, trace)
+      } catch (e) {
+        logEvent('warn', 'clone_sse_failed_error', { error: String(e) }, trace)
+      }
+      try {
+        await appendFinalizeLedgerEntry(env, cast, trace)
+      } catch (finalizeErr) {
+        logEvent('warn', 'clone_finalize_error', { error: String(finalizeErr) }, trace)
+      }
+      try {
+        await appendAuditSnapshot(
+          env,
+          {
+            run_id: cast.run_id,
+            cast_id: cast.id,
+            spell_id: cast.spell_id,
+            tenant_id: cast.tenant_id,
+            phase: 'clone_failed',
+            error: message,
+            occurred_at: new Date().toISOString(),
+          },
+          trace,
+        )
+      } catch (auditErr) {
+        logEvent('warn', 'clone_audit_failed_error', { error: String(auditErr) }, trace)
+      }
+      const body = {
+        code: 'CLONE_FAILED',
+        message: 'Failed to generate repository from template',
+        details: { reason: message },
+        request_id: crypto.randomUUID(),
+      }
+      return withCORS(env, new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
   }
 
   if (!env.DATABASE_URL) {
@@ -1112,6 +1661,12 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
   }
 
   try {
+    await appendSseEvent(env, cast.id, 'progress', { stage: cast.status, message: cast.status }, trace)
+  } catch (e) {
+    logEvent('warn', 'sse_event_init_error', { error: String(e) }, trace)
+  }
+
+  try {
     await appendEstimateLedgerEntry(env, cast, trace)
   } catch (e) {
     logEvent('warn', 'ledger_estimate_error', { error: String(e) }, trace)
@@ -1120,9 +1675,16 @@ async function handleCastCreate(req: Request, env: Env, spellId: string): Promis
   return okJSON(env, buildCastResponse(cast))
 }
 
-async function handleCastGet(_req: Request, env: Env, castId: string): Promise<Response> {
+async function handleCastGet(req: Request, env: Env, castId: string): Promise<Response> {
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'maker', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantNumeric } = auth.context
   if (env.DATABASE_URL) {
-    const row = await runQuerySingle<CastRow>(env, 'SELECT * FROM casts WHERE id = ? LIMIT 1', [requiredDbId(castId, 0)])
+    const row = await runQuerySingle<CastRow>(
+      env,
+      'SELECT * FROM casts WHERE id = ? AND tenant_id = ? LIMIT 1',
+      [requiredDbId(castId, 0), tenantNumeric],
+    )
     if (!row) return withCORS(env, text('Not Found', 404))
     return okJSON(env, buildCastDetail(mapCastRow(row)))
   }
@@ -1130,18 +1692,25 @@ async function handleCastGet(_req: Request, env: Env, castId: string): Promise<R
   const raw = await env.KV.get(kvKeyCast(castId, env))
   if (!raw) return withCORS(env, text('Not Found', 404))
   const rec = JSON.parse(raw) as CastRecord
+  if (String(rec.tenant_id) !== String(tenantId)) return withCORS(env, text('Not Found', 404))
   return okJSON(env, buildCastDetail(rec))
 }
 
-async function pollCastRecord(env: Env, castId: string): Promise<CastRecord | null> {
+async function pollCastRecord(env: Env, castId: string, tenantId: string | number): Promise<CastRecord | null> {
   if (env.DATABASE_URL) {
-    const row = await runQuerySingle<CastRow>(env, 'SELECT * FROM casts WHERE id = ? LIMIT 1', [requiredDbId(castId, 0)])
+    const row = await runQuerySingle<CastRow>(
+      env,
+      'SELECT * FROM casts WHERE id = ? AND tenant_id = ? LIMIT 1',
+      [requiredDbId(castId, 0), requiredDbId(tenantId, 0)],
+    )
     return row ? mapCastRow(row) : null
   }
   try {
     const raw = await env.KV.get(kvKeyCast(castId, env))
     if (!raw) return null
-    return JSON.parse(raw) as CastRecord
+    const parsed = JSON.parse(raw) as CastRecord
+    if (String(parsed.tenant_id) !== String(tenantId)) return null
+    return parsed
   } catch (_) {
     return null
   }
@@ -1153,91 +1722,125 @@ function sleep(ms: number) {
 
 async function handleCastEvents(req: Request, env: Env, castId: string): Promise<Response> {
   const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'maker', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantId } = auth.context
   const headers = new Headers({
     'content-type': 'text/event-stream; charset=utf-8',
     connection: 'keep-alive',
     'cache-control': 'no-cache',
     ...corsHeaders(env),
   })
+  const lastEventIdHeader = req.headers.get('Last-Event-ID') || req.headers.get('last-event-id') || undefined
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const enc = new TextEncoder()
-      const send = (obj: any, event?: string) => {
+      const isTerminal = (status: string | undefined) => status === 'succeeded' || status === 'failed' || status === 'canceled'
+
+      let rec = await pollCastRecord(env, castId, tenantId)
+      if (!rec) {
+        const chunk = `event: error
+data: ${JSON.stringify({ message: 'cast not found' })}
+
+`
+        controller.enqueue(enc.encode(chunk))
+        controller.close()
+        return
+      }
+
+      let lastDeliveredEventId: string | null = null
+
+      const sendEntry = (entry: SseEventEntry) => {
         let chunk = ''
-        if (event) chunk += `event: ${event}\n`
-        chunk += `data: ${JSON.stringify(obj)}\n\n`
+        chunk += `id: ${entry.id}
+`
+        if (entry.event) chunk += `event: ${entry.event}
+`
+        chunk += `data: ${JSON.stringify(entry.data)}
+
+`
+        controller.enqueue(enc.encode(chunk))
+        lastDeliveredEventId = entry.id
+      }
+
+      const sendHeartbeat = () => {
+        const chunk = `event: heartbeat
+data: ${JSON.stringify({ now: new Date().toISOString() })}
+
+`
         controller.enqueue(enc.encode(chunk))
       }
 
-      let rec = await pollCastRecord(env, castId)
-      if (!rec) {
-        send({ message: 'cast not found' }, 'error')
+      let stored = await loadSseEvents(env, castId, trace)
+      if (!stored.length) {
+        const seed = await appendSseEvent(env, castId, 'progress', { stage: rec.status || 'queued', message: rec.status || 'queued' }, trace)
+        if (seed) stored = [seed]
+      }
+
+      const replayStart = lastEventIdHeader ? stored.findIndex((entry) => entry.id === lastEventIdHeader) : -1
+      const replay = replayStart >= 0 ? stored.slice(replayStart + 1) : stored
+      for (const entry of replay) sendEntry(entry)
+
+      if (!lastDeliveredEventId && stored.length) {
+        lastDeliveredEventId = stored[stored.length - 1].id
+      }
+
+      const deliverNewEvents = async () => {
+        const events = await loadSseEvents(env, castId, trace)
+        if (!events.length) return
+        let startIndex = -1
+        if (lastDeliveredEventId) {
+          startIndex = events.findIndex((entry) => entry.id === lastDeliveredEventId)
+        }
+        const pending = startIndex >= 0 ? events.slice(startIndex + 1) : events
+        for (const entry of pending) sendEntry(entry)
+      }
+
+      if (isTerminal(rec.status)) {
         controller.close()
         return
       }
 
-      send({ stage: rec.status || 'queued', message: rec.status }, 'progress')
+      sendHeartbeat()
 
       if (rec.mode === 'service') {
-        let lastArtifactHash = rec.artifact_sha256 || ''
-        let lastStatus = rec.status
-        send({ now: new Date().toISOString() }, 'heartbeat')
         for (let i = 0; i < 300; i++) {
           await sleep(2000)
-          const next = await pollCastRecord(env, castId)
+          const next = await pollCastRecord(env, castId, tenantId)
           if (!next) break
           rec = next
-          if (rec.artifact_sha256 && rec.artifact_sha256 !== lastArtifactHash && rec.artifact_url) {
-            lastArtifactHash = rec.artifact_sha256
-            send(
-              {
-                url: rec.artifact_url,
-                sha256: rec.artifact_sha256,
-                ttl_expires_at: rec.artifact_expires_at,
-                size_bytes: rec.artifact_size_bytes,
-              },
-              'artifact_ready',
-            )
-          }
-          if (rec.status !== lastStatus) {
-            lastStatus = rec.status
-            if (rec.status === 'running') send({ stage: 'running', message: 'in_progress' }, 'progress')
-            if (rec.status === 'succeeded') {
-              send({ status: 'succeeded', cost_cents: rec.cost_cents ?? undefined }, 'completed')
-              break
-            }
-            if (rec.status === 'failed') {
-              send({ status: 'failed', message: rec.failure_reason ?? rec.logs_url }, 'failed')
-              break
-            }
-            if (rec.status === 'canceled') {
-              send({ status: 'canceled' }, 'canceled')
-              break
-            }
-          }
-          send({ now: new Date().toISOString() }, 'heartbeat')
+          await deliverNewEvents()
+          if (isTerminal(rec.status)) break
+          sendHeartbeat()
         }
+        await deliverNewEvents()
         controller.close()
         return
       }
 
-      // workflow polling via GitHub
       const appId = env.GITHUB_APP_ID
       const pem = env.GITHUB_APP_PRIVATE_KEY
-      const ownerRepo = 'NishizukaKoichi/Spell'
-      const workflowId = 'spell-run.yml'
-      const ref = 'main'
-      if (!appId || !pem) {
-        send({ message: 'github app not configured' }, 'log')
+      const workflowCfg = await loadWorkflowConfig(env, rec.spell_id, rec.tenant_id, trace)
+      if (!workflowCfg) {
+        await deliverNewEvents()
         controller.close()
         return
       }
+      const { ownerRepo, workflowId, ref } = workflowCfg
+      if (!appId || !pem) {
+        await deliverNewEvents()
+        controller.close()
+        return
+      }
+
       try {
         const jwt = await createAppJwt(appId, pem)
         const instId = await getInstallationIdForRepo(jwt, ownerRepo, env.GITHUB_API_BASE)
         const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
+
         for (let attempts = 0; attempts < 60; attempts++) {
           await sleep(2000)
+
           if (!rec.gh_run_id) {
             try {
               const latest = await getLatestWorkflowRun(instTok, ownerRepo, workflowId, ref, env.GITHUB_API_BASE)
@@ -1248,15 +1851,26 @@ async function handleCastEvents(req: Request, env: Env, castId: string): Promise
             } catch (err) {
               logEvent('warn', 'workflow_latest_run_error', { error: String(err) }, trace)
             }
-            send({ stage: 'queued', message: 'waiting for run' }, 'progress')
+            await deliverNewEvents()
+            if (isTerminal(rec.status)) break
+            sendHeartbeat()
             continue
           }
+
           const run = await getWorkflowRun(instTok, ownerRepo, rec.gh_run_id, env.GITHUB_API_BASE)
-          const st = run.status as string
-          const concl = run.conclusion as string | null
-          if (st === 'queued') send({ stage: 'queued', message: 'queued' }, 'progress')
-          else if (st === 'in_progress') send({ stage: 'running', message: 'in_progress' }, 'progress')
-          else if (st === 'completed') {
+          const st = (run.status as string) || ''
+          const concl = (run.conclusion as string | null) || null
+
+          if (st === 'queued' && rec.status !== 'queued') {
+            rec.status = 'queued'
+            await saveCastRecord(env, rec)
+            await appendSseEvent(env, rec.id, 'progress', { stage: 'queued', message: 'queued' }, trace)
+          } else if (st === 'in_progress' && rec.status !== 'running') {
+            rec.status = 'running'
+            await saveCastRecord(env, rec)
+            await appendSseEvent(env, rec.id, 'progress', { stage: 'running', message: 'in_progress' }, trace)
+          } else if (st === 'completed') {
+            const prevArtifact = rec.artifact_sha256
             try {
               const arts = await listArtifactsForRun(instTok, ownerRepo, rec.gh_run_id, env.GITHUB_API_BASE)
               const chosen = arts.find((a: any) => a.name === 'result') || arts[0]
@@ -1274,96 +1888,58 @@ async function handleCastEvents(req: Request, env: Env, castId: string): Promise
                     rec.artifact_url = url
                     rec.artifact_expires_at = Date.now() + 10 * 60 * 1000
                   }
-                  await saveCastRecord(env, rec)
-                  if (rec.artifact_url) {
-                    send(
-                      {
-                        url: rec.artifact_url,
-                        sha256: rec.artifact_sha256,
-                        ttl_expires_at: rec.artifact_expires_at,
-                        size_bytes: rec.artifact_size_bytes,
-                      },
-                      'artifact_ready',
-                    )
-                  }
                 }
               }
             } catch (artifactErr) {
               logEvent('warn', 'artifact_fetch_error', { error: String(artifactErr) }, trace)
             }
+
             rec.status = concl === 'success' ? 'succeeded' : 'failed'
             rec.done_at = Date.now()
             await saveCastRecord(env, rec)
-            if (rec.status === 'succeeded') send({ status: 'succeeded' }, 'completed')
-            else send({ status: 'failed' }, 'failed')
+
+            if (rec.artifact_sha256 && rec.artifact_sha256 !== prevArtifact && rec.artifact_url) {
+              await appendSseEvent(
+                env,
+                rec.id,
+                'artifact_ready',
+                {
+                  url: rec.artifact_url,
+                  sha256: rec.artifact_sha256,
+                  ttl_expires_at: rec.artifact_expires_at,
+                  size_bytes: rec.artifact_size_bytes,
+                },
+                trace,
+              )
+            }
+
+            if (rec.status === 'succeeded') {
+              await appendSseEvent(env, rec.id, 'completed', { status: 'succeeded' }, trace)
+            } else {
+              await appendSseEvent(env, rec.id, 'failed', { status: 'failed' }, trace)
+            }
+
+            await deliverNewEvents()
             break
           }
-          send({ now: new Date().toISOString() }, 'heartbeat')
+
+          await deliverNewEvents()
+          if (isTerminal(rec.status)) break
+          sendHeartbeat()
         }
       } catch (err) {
-        logEvent('warn', 'workflow_poll_error', { error: String(err) }, trace)
+        logEvent('error', 'workflow_sse_error', { error: String(err) }, trace)
       }
+
+      await deliverNewEvents()
       controller.close()
     },
   })
-  return new Response(stream, { status: 200, headers })
+
+  return withCORS(env, new Response(stream, { status: 200, headers }))
 }
 
-async function handleSpellsList(req: Request, env: Env): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
-  }
-  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
-  const trace = parseTraceparent(req.headers.get('traceparent'))
-  const url = new URL(req.url)
-  const search = url.searchParams.get('query')?.trim()
-  let limit = parseInt(url.searchParams.get('limit') || '20', 10)
-  if (!Number.isFinite(limit) || limit <= 0) limit = 20
-  limit = Math.min(Math.max(limit, 1), 100)
 
-  const includeOwned = url.searchParams.has('owned')
-
-  let tenantFilter: number | null = null
-  if (includeOwned) {
-    const cookies = parseCookies(req.headers.get('cookie'))
-    const claims = await verifyJWT(cookies['sid'], env)
-    if (!claims?.tenant_id) {
-      return withCORS(env, new Response(JSON.stringify({ items: [] }), { status: 200, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
-    }
-    tenantFilter = Number(claims.tenant_id)
-  }
-
-  let items: any[] = []
-
-  if (env.DATABASE_URL) {
-    try {
-      const where: string[] = [`visibility IN ('public','unlisted')`]
-      const params: Array<string | number> = []
-      if (tenantFilter !== null) {
-        where.push('tenant_id = ?')
-        params.push(tenantFilter)
-      }
-      if (search) {
-        where.push('(name LIKE ? OR summary LIKE ? OR spell_key LIKE ?)')
-        const q = `%${search}%`
-        params.push(q, q, q)
-      }
-      const sql = `SELECT id, tenant_id, spell_key, version, name, summary, description, visibility, execution_mode, pricing_json, input_schema_json, repo_ref, workflow_id, template_repo, status, published_at, created_at
-        FROM spells
-        WHERE ${where.join(' AND ')}
-        ORDER BY (published_at IS NULL), published_at DESC, id DESC
-        LIMIT ?`
-      params.push(limit)
-      const rows = await runQuery<SpellRow>(env, sql, params)
-      items = rows.map((row) => spellRowToResponse(mapSpellRow(row)))
-    } catch (err) {
-      logEvent('warn', 'spells_list_db_error', { error: String(err) }, trace)
-      items = []
-    }
-  }
-
-  return okJSON(env, { items })
-}
 
 async function handleCastVerdict(req: Request, env: Env, castId: string): Promise<Response> {
   if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
@@ -1374,28 +1950,36 @@ async function handleCastVerdict(req: Request, env: Env, castId: string): Promis
   if (!header.startsWith('Bearer ') || header.slice(7) !== token) {
     return withCORS(env, text('Unauthorized', 401))
   }
+
   let payload: any
   try {
     payload = await req.json()
   } catch (_) {
     return withCORS(env, text('Invalid JSON', 400))
   }
+
   const runId = payload?.run_id
   const statusInput = payload?.status
+  const tenantRaw = payload?.tenant_id
   if (typeof runId !== 'string' || !runId) return withCORS(env, text('run_id required', 400))
   if (typeof statusInput !== 'string' || !statusInput) return withCORS(env, text('status required', 400))
-
-  let rec: CastRecord | null = null
-  if (env.DATABASE_URL) {
-    rec = await pollCastRecord(env, castId)
-  } else {
-    try {
-      const raw = await env.KV.get(kvKeyCast(castId, env))
-      if (raw) rec = JSON.parse(raw) as CastRecord
-    } catch (_) {}
+  if ((tenantRaw === undefined || tenantRaw === null || tenantRaw === '') && tenantRaw !== 0) {
+    return withCORS(env, text('tenant_id required', 400))
   }
+  const tenantId = typeof tenantRaw === 'number' || typeof tenantRaw === 'string' ? tenantRaw : null
+  if (tenantId === null) return withCORS(env, text('tenant_id invalid', 400))
+
+  const rec = await pollCastRecord(env, castId, tenantId)
   if (!rec) return withCORS(env, text('Not Found', 404))
+  if (String(rec.tenant_id) !== String(tenantId)) return withCORS(env, text('Forbidden', 403))
   if (rec.run_id !== runId) return withCORS(env, text('run mismatch', 409))
+  if (payload?.spell_id && String(payload.spell_id) !== String(rec.spell_id)) {
+    return withCORS(env, text('spell mismatch', 409))
+  }
+
+  const prevStatus = rec.status
+  const prevArtifactSha = rec.artifact_sha256
+  const prevCost = rec.cost_cents ?? null
 
   const lower = statusInput.toLowerCase()
   let nextStatus: CastRecord['status']
@@ -1447,6 +2031,54 @@ async function handleCastVerdict(req: Request, env: Env, castId: string): Promis
       await env.KV.put(kvKeyRun(runId, env), castId, { expirationTtl: 60 * 60 * 24 * 120 })
     } catch (e) {
       logEvent('warn', 'run_index_persist_error', { error: String(e) }, trace)
+    }
+  }
+
+  if (rec.artifact_sha256 && rec.artifact_sha256 !== prevArtifactSha && rec.artifact_url) {
+    try {
+      await appendSseEvent(
+        env,
+        rec.id,
+        'artifact_ready',
+        {
+          url: rec.artifact_url,
+          sha256: rec.artifact_sha256,
+          ttl_expires_at: rec.artifact_expires_at,
+          size_bytes: rec.artifact_size_bytes,
+        },
+        trace,
+      )
+    } catch (e) {
+      logEvent('warn', 'sse_event_artifact_error', { error: String(e), cast_id: rec.id }, trace)
+    }
+  }
+
+  const statusChanged = prevStatus !== rec.status
+  const costChanged = rec.status === 'succeeded' && prevCost !== rec.cost_cents
+  if (statusChanged || costChanged) {
+    try {
+      if (rec.status === 'running') {
+        await appendSseEvent(env, rec.id, 'progress', { stage: 'running', message: 'in_progress' }, trace)
+      } else if (rec.status === 'succeeded') {
+        await appendSseEvent(
+          env,
+          rec.id,
+          'completed',
+          {
+            status: 'succeeded',
+            cost_cents: rec.cost_cents ?? undefined,
+            p95_ms: rec.p95_ms ?? undefined,
+            error_rate: rec.error_rate ?? undefined,
+          },
+          trace,
+        )
+      } else if (rec.status === 'failed') {
+        await appendSseEvent(env, rec.id, 'failed', { status: 'failed', reason: rec.failure_reason ?? 'failed' }, trace)
+      } else if (rec.status === 'canceled') {
+        await appendSseEvent(env, rec.id, 'canceled', { status: 'canceled', by: 'system' }, trace)
+      }
+    } catch (e) {
+      logEvent('warn', 'sse_event_status_error', { error: String(e), cast_id: rec.id, status: rec.status }, trace)
     }
   }
 
@@ -1502,14 +2134,11 @@ async function handleCastCancel(req: Request, env: Env, castId: string): Promise
   if (req.method === 'OPTIONS') return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
   if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
   const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'operator'] })
+  if (!auth.ok) return auth.response
+  const { tenantId } = auth.context
 
-  let rec: CastRecord | null = null
-  if (env.DATABASE_URL) {
-    rec = await pollCastRecord(env, castId)
-  } else {
-    const raw = await env.KV.get(kvKeyCast(castId, env))
-    if (raw) rec = JSON.parse(raw) as CastRecord
-  }
+  const rec = await pollCastRecord(env, castId, tenantId)
   if (!rec) {
     const body = { code: 'NOT_FOUND', message: 'Cast not found', request_id: crypto.randomUUID() }
     return withCORS(env, new Response(JSON.stringify(body), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
@@ -1528,9 +2157,12 @@ async function handleCastCancel(req: Request, env: Env, castId: string): Promise
       return withCORS(env, new Response(JSON.stringify(err), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
     }
     try {
-      const ownerRepo = 'NishizukaKoichi/Spell'
-      const workflowId = 'spell-run.yml'
-      const ref = 'main'
+      const workflowCfg = await loadWorkflowConfig(env, rec.spell_id, rec.tenant_id, trace)
+      if (!workflowCfg) {
+        const err = { code: 'WORKFLOW_NOT_FOUND', message: 'Workflow configuration is missing', request_id: crypto.randomUUID() }
+        return withCORS(env, new Response(JSON.stringify(err), { status: 400, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+      }
+      const { ownerRepo, workflowId, ref } = workflowCfg
       const jwt = await createAppJwt(appId, pem)
       const instId = await getInstallationIdForRepo(jwt, ownerRepo, env.GITHUB_API_BASE)
       const instTok = await createInstallationToken(jwt, instId, undefined, env.GITHUB_API_BASE)
@@ -1577,6 +2209,11 @@ async function handleCastCancel(req: Request, env: Env, castId: string): Promise
   rec.failure_reason = 'Canceled by user'
   await saveCastRecord(env, rec)
   try {
+    await appendSseEvent(env, rec.id, 'canceled', { status: 'canceled', by: 'user' }, trace)
+  } catch (e) {
+    logEvent('warn', 'sse_event_cancel_error', { error: String(e), cast_id: rec.id }, trace)
+  }
+  try {
     await appendFinalizeLedgerEntry(env, rec, trace)
   } catch (e) {
     logEvent('warn', 'ledger_cancel_finalize_error', { error: String(e) }, trace)
@@ -1584,6 +2221,7 @@ async function handleCastCancel(req: Request, env: Env, castId: string): Promise
 
   return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
 }
+
 
 async function signJWT(payload: Record<string, any>, env: Env): Promise<string> {
   const header = { alg: 'HS256', typ: 'JWT' }
@@ -1830,13 +2468,37 @@ async function handleOAuthGithubCallback(req: Request, env: Env): Promise<Respon
   if (!userRes.ok) return withCORS(env, text('GitHub user fetch failed', 502))
   const user = (await userRes.json()) as any
   let setCookie = ''
+  const sub = `github:${user.id}`
+  const tenantId = (env.DEFAULT_TENANT_ID || '1').toString()
   try {
     if (env.SESSION_SECRET) {
-      const jwt = await signJWT({ sub: `github:${user.id}`, name: user.login, iat: Math.floor(Date.now() / 1000) }, env)
+      const jwt = await signJWT(
+        {
+          sub,
+          name: user.login,
+          iat: Math.floor(Date.now() / 1000),
+          tenant_id: tenantId,
+          role: 'caster',
+        },
+        env,
+      )
       setCookie = `sid=${jwt}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
     }
   } catch (e) {
     logEvent('warn', 'jwt_sign_error', { error: String(e) }, trace)
+  }
+  try {
+    const ttlSeconds = 60 * 60
+    const tokenRecord = {
+      access_token: accessToken,
+      token_type: tokenJson.token_type || 'bearer',
+      scope: tokenJson.scope || 'repo',
+      login: user.login,
+      fetched_at: Date.now(),
+    }
+    await env.KV.put(kvKeyGithubToken(sub, env), JSON.stringify(tokenRecord), { expirationTtl: ttlSeconds })
+  } catch (e) {
+    logEvent('warn', 'github_token_store_error', { error: String(e) }, trace)
   }
   const headers: Record<string, string> = { ...corsHeaders(env) }
   if (setCookie) headers['Set-Cookie'] = setCookie
@@ -1870,6 +2532,400 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
   const headers = { ...corsHeaders(env), 'Set-Cookie': buildLogoutCookie() }
   return withCORS(env, new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...headers, 'content-type': 'application/json; charset=utf-8' } }))
+}
+
+
+async function handleSpellsList(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['maker', 'caster', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric } = auth.context
+  const url = new URL(req.url)
+  const search = url.searchParams.get('query')?.trim()
+  const visibility = url.searchParams.get('visibility')?.trim()
+  const limitParam = parseInt(url.searchParams.get('limit') || '20', 10)
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 20
+
+  let items: any[] = []
+  if (env.DATABASE_URL) {
+    try {
+      const where: string[] = ['tenant_id = ?']
+      const params: Array<string | number> = [tenantNumeric]
+      if (visibility) {
+        where.push('visibility = ?')
+        params.push(visibility)
+      }
+      if (search) {
+        where.push('(name LIKE ? OR summary LIKE ? OR spell_key LIKE ?)')
+        const q = `%${search}%`
+        params.push(q, q, q)
+      }
+      const sql = `SELECT id, tenant_id, spell_key, version, name, summary, description, visibility, execution_mode, pricing_json, input_schema_json, repo_ref, workflow_id, template_repo, status, published_at, created_at
+        FROM spells
+        ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+        ORDER BY (published_at IS NULL), published_at DESC, id DESC
+        LIMIT ?`
+      params.push(limit)
+      const rows = await runQuery<SpellRow>(env, sql, params)
+      items = rows.map((row) => spellRowToResponse(mapSpellRow(row)))
+    } catch (err) {
+      logEvent('warn', 'spells_list_db_error', { error: String(err) }, trace)
+    }
+  }
+
+  if (!env.DATABASE_URL && env.KV) {
+    try {
+      const prefix = `${env.CAP_KV_PREFIX || 'cap'}:spell:`
+      const list = await env.KV.list({ prefix, limit: 100 })
+      for (const key of list.keys) {
+        try {
+          const raw = await env.KV.get(key.name)
+          if (!raw) continue
+          const parsed = JSON.parse(raw)
+          if (String(parsed.tenant_id) !== String(tenantId)) continue
+          items.push({
+            id: parsed.id,
+            tenant_id: parsed.tenant_id,
+            spell_key: parsed.spell_key,
+            version: parsed.version,
+            name: parsed.name,
+            summary: parsed.summary,
+            description: parsed.description,
+            visibility: parsed.visibility,
+            execution_mode: parsed.execution_mode,
+            pricing_json: parsed.pricing ?? {},
+            input_schema_json: parsed.input_schema ?? {},
+            repo_ref: parsed.repo_ref,
+            workflow_id: parsed.workflow_id,
+            template_repo: parsed.template_repo,
+            status: parsed.status,
+            published_at: parsed.published_at,
+            created_at: parsed.created_at,
+          })
+        } catch (err) {
+          logEvent('warn', 'spells_kv_parse_error', { error: String(err), key: key.name }, trace)
+        }
+      }
+    } catch (err) {
+      logEvent('warn', 'spells_kv_list_error', { error: String(err) }, trace)
+    }
+  }
+
+  return okJSON(env, { items })
+}
+
+async function handleSpellsCreate(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['maker', 'operator'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric } = auth.context
+
+  let payload: any = {}
+  try {
+    if (req.headers.get('content-type')?.includes('application/json')) {
+      payload = await req.json()
+    }
+  } catch (_) {}
+
+  const spellKey = typeof payload?.spell_key === 'string' ? payload.spell_key.trim() : ''
+  const name = typeof payload?.name === 'string' ? payload.name.trim() : ''
+  const summary = typeof payload?.summary === 'string' ? payload.summary.trim() : ''
+  if (!spellKey || !name || !summary) {
+    const body = { code: 'VALIDATION_ERROR', message: 'spell_key, name, and summary are required', request_id: crypto.randomUUID() }
+    return withCORS(env, new Response(JSON.stringify(body), { status: 422, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  const version = typeof payload?.version === 'string' ? payload.version.trim() : 'v1'
+  const description = typeof payload?.description === 'string' ? payload.description : null
+  const visibility = typeof payload?.visibility === 'string' ? payload.visibility : 'private'
+  const executionMode = typeof payload?.execution_mode === 'string' ? payload.execution_mode : 'service'
+  const pricing = payload?.pricing ?? {}
+  const inputSchema = payload?.input_schema ?? {}
+  const repoRef = typeof payload?.repo_ref === 'string' ? payload.repo_ref : null
+  const workflowId = typeof payload?.workflow_id === 'string' ? payload.workflow_id : null
+  const templateRepo = typeof payload?.template_repo === 'string' ? payload.template_repo : null
+  const status = typeof payload?.status === 'string' ? payload.status : 'draft'
+
+  if (!env.DATABASE_URL) {
+    const id = Date.now()
+    const record = {
+      id,
+      tenant_id: tenantId,
+      spell_key: spellKey,
+      version,
+      name,
+      summary,
+      description,
+      visibility,
+      execution_mode: executionMode,
+      pricing,
+      input_schema: inputSchema,
+      repo_ref: repoRef,
+      workflow_id: workflowId,
+      template_repo: templateRepo,
+      status,
+      published_at: null,
+      created_at: new Date().toISOString(),
+    }
+    if (!env.KV) {
+      return withCORS(env, text('Server misconfigured', 500))
+    }
+    await env.KV.put(kvKeySpell(String(id), env), JSON.stringify(record))
+    return withCORS(env, new Response(JSON.stringify({ id }), { status: 201, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  try {
+    const spellRow = await runQuerySingle<{ id: number }>(
+      env,
+      'SELECT id FROM spells WHERE tenant_id = ? AND spell_key = ? AND version = ? LIMIT 1',
+      [tenantNumeric, spellKey, version],
+    )
+    if (spellRow) {
+      const body = { code: 'VALIDATION_ERROR', message: 'Spell key and version already exist', request_id: crypto.randomUUID() }
+      return withCORS(env, new Response(JSON.stringify(body), { status: 409, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+    }
+  } catch (err) {
+    logEvent('warn', 'spell_unique_check_failed', { error: String(err) }, trace)
+  }
+
+  const conn = getDatabase(env)
+  let insertId = 0
+  try {
+    const result = await conn.execute(
+      `INSERT INTO spells (tenant_id, spell_key, version, name, summary, description, visibility, execution_mode, pricing_json, input_schema_json, repo_ref, workflow_id, template_repo, status, published_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'published' THEN NOW() ELSE NULL END, NOW())`,
+      [
+        tenantNumeric,
+        spellKey,
+        version,
+        name,
+        summary,
+        description,
+        visibility,
+        executionMode,
+        JSON.stringify(pricing ?? {}),
+        JSON.stringify(inputSchema ?? {}),
+        repoRef,
+        workflowId,
+        templateRepo,
+        status,
+        status,
+      ],
+    )
+    insertId = parseInt(String(result.insertId || 0), 10)
+  } catch (err) {
+    logEvent('error', 'spell_insert_db_error', { error: String(err) }, trace)
+    const body = { code: 'INTERNAL', message: 'Failed to create spell', request_id: crypto.randomUUID() }
+    return withCORS(env, new Response(JSON.stringify(body), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  return withCORS(env, new Response(JSON.stringify({ id: insertId }), { status: 201, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+}
+
+async function handleSpellsGet(req: Request, env: Env, spellId: string): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const auth = await requireAuthContext(req, env, { roles: ['maker', 'caster', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric } = auth.context
+
+  if (env.DATABASE_URL) {
+    const row = await runQuerySingle<SpellRow>(
+      env,
+      'SELECT * FROM spells WHERE id = ? AND tenant_id = ? LIMIT 1',
+      [requiredDbId(spellId, 0), tenantNumeric],
+    )
+    if (!row) return withCORS(env, text('Not Found', 404))
+    return okJSON(env, spellRowToResponse(mapSpellRow(row)))
+  }
+
+  if (!env.KV) return withCORS(env, text('Not Found', 404))
+  const raw = await env.KV.get(kvKeySpell(spellId, env))
+  if (!raw) return withCORS(env, text('Not Found', 404))
+  const parsed = JSON.parse(raw)
+  if (String(parsed.tenant_id) !== String(tenantId)) return withCORS(env, text('Not Found', 404))
+  return okJSON(env, parsed)
+}
+
+async function handleSpellsPatch(req: Request, env: Env, spellId: string): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'PATCH') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['maker', 'operator'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric } = auth.context
+
+  let payload: any = {}
+  try {
+    payload = await req.json()
+  } catch (_) {}
+
+  if (env.DATABASE_URL) {
+    const spellNumeric = requiredDbId(spellId, 0)
+    const existing = await runQuerySingle<SpellRow>(
+      env,
+      'SELECT * FROM spells WHERE id = ? AND tenant_id = ? LIMIT 1',
+      [spellNumeric, tenantNumeric],
+    )
+    if (!existing) {
+      return withCORS(env, text('Not Found', 404))
+    }
+
+    const updates: string[] = []
+    const params: Array<string | number | null> = []
+
+    if (typeof payload.name === 'string') {
+      updates.push('name = ?')
+      params.push(payload.name.trim())
+    }
+    if (typeof payload.summary === 'string') {
+      updates.push('summary = ?')
+      params.push(payload.summary.trim())
+    }
+    if (typeof payload.description === 'string') {
+      updates.push('description = ?')
+      params.push(payload.description)
+    }
+    if (typeof payload.visibility === 'string') {
+      updates.push('visibility = ?')
+      params.push(payload.visibility)
+    }
+    if (typeof payload.execution_mode === 'string') {
+      updates.push('execution_mode = ?')
+      params.push(payload.execution_mode)
+    }
+    if (payload.pricing !== undefined) {
+      updates.push('pricing_json = ?')
+      params.push(JSON.stringify(payload.pricing ?? {}))
+    }
+    if (payload.input_schema !== undefined) {
+      updates.push('input_schema_json = ?')
+      params.push(JSON.stringify(payload.input_schema ?? {}))
+    }
+    if (payload.repo_ref !== undefined) {
+      updates.push('repo_ref = ?')
+      params.push(typeof payload.repo_ref === 'string' ? payload.repo_ref : null)
+    }
+    if (payload.workflow_id !== undefined) {
+      updates.push('workflow_id = ?')
+      params.push(typeof payload.workflow_id === 'string' ? payload.workflow_id : null)
+    }
+    if (payload.template_repo !== undefined) {
+      updates.push('template_repo = ?')
+      params.push(typeof payload.template_repo === 'string' ? payload.template_repo : null)
+    }
+    if (typeof payload.status === 'string') {
+      updates.push('status = ?')
+      params.push(payload.status)
+    }
+
+    if (!updates.length) {
+      return okJSON(env, spellRowToResponse(mapSpellRow(existing)))
+    }
+
+    updates.push('updated_at = NOW()')
+    params.push(spellNumeric, tenantNumeric)
+    await getDatabase(env).execute(`UPDATE spells SET ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`, params)
+
+    const updated = await runQuerySingle<SpellRow>(
+      env,
+      'SELECT * FROM spells WHERE id = ? AND tenant_id = ? LIMIT 1',
+      [spellNumeric, tenantNumeric],
+    )
+    if (!updated) return withCORS(env, text('Not Found', 404))
+    return okJSON(env, spellRowToResponse(mapSpellRow(updated)))
+  }
+
+  if (!env.KV) return withCORS(env, text('Server misconfigured', 500))
+  const key = kvKeySpell(spellId, env)
+  const raw = await env.KV.get(key)
+  if (!raw) return withCORS(env, text('Not Found', 404))
+  const parsed = JSON.parse(raw)
+  if (String(parsed.tenant_id) !== tenantId) return withCORS(env, text('Forbidden', 403))
+
+  Object.assign(parsed, payload, { updated_at: new Date().toISOString() })
+  await env.KV.put(key, JSON.stringify(parsed))
+  return okJSON(env, parsed)
+}
+
+async function handleSpellPublish(req: Request, env: Env, spellId: string): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const cookies = parseCookies(req.headers.get('cookie'))
+  const claims = await verifyJWT(cookies['sid'], env)
+  if (!claims) return withCORS(env, text('Unauthorized', 401))
+  const role = typeof claims.role === 'string' ? claims.role : null
+  if (role !== 'maker' && role !== 'operator') return withCORS(env, text('Forbidden', 403))
+  const tenantId = String(claims.tenant_id ?? env.DEFAULT_TENANT_ID ?? '1')
+
+  if (env.DATABASE_URL) {
+    const spellNumeric = requiredDbId(spellId, 0)
+    await getDatabase(env).execute(
+      'UPDATE spells SET status = ?, published_at = NOW() WHERE id = ? AND tenant_id = ?',
+      ['published', spellNumeric, requiredDbId(tenantId, 0)],
+    )
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+
+  if (!env.KV) return withCORS(env, text('Server misconfigured', 500))
+  const key = kvKeySpell(spellId, env)
+  const raw = await env.KV.get(key)
+  if (!raw) return withCORS(env, text('Not Found', 404))
+  const parsed = JSON.parse(raw)
+  if (String(parsed.tenant_id) !== tenantId) return withCORS(env, text('Forbidden', 403))
+  parsed.status = 'published'
+  parsed.published_at = new Date().toISOString()
+  await env.KV.put(key, JSON.stringify(parsed))
+  return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+}
+
+async function handleSpellArchive(req: Request, env: Env, spellId: string): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const cookies = parseCookies(req.headers.get('cookie'))
+  const claims = await verifyJWT(cookies['sid'], env)
+  if (!claims) return withCORS(env, text('Unauthorized', 401))
+  const role = typeof claims.role === 'string' ? claims.role : null
+  if (role !== 'maker' && role !== 'operator') return withCORS(env, text('Forbidden', 403))
+  const tenantId = String(claims.tenant_id ?? env.DEFAULT_TENANT_ID ?? '1')
+
+  if (env.DATABASE_URL) {
+    const spellNumeric = requiredDbId(spellId, 0)
+    await getDatabase(env).execute(
+      'UPDATE spells SET status = ?, updated_at = NOW() WHERE id = ? AND tenant_id = ?',
+      ['archived', spellNumeric, requiredDbId(tenantId, 0)],
+    )
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+
+  if (!env.KV) return withCORS(env, text('Server misconfigured', 500))
+  const key = kvKeySpell(spellId, env)
+  const raw = await env.KV.get(key)
+  if (!raw) return withCORS(env, text('Not Found', 404))
+  const parsed = JSON.parse(raw)
+  if (String(parsed.tenant_id) !== tenantId) return withCORS(env, text('Forbidden', 403))
+  parsed.status = 'archived'
+  parsed.updated_at = new Date().toISOString()
+  await env.KV.put(key, JSON.stringify(parsed))
+  return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
 }
 
 async function handleWizardsList(req: Request, env: Env): Promise<Response> {
@@ -1914,6 +2970,219 @@ async function handleWizardsList(req: Request, env: Env): Promise<Response> {
   }
 
   return okJSON(env, { items })
+}
+
+async function handleCastsList(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const url = new URL(req.url)
+  const limitParam = parseInt(url.searchParams.get('limit') || '10', 10)
+  let limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 10
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'maker', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantId, tenantNumeric } = auth.context
+
+  let items: any[] = []
+  if (env.DATABASE_URL) {
+    try {
+      const sql = `SELECT c.id, c.spell_id, c.run_id, c.status, c.estimate_cents, c.cost_cents, c.created_at, c.finished_at, s.name as spell_name
+        FROM casts c
+        LEFT JOIN spells s ON s.id = c.spell_id
+        WHERE c.tenant_id = ?
+        ORDER BY c.created_at DESC
+        LIMIT ?`
+      const rows = await runQuery<CastRow>(env, sql, [tenantNumeric, limit])
+      items = rows.map(castRowToSummary)
+    } catch (err) {
+      logEvent('warn', 'casts_list_db_error', { error: String(err) }, parseTraceparent(req.headers.get('traceparent')))
+    }
+  }
+
+  return okJSON(env, { items })
+}
+
+async function handleLedgerList(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'GET') return withCORS(env, text('Method Not Allowed', 405))
+  const url = new URL(req.url)
+  const limitParam = parseInt(url.searchParams.get('limit') || '10', 10)
+  let limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 10
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'maker', 'operator', 'auditor'] })
+  if (!auth.ok) return auth.response
+  const { tenantNumeric } = auth.context
+
+  let items: any[] = []
+  if (env.DATABASE_URL) {
+    try {
+      const sql = `SELECT id, cast_id, kind, amount_cents, currency, occurred_at, reason
+        FROM billing_ledger
+        WHERE tenant_id = ?
+        ORDER BY occurred_at DESC
+        LIMIT ?`
+      const rows = await runQuery<{
+        id: number
+        cast_id: number | null
+        kind: string
+        amount_cents: number
+        currency: string
+        occurred_at: string
+        reason: string
+      }>(env, sql, [tenantNumeric, limit])
+      items = rows.map((row) => ({
+        id: row.id,
+        cast_id: row.cast_id ?? undefined,
+        kind: row.kind,
+        amount_cents: row.amount_cents,
+        currency: row.currency,
+        occurred_at: row.occurred_at,
+        reason: row.reason,
+      }))
+    } catch (err) {
+      logEvent('warn', 'ledger_list_db_error', { error: String(err) }, parseTraceparent(req.headers.get('traceparent')))
+    }
+  }
+
+  return okJSON(env, { items })
+}
+
+async function handleBillingCaps(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method === 'GET') {
+    const trace = parseTraceparent(req.headers.get('traceparent'))
+    const auth = await requireAuthContext(req, env, { roles: ['caster', 'operator'] })
+    if (!auth.ok) return auth.response
+    const { tenantId } = auth.context
+    const caps = await getTenantCapSettings(env, tenantId, trace)
+    return okJSON(env, { monthly_cents: caps.monthly_cents ?? null, total_cents: caps.total_cents ?? null })
+  }
+  if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const auth = await requireAuthContext(req, env, { roles: ['caster', 'operator'] })
+  if (!auth.ok) return auth.response
+  const { tenantId } = auth.context
+
+  let payload: any = {}
+  try {
+    payload = await req.json()
+  } catch (_) {}
+
+  const monthly = normalizeCapValue(payload?.monthly_cents)
+  const total = normalizeCapValue(payload?.total_cents)
+
+  try {
+    await saveTenantCapSettings(env, tenantId, { monthly_cents: monthly, total_cents: total }, trace)
+  } catch (err) {
+    const body = { code: 'INTERNAL', message: 'Failed to persist cap settings', request_id: crypto.randomUUID() }
+    return withCORS(env, new Response(JSON.stringify(body), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+}
+
+async function handleBillingUsage(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'OPTIONS') {
+    return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
+  }
+  if (req.method !== 'POST') return withCORS(env, text('Method Not Allowed', 405))
+  const trace = parseTraceparent(req.headers.get('traceparent'))
+  const token = env.INTERNAL_API_TOKEN
+  if (!token) return withCORS(env, text('Server misconfigured', 500))
+  const header = req.headers.get('authorization') || ''
+  if (!header.startsWith('Bearer ') || header.slice(7) !== token) {
+    return withCORS(env, text('Unauthorized', 401))
+  }
+
+  let payload: any = {}
+  try {
+    payload = await req.json()
+  } catch (_) {}
+
+  const castIdRaw = payload?.cast_id
+  const centsRaw = payload?.cents
+  if (castIdRaw === null || castIdRaw === undefined) {
+    return withCORS(env, text('cast_id required', 400))
+  }
+  const cents = typeof centsRaw === 'number' ? centsRaw : parseInt(String(centsRaw || ''), 10)
+  if (!Number.isFinite(cents) || cents < 0) {
+    return withCORS(env, text('cents must be a non-negative number', 400))
+  }
+  const normalizedCents = Math.round(cents)
+  const units = payload?.units
+  const currency = typeof payload?.currency === 'string' && payload.currency.trim() ? payload.currency.trim().toUpperCase() : 'USD'
+
+  const tenantRaw = payload?.tenant_id
+  if (tenantRaw === undefined || tenantRaw === null || tenantRaw === '') {
+    return withCORS(env, text('tenant_id required', 400))
+  }
+  const castId = String(castIdRaw)
+  const rec = await pollCastRecord(env, castId, tenantRaw)
+  if (!rec) {
+    const body = { code: 'NOT_FOUND', message: 'Cast not found', request_id: crypto.randomUUID() }
+    return withCORS(env, new Response(JSON.stringify(body), { status: 404, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  if (normalizedCents > 0) {
+    rec.cost_cents = (rec.cost_cents ?? 0) + normalizedCents
+  }
+
+  const entry: LedgerEntry = {
+    id: `led_${crypto.randomUUID()}`,
+    tenant_id: rec.tenant_id,
+    cast_id: rec.id,
+    spell_id: rec.spell_id,
+    kind: 'charge',
+    cents: normalizedCents,
+    currency,
+    occurred_at: Date.now(),
+    meta: {
+      source: 'usage_report',
+      units: typeof units === 'number' && Number.isFinite(units) ? units : undefined,
+      cast_id: rec.id,
+    },
+    source: 'system',
+    reason: 'usage',
+  }
+
+  try {
+    await appendLedgerEntry(env, entry, trace)
+  } catch (err) {
+    logEvent('warn', 'billing_usage_ledger_error', { error: String(err), cast_id: rec.id }, trace)
+    const body = { code: 'INTERNAL', message: 'Failed to record usage', request_id: crypto.randomUUID() }
+    return withCORS(env, new Response(JSON.stringify(body), { status: 500, headers: { 'content-type': 'application/json', ...corsHeaders(env) } }))
+  }
+
+  if (normalizedCents > 0) {
+    try {
+      await saveCastRecord(env, rec)
+    } catch (err) {
+      logEvent('warn', 'billing_usage_cast_update_error', { error: String(err), cast_id: rec.id }, trace)
+    }
+  }
+
+  try {
+    await appendSseEvent(
+      env,
+      rec.id,
+      'log',
+      {
+        level: 'info',
+        message: 'usage_report',
+        cents: normalizedCents,
+        units: typeof units === 'number' && Number.isFinite(units) ? units : undefined,
+      },
+      trace,
+    )
+  } catch (err) {
+    logEvent('warn', 'billing_usage_sse_error', { error: String(err), cast_id: rec.id }, trace)
+  }
+
+  return withCORS(env, new Response(null, { status: 204, headers: corsHeaders(env) }))
 }
 
 async function handleArtifact(req: Request, env: Env, pathname: string): Promise<Response> {
@@ -2151,14 +3420,43 @@ const handler = {
 
     if (pathname.startsWith('/api/v1/')) {
       if (pathname === '/api/v1/spells') {
+        if (request.method === 'POST') {
+          return handleSpellsCreate(request, env)
+        }
         return handleSpellsList(request, env)
       }
       if (pathname === '/api/v1/wizards') {
         return handleWizardsList(request, env)
       }
+      if (pathname === '/api/v1/casts') {
+        return handleCastsList(request, env)
+      }
+      if (pathname === '/api/v1/billing/ledger') {
+        return handleLedgerList(request, env)
+      }
+      if (pathname === '/api/v1/billing/caps') {
+        return handleBillingCaps(request, env)
+      }
+      if (pathname === '/api/v1/billing/usage') {
+        return handleBillingUsage(request, env)
+      }
       const castMatch = pathname.match(/^\/api\/v1\/spells\/(\d+):cast$/)
       if (castMatch) {
         return handleCastCreate(request, env, castMatch[1])
+      }
+      const getSpell = pathname.match(/^\/api\/v1\/spells\/(\d+)$/)
+      if (getSpell) {
+        if (request.method === 'GET') return handleSpellsGet(request, env, getSpell[1])
+        if (request.method === 'PATCH') return handleSpellsPatch(request, env, getSpell[1])
+        return withCORS(env, text('Method Not Allowed', 405))
+      }
+      const publishSpell = pathname.match(/^\/api\/v1\/spells\/(\d+):publish$/)
+      if (publishSpell) {
+        return handleSpellPublish(request, env, publishSpell[1])
+      }
+      const archiveSpell = pathname.match(/^\/api\/v1\/spells\/(\d+):archive$/)
+      if (archiveSpell) {
+        return handleSpellArchive(request, env, archiveSpell[1])
       }
       const getCast = pathname.match(/^\/api\/v1\/casts\/(\d+)$/)
       if (getCast) {

@@ -99,7 +99,7 @@ CORS は `Origin: https://app.example.com` のみ許可。
 - cancel 時は Actions API + 協調キャンセル。
 
 ### service
-- Workers → NATS `spell.run.{hash}` publish。
+- Workers → NATS `run.{sha256(spell_id:input_hash)}` publish。
 - Runner (Actix) が受信し、sandbox で実行→R2 PUT→verdict。
 - cancel は `cancel.{run_id}` publish。
 
@@ -192,7 +192,7 @@ CORS は `Origin: https://app.example.com` のみ許可。
 
 ## 16. Core Runner（Actix）
 
-- NATS `spell.run.*` を購読。
+- NATS `run.*` を購読。
 - R2 に成果物を保存。
 - verdict を `/api/v1/casts/{id}:verdict` にポスト。
 - cancel を `cancel.{run_id}` から受信。

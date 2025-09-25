@@ -56,6 +56,7 @@ export interface Cast {
   id: number
   tenant_id: number
   spell_id: number
+  spell_name?: string
   caster_user_id: number
   run_id: string
   idempotency_key: string
@@ -84,6 +85,12 @@ export interface BillingLedger {
   currency: string
   occurred_at: string
   meta_json: Record<string, any>
+  reason?: string
+}
+
+export interface BillingCaps {
+  monthly_cents: number | null
+  total_cents: number | null
 }
 
 export interface Wizard {

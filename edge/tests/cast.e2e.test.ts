@@ -1,11 +1,71 @@
 import { describe, expect, beforeEach, it, vi } from 'vitest'
-import { createHmac } from 'node:crypto'
+import { createHmac, createHash } from 'node:crypto'
 
 const castsById = new Map<number, any>()
 const castsByIdem = new Map<string, number>()
 const castsByRun = new Map<string, number>()
-const ledgerRecords: Array<{ tenantId: number; castId: number | null; kind: string; amount: number; externalId: string | null }> = []
+const ledgerRecords: Array<{ tenantId: number; castId: number | null; kind: string; amount: number; externalId: string | null; reason?: string }> = []
 let nextCastId = 100
+
+function toBase64Url(input: string) {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=+$/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+}
+
+function signTestJwt(payload: Record<string, any>, secret: string) {
+  const header = { alg: 'HS256', typ: 'JWT' }
+  const now = Math.floor(Date.now() / 1000)
+  const body = { iss: 'https://spell.test', aud: 'https://spell.test', iat: now, exp: now + 3600, ...payload }
+  const base = `${toBase64Url(JSON.stringify(header))}.${toBase64Url(JSON.stringify(body))}`
+  const sig = createHmac('sha256', secret).update(base).digest('base64')
+  const token = `${base}.${sig.replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')}`
+  return token
+}
+
+async function readStream(res: Response): Promise<string> {
+  if (!res.body) return ''
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let out = ''
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    if (value) out += decoder.decode(value, { stream: true })
+  }
+  out += decoder.decode()
+  return out
+}
+
+type ParsedSseEvent = { id: string | null; event: string | null; data: any }
+
+function parseSse(text: string): ParsedSseEvent[] {
+  return text
+    .trim()
+    .split(/\n\n+/)
+    .filter(Boolean)
+    .map((block) => {
+      const lines = block.split('\n')
+      let id: string | null = null
+      let event: string | null = null
+      let data: any = null
+      for (const line of lines) {
+        if (line.startsWith('id: ')) id = line.slice(4)
+        else if (line.startsWith('event: ')) event = line.slice(7)
+        else if (line.startsWith('data: ')) {
+          const payload = line.slice(6)
+          try {
+            data = JSON.parse(payload)
+          } catch (_) {
+            data = payload
+          }
+        }
+      }
+      return { id, event, data }
+    })
+}
 
 const executeMock = vi.fn(async (sql: string, params: Array<any>) => {
   const trimmed = sql.trim().toUpperCase()
@@ -91,10 +151,11 @@ const executeMock = vi.fn(async (sql: string, params: Array<any>) => {
     const kind = String(params[3])
     const amount = Number(params[4])
     const externalId = params[8] == null ? null : String(params[8])
+    const reason = params[10] == null ? undefined : String(params[10])
     if (externalId && ledgerRecords.some((entry) => entry.externalId === externalId)) {
       return { insertId: 0 }
     }
-    ledgerRecords.push({ tenantId, castId, kind, amount, externalId })
+    ledgerRecords.push({ tenantId, castId, kind, amount, externalId, reason })
     return { insertId: ledgerRecords.length }
   }
 
@@ -108,13 +169,44 @@ const runQuerySingleImpl = async (_env: any, sql: string, params: Array<any>) =>
     const id = castsByIdem.get(idem)
     return id ? castsById.get(id) ?? null : null
   }
-  if (upper.startsWith('SELECT ID, TENANT_ID FROM SPELLS')) {
+  if (upper.startsWith('SELECT ID, TENANT_ID, TEMPLATE_REPO, REPO_REF, WORKFLOW_ID FROM SPELLS')) {
     const spellId = Number(params[0])
-    return { id: spellId, tenant_id: 1 }
+    return {
+      id: spellId,
+      tenant_id: 1,
+      template_repo: 'spell-templates/example',
+      repo_ref: 'owner/repo@main',
+      workflow_id: 'spell-run.yml',
+    }
+  }
+  if (upper.startsWith('SELECT REPO_REF, WORKFLOW_ID FROM SPELLS')) {
+    return { repo_ref: 'owner/repo@main', workflow_id: 'spell-run.yml' }
   }
   if (upper.includes('FROM CASTS WHERE ID =')) {
     const id = Number(params[0])
     return castsById.get(id) ?? null
+  }
+  if (upper.startsWith('SELECT * FROM SPELLS WHERE ID =') && upper.includes('TENANT_ID')) {
+    const spellId = Number(params[0])
+    return {
+      id: spellId,
+      tenant_id: Number(params[1] ?? 1),
+      spell_key: `spell.${spellId}`,
+      version: 'v1',
+      name: `Spell ${spellId}`,
+      summary: 'summary',
+      description: null,
+      visibility: 'private',
+      execution_mode: 'workflow',
+      pricing_json: JSON.stringify({ flat_cents: 25 }),
+      input_schema_json: JSON.stringify({ type: 'object' }),
+      repo_ref: 'owner/repo@main',
+      workflow_id: 'spell-run.yml',
+      template_repo: 'spell-templates/example',
+      status: 'draft',
+      published_at: null,
+      created_at: '2025-01-01T00:00:00Z',
+    }
   }
   if (upper.includes('COALESCE(SUM(AMOUNT_CENTS)')) {
     return { total: 0 }
@@ -162,6 +254,10 @@ vi.mock('../src/github', () => {
     getWorkflowRun: vi.fn(async () => ({ status: 'completed', conclusion: 'success' })),
     listArtifactsForRun: vi.fn(async () => []),
     getArtifactDownloadUrl: vi.fn(async () => null),
+     generateRepoFromTemplate: vi.fn(async () => ({
+      full_name: 'testuser/generated-repo',
+      html_url: 'https://github.com/testuser/generated-repo',
+    })),
     RepoAccessError,
     WorkflowNotFoundError,
     GithubApiError,
@@ -187,11 +283,12 @@ const envBase: any = {
   ARTIFACT_EXTEND_MAX_DAYS: '30',
   JWT_ISSUER: 'https://spell.test',
   JWT_AUDIENCE: 'https://spell.test',
+  SESSION_SECRET: 'test-secret',
   KV: {
     async get(key: string) {
       return kvStore.get(key) ?? null
     },
-    async put(key: string, value: string) {
+    async put(key: string, value: string, _opts?: any) {
       kvStore.set(key, value)
     },
     async delete(key: string) {
@@ -249,12 +346,14 @@ describe('cast lifecycle via PlanetScale path', () => {
 
   it('creates a cast, responds to duplicate idempotency calls, and finalizes verdict', async () => {
     const env = freshEnv()
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
 
     const castRequest = new Request('https://spell.test/api/v1/spells/123:cast', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'Idempotency-Key': 'idem-001',
+        cookie: `sid=${jwt}`,
       },
       body: JSON.stringify({ mode: 'service', input: { foo: 'bar' } }),
     })
@@ -270,11 +369,15 @@ describe('cast lifecycle via PlanetScale path', () => {
     expect(firstCast).toBeTruthy()
     expect(firstCast?.status).toBe('queued')
 
+    const publishUrl = fetchMock.mock.calls[0]?.[0]?.toString() ?? ''
+    expect(publishUrl).toMatch(/\/publish\/run\.[0-9a-f]{64}$/)
+
     const dupRequest = new Request('https://spell.test/api/v1/spells/123:cast', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'Idempotency-Key': 'idem-001',
+        cookie: `sid=${jwt}`,
       },
       body: JSON.stringify({ mode: 'service', input: { foo: 'bar' } }),
     })
@@ -294,6 +397,8 @@ describe('cast lifecycle via PlanetScale path', () => {
         run_id: data.run_id,
         status: 'succeeded',
         cost_cents: 42,
+        tenant_id: '1',
+        spell_id: '123',
       }),
     })
 
@@ -315,12 +420,14 @@ describe('cast lifecycle via PlanetScale path', () => {
 
   it('cancels a queued cast and records finalize ledger entry without charges', async () => {
     const env = freshEnv()
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
 
     const castRequest = new Request('https://spell.test/api/v1/spells/456:cast', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'Idempotency-Key': 'cancel-test-idem',
+        cookie: `sid=${jwt}`,
       },
       body: JSON.stringify({ mode: 'service', input: { a: 1 } }),
     })
@@ -332,7 +439,7 @@ describe('cast lifecycle via PlanetScale path', () => {
 
     const cancelReq = new Request(`https://spell.test/api/v1/casts/${castId}:cancel`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', cookie: `sid=${jwt}` },
     })
 
     const cancelRes = await handler.fetch(cancelReq, env)
@@ -354,16 +461,195 @@ describe('cast lifecycle via PlanetScale path', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('clones a template repository when clone mode requested', async () => {
+    const env = freshEnv()
+    env.SESSION_SECRET = 'test-secret'
+    const sub = 'github:99'
+    kvStore.set('cap:gh_token:github:99', JSON.stringify({ access_token: 'gho_test', login: 'testuser' }))
+    const jwt = signTestJwt({ sub, name: 'testuser', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
+
+    const cloneRequest = new Request('https://spell.test/api/v1/spells/321:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'clone-idem',
+        cookie: `sid=${jwt}`,
+      },
+      body: JSON.stringify({ mode: 'clone', input: { repo: 'Generated-Repo' } }),
+    })
+
+    const res = await handler.fetch(cloneRequest, env)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.mode).toBe('clone')
+    expect(data.status).toBe('succeeded')
+
+    const stored = castsById.get(data.cast_id)
+    expect(stored?.status).toBe('succeeded')
+    expect(stored?.logs_url).toContain('github.com/testuser')
+
+    const github = await import('../src/github')
+    expect(github.generateRepoFromTemplate).toHaveBeenCalledTimes(1)
+
+    const estimateEntries = ledgerRecords.filter((entry) => entry.kind === 'estimate')
+    const chargeEntries = ledgerRecords.filter((entry) => entry.kind === 'charge')
+    const finalizeEntries = ledgerRecords.filter((entry) => entry.kind === 'finalize')
+
+    expect(estimateEntries.length).toBe(1)
+    expect(chargeEntries.length).toBe(1)
+    expect(finalizeEntries.length).toBe(1)
+  })
+
+  it('records usage charges via internal endpoint', async () => {
+    const env = freshEnv()
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
+
+    const castRequest = new Request('https://spell.test/api/v1/spells/987:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'usage-test-idem',
+        cookie: `sid=${jwt}`,
+      },
+      body: JSON.stringify({ mode: 'service', input: { foo: 'bar' } }),
+    })
+
+    const res = await handler.fetch(castRequest, env)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+
+    const verdictReq = new Request(`https://spell.test/api/v1/casts/${data.cast_id}:verdict`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer internal-token',
+      },
+      body: JSON.stringify({ run_id: data.run_id, status: 'succeeded', cost_cents: 40, tenant_id: '1', spell_id: '987' }),
+    })
+    const verdictRes = await handler.fetch(verdictReq, env)
+    expect(verdictRes.status).toBe(204)
+
+    const usageReq = new Request('https://spell.test/api/v1/billing/usage', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer internal-token',
+      },
+      body: JSON.stringify({ cast_id: data.cast_id, cents: 15, units: 3, currency: 'USD', tenant_id: '1' }),
+    })
+    const usageRes = await handler.fetch(usageReq, env)
+    expect(usageRes.status).toBe(204)
+
+    const usageEntries = ledgerRecords.filter((entry) => entry.reason === 'usage' && entry.castId === data.cast_id)
+    expect(usageEntries.length).toBeGreaterThanOrEqual(2)
+    expect(usageEntries[usageEntries.length - 1].amount).toBe(15)
+
+    const stored = castsById.get(data.cast_id)
+    expect(stored?.cost_cents).toBe(55)
+  })
+
+  it('rejects cast when monthly cap exceeded', async () => {
+    const env = freshEnv()
+    kvStore.set('cap:tenant_cap:1', JSON.stringify({ monthly_cents: 10 }))
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
+    const castRequest = new Request('https://spell.test/api/v1/spells/999:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'cap-monthly',
+        cookie: `sid=${jwt}`,
+      },
+      body: JSON.stringify({ mode: 'service', input: {}, budget_cap_cents: 50 }),
+    })
+    const res = await handler.fetch(castRequest, env)
+    expect(res.status).toBe(402)
+    const body = await res.json()
+    expect(body.code).toBe('BUDGET_CAP_EXCEEDED')
+    expect(body.details?.scope).toBe('monthly')
+  })
+
+  it('rejects cast when lifetime cap exceeded', async () => {
+    const env = freshEnv()
+    kvStore.set('cap:tenant_cap:1', JSON.stringify({ total_cents: 20 }))
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
+    const castRequest = new Request('https://spell.test/api/v1/spells/1001:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'cap-total',
+        cookie: `sid=${jwt}`,
+      },
+      body: JSON.stringify({ mode: 'service', input: {} }),
+    })
+    const res = await handler.fetch(castRequest, env)
+    expect(res.status).toBe(402)
+    const body = await res.json()
+    expect(body.details?.scope).toBe('lifetime')
+  })
+
+  it('replays SSE events and honors Last-Event-ID on reconnect', async () => {
+    const env = freshEnv()
+    env.SESSION_SECRET = 'test-secret'
+    const sub = 'github:42'
+    kvStore.set('cap:gh_token:github:42', JSON.stringify({ access_token: 'gho_replay', login: 'replay-user' }))
+    const jwt = signTestJwt({ sub, name: 'replay-user', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
+
+    const cloneRequest = new Request('https://spell.test/api/v1/spells/654:cast', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Idempotency-Key': 'clone-replay-idem',
+        cookie: `sid=${jwt}`,
+      },
+      body: JSON.stringify({ mode: 'clone', input: { repo: 'Replay-Repo' } }),
+    })
+
+    const res = await handler.fetch(cloneRequest, env)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    const castId = data.cast_id as number
+    expect(typeof castId).toBe('number')
+
+    const eventsReq = new Request(`https://spell.test/api/v1/casts/${castId}/events`, {
+      headers: { cookie: `sid=${jwt}` },
+    })
+    const eventsRes = await handler.fetch(eventsReq, env)
+    expect(eventsRes.status).toBe(200)
+    const eventsText = await readStream(eventsRes)
+    const events = parseSse(eventsText)
+    expect(events.length).toBeGreaterThanOrEqual(2)
+    const runningEvent = events.find((evt) => evt.event === 'progress' && evt.data?.stage === 'running')
+    expect(runningEvent).toBeTruthy()
+    const completedEvent = events.find((evt) => evt.event === 'completed')
+    expect(completedEvent).toBeTruthy()
+    const firstId = events[0].id
+    expect(firstId).toBeTruthy()
+
+    const replayReq = new Request(`https://spell.test/api/v1/casts/${castId}/events`, {
+      headers: { 'Last-Event-ID': firstId ?? '', cookie: `sid=${jwt}` },
+    })
+    const replayRes = await handler.fetch(replayReq, env)
+    expect(replayRes.status).toBe(200)
+    const replayText = await readStream(replayRes)
+    const replayEvents = parseSse(replayText)
+    expect(replayEvents.length).toBeGreaterThanOrEqual(1)
+    const replayCompleted = replayEvents.find((evt) => evt.event === 'completed')
+    expect(replayCompleted).toBeTruthy()
+    if (replayCompleted?.id) expect(replayCompleted.id).not.toBe(firstId)
+  })
+
   it('creates a workflow-mode cast and triggers GitHub dispatch', async () => {
     const env = freshEnv()
     env.GITHUB_APP_ID = '123'
     env.GITHUB_APP_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\nMIIBVwIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAuX0us0MI6N87p7pu\n0pJCLPZ7L+G2kzzkZXF1tcHTTX3e8DqRL3OjaxAg/P6nxsVXni4eWh05rq6ArlTc\nVmO6dwIDAQABAkAmLF730cdpShUMHbOWcZH/AsLiCFYI8a9kaI0s5momkMumZ5qX\nPz9vywgq6Z9erjRzCQXDpUe1koXSPo6e7/jBAiEA6C0BpvyEukgqS0bkkCm1cW0X\nADVY6jwxKF1uHmIiMa8CIQDDDsS/bRMyCV2wE8pQnH3UX0YPD+s/COM24kTx5cDI\ndQIge5cDIeEJD7BqXc9E+u6KDAdAm8YGtS+wGGyRyvE4sECIDb1rssZCvGSqtEtD\nWwrHgMHqmpYJv1nVbWcv16O3MHuvAiEAmjVWeItPxX2VINeodIZ6Tn6PvxI6Bfq5\nxoVI476S7ik=\n-----END PRIVATE KEY-----'
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
 
     const castRequest = new Request('https://spell.test/api/v1/spells/789:cast', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'Idempotency-Key': 'workflow-idem',
+        cookie: `sid=${jwt}`,
       },
       body: JSON.stringify({ mode: 'workflow', input: { hello: 'world' } }),
     })
@@ -397,6 +683,7 @@ describe('cast lifecycle via PlanetScale path', () => {
       },
       async delete() {},
     }
+    const jwt = signTestJwt({ sub: 'github:1', tenant_id: 1, role: 'caster' }, env.SESSION_SECRET)
 
     const artifacts = [{ id: 1, name: 'result' }]
     const mirror = { artifactUrl: 'https://r2.test/run-1/result.zip', sha256: 'abc'.padEnd(64, '0'), sizeBytes: 123, expiresAt: Date.now() + 60000 }
@@ -412,6 +699,7 @@ describe('cast lifecycle via PlanetScale path', () => {
       headers: {
         'content-type': 'application/json',
         'Idempotency-Key': 'workflow-sse',
+        cookie: `sid=${jwt}`,
       },
       body: JSON.stringify({ mode: 'workflow' }),
     })
@@ -419,7 +707,9 @@ describe('cast lifecycle via PlanetScale path', () => {
     const res = await handler.fetch(castRequest, env)
     const json = await res.json()
 
-    const sseReq = new Request(`https://spell.test/api/v1/casts/${json.cast_id}/events`)
+    const sseReq = new Request(`https://spell.test/api/v1/casts/${json.cast_id}/events`, {
+      headers: { cookie: `sid=${jwt}` },
+    })
     const sseRes = await handler.fetch(sseReq, env)
     const body = await sseRes.text()
 

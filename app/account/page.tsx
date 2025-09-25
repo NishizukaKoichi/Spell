@@ -7,16 +7,37 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { fetchSession, logout, type Session } from "@/lib/session"
+import { cn } from "@/lib/utils"
+
+const currency = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 })
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "--"
+  const ts = Date.parse(value)
+  if (!Number.isFinite(ts)) return value
+  return new Date(ts).toLocaleString()
+}
 
 export default function AccountPage() {
-  const { stats, fetchBazaarSpells } = useSpellStore()
+  const {
+    stats,
+    fetchBazaarSpells,
+    fetchRecentCasts,
+    fetchLedger,
+    recentCasts,
+    ledgerEntries,
+    isFetchingCasts,
+    isFetchingLedger,
+  } = useSpellStore()
   const [session, setSession] = useState<Session | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     void fetchBazaarSpells()
-  }, [fetchBazaarSpells])
+    void fetchRecentCasts()
+    void fetchLedger()
+  }, [fetchBazaarSpells, fetchRecentCasts, fetchLedger])
 
   useEffect(() => {
     let isMounted = true

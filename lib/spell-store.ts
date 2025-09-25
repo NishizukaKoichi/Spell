@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Spell, Cast, Wizard } from "./types"
+import type { Spell, Cast, Wizard, BillingLedger, BillingCaps } from "./types"
 import { resolveUrl } from "./session"
 
 interface MarketplaceStats {
@@ -19,6 +19,12 @@ interface SpellStore {
   casts: Cast[]
   wizards: Wizard[]
   isFetchingWizards: boolean
+  recentCasts: Cast[]
+  ledgerEntries: BillingLedger[]
+  isFetchingCasts: boolean
+  isFetchingLedger: boolean
+  billingCaps: BillingCaps | null
+  isFetchingCaps: boolean
   stats: MarketplaceStats
 
   // UI State
@@ -50,6 +56,9 @@ interface SpellStore {
   fetchBazaarSpells: () => Promise<void>
   fetchMySpells: () => Promise<void>
   fetchWizards: () => Promise<void>
+  fetchRecentCasts: () => Promise<void>
+  fetchLedger: () => Promise<void>
+  fetchBillingCaps: () => Promise<void>
 
   // Getters
   getFilteredBazaarSpells: () => Spell[]
@@ -67,6 +76,12 @@ export const useSpellStore = create<SpellStore>()(
       casts: [],
       wizards: [],
       isFetchingWizards: false,
+      recentCasts: [],
+      ledgerEntries: [],
+      isFetchingCasts: false,
+      isFetchingLedger: false,
+      billingCaps: null,
+      isFetchingCaps: false,
       stats: {
         totalSpells: 0,
         totalExecutions: 0,
@@ -214,6 +229,10 @@ export const useSpellStore = create<SpellStore>()(
             cache: 'no-store',
           })
           if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ spells: [] })
+              return
+            }
             const text = await res.text().catch(() => '')
             throw new Error(`Failed to fetch spells: ${res.status} ${text}`)
           }
@@ -235,6 +254,10 @@ export const useSpellStore = create<SpellStore>()(
             cache: 'no-store',
           })
           if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ mySpells: [] })
+              return
+            }
             const text = await res.text().catch(() => '')
             throw new Error(`Failed to fetch my spells: ${res.status} ${text}`)
           }
@@ -254,6 +277,10 @@ export const useSpellStore = create<SpellStore>()(
             cache: 'no-store',
           })
           if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ wizards: [] })
+              return
+            }
             const text = await res.text().catch(() => '')
             throw new Error(`Failed to fetch wizards: ${res.status} ${text}`)
           }
@@ -263,6 +290,78 @@ export const useSpellStore = create<SpellStore>()(
           console.error('fetchWizards failed', err)
         } finally {
           set({ isFetchingWizards: false })
+        }
+      },
+
+      fetchRecentCasts: async () => {
+        set({ isFetchingCasts: true })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/casts?limit=10'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ recentCasts: [] })
+              return
+            }
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch casts: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as { items?: Cast[] }
+          set({ recentCasts: Array.isArray(data.items) ? data.items : [] })
+        } catch (err) {
+          console.error('fetchRecentCasts failed', err)
+        } finally {
+          set({ isFetchingCasts: false })
+        }
+      },
+
+      fetchLedger: async () => {
+        set({ isFetchingLedger: true })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/billing/ledger?limit=10'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ ledgerEntries: [] })
+              return
+            }
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch ledger: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as { items?: BillingLedger[] }
+          set({ ledgerEntries: Array.isArray(data.items) ? data.items : [] })
+        } catch (err) {
+          console.error('fetchLedger failed', err)
+        } finally {
+          set({ isFetchingLedger: false })
+        }
+      },
+
+      fetchBillingCaps: async () => {
+        set({ isFetchingCaps: true })
+        try {
+          const res = await fetch(resolveUrl('/api/v1/billing/caps'), {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              set({ billingCaps: null })
+              return
+            }
+            const text = await res.text().catch(() => '')
+            throw new Error(`Failed to fetch caps: ${res.status} ${text}`)
+          }
+          const data = (await res.json()) as BillingCaps
+          set({ billingCaps: data })
+        } catch (err) {
+          console.error('fetchBillingCaps failed', err)
+        } finally {
+          set({ isFetchingCaps: false })
         }
       },
 

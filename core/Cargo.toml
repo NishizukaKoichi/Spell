@@ -6,14 +6,15 @@ edition = "2021"
 [dependencies]
 actix-web = "4"
 actix-rt = "2"
-async-nats = { version = "0.35", features = ["jetstream"] }
+async-nats = "0.39"
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
-zip = { version = "0.6", default-features = false, features = ["chrono"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "process", "fs", "time"] }
+zip = "0.6"
 sha2 = "0.10"
+tempfile = "3"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }

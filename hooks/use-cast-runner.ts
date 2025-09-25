@@ -64,6 +64,9 @@ export function useCastRunner(options: UseCastRunnerOptions = {}): UseCastRunner
           void store.fetchBazaarSpells()
         }
         void store.fetchMySpells()
+        void store.fetchRecentCasts()
+        void store.fetchLedger()
+        void store.fetchBillingCaps()
       }
     })
     stopRef.current = stop

@@ -295,6 +295,59 @@ export class GithubApiError extends Error {
   }
 }
 
+type TemplateCloneOptions = {
+  owner: string
+  name: string
+  private?: boolean
+  description?: string
+  include_all_branches?: boolean
+}
+
+export async function generateRepoFromTemplate(
+  token: string,
+  templateRepo: string,
+  options: TemplateCloneOptions,
+  apiBase = DEFAULT_API_BASE,
+): Promise<any> {
+  const [templateOwner, templateName] = templateRepo.split('/')
+  if (!templateOwner || !templateName) {
+    throw new GithubApiError('Invalid template repository reference', 400)
+  }
+  const url = `${apiBase}/repos/${templateOwner}/${templateName}/generate`
+  const body = {
+    owner: options.owner,
+    name: options.name,
+    private: options.private !== undefined ? options.private : true,
+    description: options.description,
+    include_all_branches: Boolean(options.include_all_branches),
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github+json',
+      'content-type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'spell-edge/1.0',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const status = res.status
+    let message = 'Failed to clone template repository'
+    try {
+      const json = (await res.json()) as any
+      if (json?.message) message = json.message
+    } catch (_) {}
+    throw new GithubApiError(message, status)
+  }
+  try {
+    return await res.json()
+  } catch (_) {
+    return {}
+  }
+}
+
 export class RepoAccessError extends Error {
   constructor(message = "FORBIDDEN_REPO") {
     super(message)

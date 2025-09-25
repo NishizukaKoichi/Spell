@@ -44,6 +44,8 @@ describe('service runner helpers', () => {
       tenant_id: '42',
       input: { foo: 'bar' },
     })
+    expect(zip.file('logs.ndjson')).toBeTruthy()
+    expect(zip.file('sbom.spdx.json')).toBeTruthy()
   })
 
   it('computes TTL in the future', () => {
@@ -96,6 +98,8 @@ describe('handleRun', () => {
     const finalCall = fetchMock.mock.calls[2] as FetchCall
     const finalBody = JSON.parse(finalCall[1]!.body as string)
     expect(finalBody.status).toBe('succeeded')
+    expect(finalBody.tenant_id).toBe('333')
+    expect(finalBody.spell_id).toBe('555')
     expect(finalBody.artifact.url).toBe('https://files.test/artifacts/run-1/result.zip')
     expect(finalBody.artifact.sha256).toHaveLength(64)
   })
@@ -111,6 +115,8 @@ describe('handleRun', () => {
     const cancelBody = JSON.parse(fetchMock.mock.calls[1][1].body as string)
     expect(cancelBody.status).toBe('canceled')
     expect(cancelBody.message).toContain('Canceled')
+    expect(cancelBody.tenant_id).toBe('333')
+    expect(cancelBody.spell_id).toBe('555')
   })
 
   it('reports failure when artifact upload fails', async () => {
@@ -128,5 +134,7 @@ describe('handleRun', () => {
     const failureBody = JSON.parse(fetchMock.mock.calls[2][1].body as string)
     expect(failureBody.status).toBe('failed')
     expect(failureBody.message).toBeTruthy()
+    expect(failureBody.tenant_id).toBe('333')
+    expect(failureBody.spell_id).toBe('555')
   })
 })
