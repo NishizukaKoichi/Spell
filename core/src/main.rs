@@ -31,10 +31,13 @@ struct RunPayload {
     cast_id: String,
     tenant_id: String,
     spell_id: String,
+    #[allow(dead_code)] // Reserved for future expansion
     mode: Option<String>,
     input: serde_json::Value,
+    #[allow(dead_code)] // Reserved for future expansion
     created_at: Option<i64>,
     timeout_sec: Option<i64>,
+    #[allow(dead_code)] // Reserved for future expansion
     region: Option<String>,
     estimate_cents: Option<i64>,
 }
