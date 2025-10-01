@@ -1,7 +1,0 @@
-packages:
-  - '.'
-  - 'core'
-  - 'edge'
-
-ignoredBuiltDependencies:
-  - unrs-resolver
