@@ -1,0 +1,13 @@
+{
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "framework": "nextjs",
+  "installCommand": "pnpm install",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@next_public_api_url",
+    "NEXT_PUBLIC_WEBAUTHN_RP_ID": "@next_public_webauthn_rp_id",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@next_public_stripe_publishable_key"
+  },
+  "regions": ["nrt1"],
+  "outputDirectory": ".next"
+}
