@@ -3,6 +3,7 @@
 This document defines UI operations that cannot be automated via API and require Atlas (browser automation).
 
 ## Task Priority
+
 - **P0**: Critical for initial setup
 - **P1**: Required for production
 - **P2**: Nice to have
@@ -15,10 +16,12 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Create and configure GitHub App for Spell Platform
 
 **Prerequisites**:
+
 - GitHub organization or personal account
 - Admin access
 
 **Steps**:
+
 1. Navigate to `https://github.com/settings/apps/new` (personal) or `https://github.com/organizations/{org}/settings/apps/new` (org)
 2. Fill in basic information:
    - **GitHub App name**: `Spell Platform`
@@ -40,11 +43,13 @@ This document defines UI operations that cannot be automated via API and require
 7. Note the App ID and Client ID
 
 **Success Criteria**:
+
 - App created with correct permissions
 - Private key downloaded
 - App ID and Client ID recorded
 
 **Locators** (for Playwright automation if needed):
+
 ```typescript
 {
   appNameInput: 'input[name="manifest[name]"]',
@@ -62,10 +67,12 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Configure Stripe for payment processing
 
 **Prerequisites**:
+
 - Stripe account (test and live mode)
 - Business verification completed (for live mode)
 
 **Steps**:
+
 1. Navigate to `https://dashboard.stripe.com/apikeys`
 2. Copy **Publishable key** and **Secret key** for test mode
 3. Navigate to `https://dashboard.stripe.com/webhooks`
@@ -82,6 +89,7 @@ This document defines UI operations that cannot be automated via API and require
    - Enable automatic tax calculation
 
 **Success Criteria**:
+
 - API keys copied
 - Webhook configured with correct events
 - Signing secret recorded
@@ -93,10 +101,12 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Deploy frontend to Vercel
 
 **Prerequisites**:
+
 - Vercel account
 - GitHub repository connected
 
 **Steps**:
+
 1. Navigate to `https://vercel.com/new`
 2. Import repository: `github.com/{username}/Spell`
 3. Configure project:
@@ -113,6 +123,7 @@ This document defines UI operations that cannot be automated via API and require
 5. Deploy
 
 **Success Criteria**:
+
 - Project deployed successfully
 - Environment variables set
 - Custom domain configured (if applicable)
@@ -124,10 +135,12 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Deploy edge functions and configure R2/KV
 
 **Prerequisites**:
+
 - Cloudflare account
 - Domain configured
 
 **Steps**:
+
 1. Navigate to `https://dash.cloudflare.com/`
 2. Create R2 bucket:
    - Go to R2 Object Storage
@@ -143,6 +156,7 @@ This document defines UI operations that cannot be automated via API and require
 5. Note Account ID from URL
 
 **Success Criteria**:
+
 - R2 bucket created
 - KV namespace created
 - API token generated
@@ -155,9 +169,11 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Set up production database
 
 **Prerequisites**:
+
 - PlanetScale account
 
 **Steps**:
+
 1. Navigate to `https://app.planetscale.com/`
 2. Click "Create database"
    - **Name**: `spell-platform`
@@ -173,6 +189,7 @@ This document defines UI operations that cannot be automated via API and require
 5. Enable automatic migrations (optional)
 
 **Success Criteria**:
+
 - Database created
 - Branches set up
 - Connection strings saved securely
@@ -184,9 +201,11 @@ This document defines UI operations that cannot be automated via API and require
 **Goal**: Configure observability stack
 
 **Prerequisites**:
+
 - Grafana Cloud account
 
 **Steps**:
+
 1. Navigate to `https://grafana.com/`
 2. Create stack:
    - Choose region
@@ -201,6 +220,7 @@ This document defines UI operations that cannot be automated via API and require
 5. Note OTLP endpoint
 
 **Success Criteria**:
+
 - Stack created
 - Data sources configured
 - API keys generated
@@ -228,4 +248,3 @@ When automating these tasks with Atlas/Playwright:
 5. **Verify completion**: Don't just click - verify the result
 6. **Respect rate limits**: Add appropriate delays
 7. **Use incognito mode**: Avoid state pollution between runs
-

@@ -71,36 +71,24 @@
   "commands": {
     "setup": {
       "description": "Install dependencies",
-      "steps": [
-        "pnpm install --frozen-lockfile"
-      ]
+      "steps": ["pnpm install --frozen-lockfile"]
     },
     "build": {
       "description": "Build the application",
-      "steps": [
-        "pnpm build"
-      ]
+      "steps": ["pnpm build"]
     },
     "test": {
       "description": "Run tests",
-      "steps": [
-        "pnpm lint",
-        "pnpm typecheck",
-        "pnpm format:check"
-      ]
+      "steps": ["pnpm lint", "pnpm typecheck", "pnpm format:check"]
     },
     "sbom": {
       "description": "Generate SBOM",
-      "steps": [
-        "syft packages dir:. -o spdx-json > .artifacts/sbom/sbom.spdx.json"
-      ],
+      "steps": ["syft packages dir:. -o spdx-json > .artifacts/sbom/sbom.spdx.json"],
       "optional": true
     },
     "vuln": {
       "description": "Vulnerability scan",
-      "steps": [
-        "grype dir:. -o json > .artifacts/sbom/vuln.json"
-      ],
+      "steps": ["grype dir:. -o json > .artifacts/sbom/vuln.json"],
       "optional": true
     },
     "sign": {

@@ -1,4 +1,4 @@
-# Spell Platform 
+# Spell Platform
 
 **Document Version**: 1.4.1
 **Status**: Enterprise Grade
@@ -79,14 +79,14 @@
 
 ### 1.3 Key Metrics (Target)
 
-|Metric|MVP|Growth|Scale|
-|---|---|---|---|
-|Spell登録数|100+|1,000+|10,000+|
-|月間実行数|10K|100K|10M+|
-|実行レイテンシ (p90)|<500ms|<200ms|<100ms|
-|API可用性|99.5%|99.9%|99.95%|
-|供給チェーン検証率|100%|100%|100%|
-|SBOM提出率|80%|95%|100%|
+| Metric               | MVP    | Growth | Scale   |
+| -------------------- | ------ | ------ | ------- |
+| Spell登録数          | 100+   | 1,000+ | 10,000+ |
+| 月間実行数           | 10K    | 100K   | 10M+    |
+| 実行レイテンシ (p90) | <500ms | <200ms | <100ms  |
+| API可用性            | 99.5%  | 99.9%  | 99.95%  |
+| 供給チェーン検証率   | 100%   | 100%   | 100%    |
+| SBOM提出率           | 80%    | 95%    | 100%    |
 
 ---
 
@@ -94,18 +94,18 @@
 
 ### 2.1 Terminology
 
-|Term|Definition|Example|
-|---|---|---|
-|**Spell**|実行可能なWASMバイナリ + メタデータのパッケージ|`com.acme.resize`|
-|**Grimoire**|Spellの登録・管理システム|Platform のSpell Registry|
-|**Casting**|Spellの実行リクエスト|`POST /v1/spells/:key/cast`|
-|**Artifact**|Spell実行の成果物|処理済み画像、JSON結果|
-|**Ledger**|実行履歴・課金・監査の記録|Append-only audit log|
-|**Maker**|Spell作成者|開発者|
-|**Caster**|Spell実行者|API利用者|
-|**Budget**|使用上限金額の設定|日次/月次の支出制限|
-|**Rekor**|透明性ログ（Sigstore）|署名の公開記録|
-|**SBOM**|ソフトウェア部品表|依存関係の完全リスト|
+| Term         | Definition                                      | Example                     |
+| ------------ | ----------------------------------------------- | --------------------------- |
+| **Spell**    | 実行可能なWASMバイナリ + メタデータのパッケージ | `com.acme.resize`           |
+| **Grimoire** | Spellの登録・管理システム                       | Platform のSpell Registry   |
+| **Casting**  | Spellの実行リクエスト                           | `POST /v1/spells/:key/cast` |
+| **Artifact** | Spell実行の成果物                               | 処理済み画像、JSON結果      |
+| **Ledger**   | 実行履歴・課金・監査の記録                      | Append-only audit log       |
+| **Maker**    | Spell作成者                                     | 開発者                      |
+| **Caster**   | Spell実行者                                     | API利用者                   |
+| **Budget**   | 使用上限金額の設定                              | 日次/月次の支出制限         |
+| **Rekor**    | 透明性ログ（Sigstore）                          | 署名の公開記録              |
+| **SBOM**     | ソフトウェア部品表                              | 依存関係の完全リスト        |
 
 ### 2.2 Design Principles
 
@@ -186,22 +186,22 @@
 
 ### 4.1 Core Technologies
 
-|Component|Technology|Version|Rationale|
-|---|---|---|---|
-|**Web Frontend (Caster)**|Next.js (App Router) on Vercel|15.x|課金UI/ダッシュボード|
-|**API Server**|Rust (Actix-web)|4.x|高性能、メモリ安全、async|
-|**Runtime**|wasmer|4.x|WASI準拠、AOT/JIT、sandbox|
-|**Database**|PostgreSQL|16+|ACID保証、JSON型、full-text|
-|**Cache**|Redis|7.x|Rate limit、session、budget tracking|
-|**Storage**|S3/R2|-|Artifact保存、低コスト、geo-replication|
-|**Queue**|NATS JetStream|2.x|非同期処理、メッセージ永続化|
-|**Auth**|GitHub OAuth|2.0|開発者向け認証|
-|**Payment**|Stripe API|2023-10|決済処理、Connect、Tax|
-|**Signing**|Sigstore (Fulcio/Rekor)|Latest|供給チェーン署名|
-|**SBOM**|cargo-sbom / syft|Latest|依存関係可視化|
-|**Monitoring**|Prometheus|2.x|メトリクス収集|
-|**Alerting**|PagerDuty|Latest|インシデント管理|
-|**Compliance**|OneTrust / TrustArc|Latest|GDPR/CCPA管理（Phase 3）|
+| Component                 | Technology                     | Version | Rationale                               |
+| ------------------------- | ------------------------------ | ------- | --------------------------------------- |
+| **Web Frontend (Caster)** | Next.js (App Router) on Vercel | 15.x    | 課金UI/ダッシュボード                   |
+| **API Server**            | Rust (Actix-web)               | 4.x     | 高性能、メモリ安全、async               |
+| **Runtime**               | wasmer                         | 4.x     | WASI準拠、AOT/JIT、sandbox              |
+| **Database**              | PostgreSQL                     | 16+     | ACID保証、JSON型、full-text             |
+| **Cache**                 | Redis                          | 7.x     | Rate limit、session、budget tracking    |
+| **Storage**               | S3/R2                          | -       | Artifact保存、低コスト、geo-replication |
+| **Queue**                 | NATS JetStream                 | 2.x     | 非同期処理、メッセージ永続化            |
+| **Auth**                  | GitHub OAuth                   | 2.0     | 開発者向け認証                          |
+| **Payment**               | Stripe API                     | 2023-10 | 決済処理、Connect、Tax                  |
+| **Signing**               | Sigstore (Fulcio/Rekor)        | Latest  | 供給チェーン署名                        |
+| **SBOM**                  | cargo-sbom / syft              | Latest  | 依存関係可視化                          |
+| **Monitoring**            | Prometheus                     | 2.x     | メトリクス収集                          |
+| **Alerting**              | PagerDuty                      | Latest  | インシデント管理                        |
+| **Compliance**            | OneTrust / TrustArc            | Latest  | GDPR/CCPA管理（Phase 3）                |
 
 ---
 
@@ -373,24 +373,24 @@ async fn verify_spell_sigstore(
 ) -> Result<VerificationResult, SigstoreError> {
     let verifier = CosignVerifier::new()?;
     let bundle: sigstore::Bundle = serde_json::from_slice(signature_bundle)?;
-    
+
     let result = verifier.verify_blob(
         tar_bytes,
         &bundle,
         &VerificationConstraint::github_actions("acme/spell-resize")
     ).await?;
-    
+
     let rekor_entry = bundle.rekor_bundle.payload;
     let entry_verified = verify_rekor_entry(
         &rekor_entry.log_id,
         rekor_entry.log_index,
         &rekor_entry.body
     ).await?;
-    
+
     if !entry_verified {
         return Err(SigstoreError::RekorVerificationFailed);
     }
-    
+
     Ok(VerificationResult {
         signed_by: extract_github_identity(&bundle.cert)?,
         signed_at: rekor_entry.integrated_time,
@@ -528,22 +528,22 @@ impl SBOMValidator {
     pub async fn validate(&self, sbom_json: &[u8]) -> Result<SBOMValidationResult, Error> {
         // Parse SBOM
         let sbom: SPDX = serde_json::from_slice(sbom_json)?;
-        
+
         let mut issues = Vec::new();
         let mut warnings = Vec::new();
-        
+
         // 1. Format validation
         if sbom.spdx_version != "SPDX-2.3" && sbom.spdx_version != "SPDX-2.2" {
             issues.push(ValidationIssue::critical("Invalid SPDX version"));
         }
-        
+
         // 2. Check all packages for CVEs
         for package in &sbom.packages {
             if let Some(version) = &package.version_info {
                 let vulnerabilities = self.cve_db
                     .check_package(&package.name, version)
                     .await?;
-                
+
                 for vuln in vulnerabilities {
                     if vuln.cvss >= 7.0 {
                         issues.push(ValidationIssue::critical(format!(
@@ -559,7 +559,7 @@ impl SBOMValidator {
                 }
             }
         }
-        
+
         // 3. License compatibility check
         for package in &sbom.packages {
             if let Some(license) = &package.license_concluded {
@@ -571,12 +571,12 @@ impl SBOMValidator {
                 }
             }
         }
-        
+
         // 4. Completeness check
         if sbom.packages.is_empty() {
             issues.push(ValidationIssue::critical("SBOM contains no packages"));
         }
-        
+
         Ok(SBOMValidationResult {
             valid: issues.is_empty(),
             issues,
@@ -646,23 +646,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: wasm32-wasi
-      
+
       - name: Build WASM
         run: |
           cargo build --target wasm32-wasi --release
           wasm-opt -Oz -o spell.wasm target/wasm32-wasi/release/spell.wasm
-      
+
       - name: Generate SBOM
         run: |
           cargo install cargo-sbom
           cargo sbom --output-format spdx-json > sbom.spdx.json
-      
+
       - name: Create canonical tar
         run: |
           tar --sort=name \
@@ -671,14 +671,14 @@ jobs:
               --numeric-owner \
               -cf spell.tar \
               manifest.toml spell.wasm schema.json sbom.spdx.json resources/
-      
+
       - name: Sign with Sigstore
         uses: sigstore/cosign-installer@v3
       - run: |
           cosign sign-blob spell.tar \
             --bundle SIGNATURE.sigstore \
             --yes
-      
+
       - name: Publish to Spell Platform
         run: |
           spell-cli publish \
@@ -701,16 +701,16 @@ async fn execute_spell(
 ) -> Result<ExecutionResult, ExecutionError> {
     let start_time = Instant::now();
     let module = load_or_compile_module(wasm_bytes, &config).await?;
-    
+
     let mut store = Store::new(config.compiler);
     store.set_fuel(config.cpu_cycles_limit)?;
     store.set_memory_limit(config.max_memory_bytes)?;
-    
+
     let result = tokio::time::timeout(
         Duration::from_millis(config.timeout_ms),
         execute_wasm(&mut store, &module, input)
     ).await;
-    
+
     match result {
         Ok(Ok(output)) => Ok(ExecutionResult {
             output,
@@ -747,28 +747,28 @@ pub struct NetworkPolicy {
 impl NetworkPolicy {
     pub fn check_url(&self, url: &str) -> Result<(), PolicyViolation> {
         let parsed = Url::parse(url)?;
-        
+
         if parsed.scheme() != "https" {
             return Err(PolicyViolation::NonHttpsAccess(url.to_string()));
         }
-        
+
         let domain = parsed.host_str().ok_or(PolicyViolation::InvalidUrl)?;
-        
+
         if self.allowed_domains.is_empty() {
             return Err(PolicyViolation::NetworkAccessDenied(domain.to_string()));
         }
-        
+
         let allowed = self.allowed_domains.iter().any(|allowed_domain| {
             domain == allowed_domain || domain.ends_with(&format!(".{}", allowed_domain))
         });
-        
+
         if !allowed {
             return Err(PolicyViolation::DomainNotAllowed {
                 requested: domain.to_string(),
                 allowed: self.allowed_domains.clone()
             });
         }
-        
+
         Ok(())
     }
 }
@@ -783,26 +783,26 @@ pub async fn handle_policy_violation(
     violation: PolicyViolation
 ) -> Result<(), Error> {
     db.execute(
-        "INSERT INTO policy_violations (spell_key, cast_id, violation_type, details) 
+        "INSERT INTO policy_violations (spell_key, cast_id, violation_type, details)
          VALUES ($1, $2, $3, $4)",
         &[spell_key, cast_id, &violation.type_str(), &violation.details()]
     ).await?;
-    
+
     let count: i64 = db.query_one(
-        "SELECT COUNT(*) FROM policy_violations 
+        "SELECT COUNT(*) FROM policy_violations
          WHERE spell_key = $1 AND created_at > NOW() - INTERVAL '24 hours'",
         &[spell_key]
     ).await?.get(0);
-    
+
     if count >= 10 {
         db.execute(
             "UPDATE spells SET status = 'suspended', suspended_at = NOW() WHERE key = $1",
             &[spell_key]
         ).await?;
-        
+
         notify_maker_suspension(spell_key, count).await?;
     }
-    
+
     Ok(())
 }
 ```
@@ -882,16 +882,16 @@ price_usd = 0.05
 
 ### 30.1 Retention Policy
 
-|Data Type|Retention|Auto-Delete|Legal Hold|
-|---|---|---|---|
-|Cast input (hash)|90 days|Yes|No|
-|Artifacts|30 days|Yes|No|
-|Execution logs|90 days|Yes|No|
-|Billing ledger|7 years|No|Yes|
-|Budget history|1 year|Yes|Yes|
-|Audit logs|1 year|Yes|Yes|
-|Rekor log reference|Permanent|No|No|
-|SBOM|Permanent|No|No|
+| Data Type           | Retention | Auto-Delete | Legal Hold |
+| ------------------- | --------- | ----------- | ---------- |
+| Cast input (hash)   | 90 days   | Yes         | No         |
+| Artifacts           | 30 days   | Yes         | No         |
+| Execution logs      | 90 days   | Yes         | No         |
+| Billing ledger      | 7 years   | No          | Yes        |
+| Budget history      | 1 year    | Yes         | Yes        |
+| Audit logs          | 1 year    | Yes         | Yes        |
+| Rekor log reference | Permanent | No          | No         |
+| SBOM                | Permanent | No          | No         |
 
 ### 30.2 Data Residency & Regional Compliance
 
@@ -909,15 +909,15 @@ price_usd = 0.05
 
 **Data Storage Locations:**
 
-|Data Type|Current|Phase 3|
-|---|---|---|
-|User Account Data|PostgreSQL (US-West-2)|PostgreSQL (Regional)|
-|Artifacts|S3/R2 (US)|S3/R2 (Multi-region)|
-|Execution Logs|Vector → S3 (US)|S3 (Regional)|
-|Billing Data|Stripe (Multi-region)|Stripe (Multi-region)|
-|Audit Logs|S3 (US-West-2 + US-East-1)|S3 (Regional + Cross-region backup)|
-|SBOM|S3 (US, public)|S3 (Global, public)|
-|Rekor Logs|Sigstore (Global)|Sigstore (Global)|
+| Data Type         | Current                    | Phase 3                             |
+| ----------------- | -------------------------- | ----------------------------------- |
+| User Account Data | PostgreSQL (US-West-2)     | PostgreSQL (Regional)               |
+| Artifacts         | S3/R2 (US)                 | S3/R2 (Multi-region)                |
+| Execution Logs    | Vector → S3 (US)           | S3 (Regional)                       |
+| Billing Data      | Stripe (Multi-region)      | Stripe (Multi-region)               |
+| Audit Logs        | S3 (US-West-2 + US-East-1) | S3 (Regional + Cross-region backup) |
+| SBOM              | S3 (US, public)            | S3 (Global, public)                 |
+| Rekor Logs        | Sigstore (Global)          | Sigstore (Global)                   |
 
 **Regional Routing:**
 
@@ -930,7 +930,7 @@ impl RegionalRouter {
     pub fn route_user(&self, user: &User) -> Region {
         // Phase 0-1: All traffic to US
         Region::USWest2
-        
+
         // Phase 3: Route by user preference or geo-IP
         // match user.preferred_region {
         //     Some(region) => region,
@@ -963,14 +963,14 @@ pub enum Region {
 
 **User Rights Implementation:**
 
-|Right|Implementation|API Endpoint|
-|---|---|---|
-|**Right to Access**|JSON export of all personal data|`GET /v1/users/me/data-export`|
-|**Right to Erasure**|Hard delete after retention period|`DELETE /v1/users/me`|
-|**Right to Portability**|Machine-readable export (JSON)|`GET /v1/users/me/data-export?format=json`|
-|**Right to Rectification**|User profile editing|`PATCH /v1/users/me`|
-|**Right to Object**|Opt-out of non-essential processing|`PATCH /v1/users/me/preferences`|
-|**Right to Restriction**|Account suspension (without deletion)|`POST /v1/users/me/suspend`|
+| Right                      | Implementation                        | API Endpoint                               |
+| -------------------------- | ------------------------------------- | ------------------------------------------ |
+| **Right to Access**        | JSON export of all personal data      | `GET /v1/users/me/data-export`             |
+| **Right to Erasure**       | Hard delete after retention period    | `DELETE /v1/users/me`                      |
+| **Right to Portability**   | Machine-readable export (JSON)        | `GET /v1/users/me/data-export?format=json` |
+| **Right to Rectification** | User profile editing                  | `PATCH /v1/users/me`                       |
+| **Right to Object**        | Opt-out of non-essential processing   | `PATCH /v1/users/me/preferences`           |
+| **Right to Restriction**   | Account suspension (without deletion) | `POST /v1/users/me/suspend`                |
 
 **Implementation:**
 
@@ -981,7 +981,7 @@ pub async fn export_user_data(user_id: &str) -> Result<UserDataExport, Error> {
     let casts = db.get_user_casts(user_id).await?;
     let transactions = db.get_user_transactions(user_id).await?;
     let budget = db.get_user_budget(user_id).await?;
-    
+
     Ok(UserDataExport {
         user_profile: user,
         cast_history: casts,
@@ -1002,28 +1002,28 @@ pub async fn delete_user_account(
 ) -> Result<DeletionResult, Error> {
     // 1. Immediately invalidate all API keys
     db.execute("UPDATE api_keys SET status = 'revoked' WHERE user_id = $1", &[user_id]).await?;
-    
+
     // 2. Cancel all running casts
     cancel_user_casts(user_id).await?;
-    
+
     // 3. Mark account as deleted
     db.execute(
         "UPDATE users SET status = 'deleted', deleted_at = NOW(), deletion_reason = $2 WHERE id = $1",
         &[user_id, &reason.to_string()]
     ).await?;
-    
+
     // 4. Anonymize cast history (keep for 90 days for billing disputes)
     db.execute(
         "UPDATE casts SET caster_id = 'deleted_user', caster_email = NULL WHERE caster_id = $1",
         &[user_id]
     ).await?;
-    
+
     // 5. Keep billing records (7 years legal requirement)
     // No action - billing ledger is immutable
-    
+
     // 6. Schedule full deletion after retention period
     schedule_full_deletion(user_id, Duration::days(90)).await?;
-    
+
     Ok(DeletionResult {
         user_id: user_id.to_string(),
         deleted_at: Utc::now(),
@@ -1038,12 +1038,12 @@ Available at: `https://spell.dev/legal/dpa`
 
 **Sub-processors:**
 
-|Service|Purpose|Location|DPA Link|
-|---|---|---|---|
-|AWS S3|Artifact storage|US|aws.amazon.com/dpa|
-|Stripe|Payment processing|US/EU|stripe.com/dpa|
-|GitHub|Authentication (OAuth)|US|github.com/customer-terms|
-|Cloudflare|CDN / DDoS protection|Global|cloudflare.com/gdpr|
+| Service    | Purpose                | Location | DPA Link                  |
+| ---------- | ---------------------- | -------- | ------------------------- |
+| AWS S3     | Artifact storage       | US       | aws.amazon.com/dpa        |
+| Stripe     | Payment processing     | US/EU    | stripe.com/dpa            |
+| GitHub     | Authentication (OAuth) | US       | github.com/customer-terms |
+| Cloudflare | CDN / DDoS protection  | Global   | cloudflare.com/gdpr       |
 
 ### 30.4 CCPA Compliance (California)
 
@@ -1053,12 +1053,12 @@ Available at: `https://spell.dev/legal/dpa`
 
 **Consumer Rights:**
 
-|Right|Implementation|API Endpoint|
-|---|---|---|
-|**Right to Know**|Data categories & sources|`GET /v1/users/me/privacy/report`|
-|**Right to Delete**|Same as GDPR erasure|`DELETE /v1/users/me`|
-|**Right to Opt-out of Sale**|No data sale, but flag available|`POST /v1/users/me/privacy/do-not-sell`|
-|**Right to Non-discrimination**|No service degradation for opting out|N/A (policy)|
+| Right                           | Implementation                        | API Endpoint                            |
+| ------------------------------- | ------------------------------------- | --------------------------------------- |
+| **Right to Know**               | Data categories & sources             | `GET /v1/users/me/privacy/report`       |
+| **Right to Delete**             | Same as GDPR erasure                  | `DELETE /v1/users/me`                   |
+| **Right to Opt-out of Sale**    | No data sale, but flag available      | `POST /v1/users/me/privacy/do-not-sell` |
+| **Right to Non-discrimination** | No service degradation for opting out | N/A (policy)                            |
 
 **"Do Not Sell My Personal Information":**
 
@@ -1068,10 +1068,10 @@ pub async fn set_do_not_sell_flag(user_id: &str, enabled: bool) -> Result<(), Er
         "UPDATE users SET ccpa_do_not_sell = $2, updated_at = NOW() WHERE id = $1",
         &[user_id, &enabled]
     ).await?;
-    
+
     // Note: Spell Platform does NOT sell user data to third parties
     // This flag is for compliance transparency only
-    
+
     Ok(())
 }
 ```
@@ -1097,23 +1097,22 @@ Must include:
 **対応事項:**
 
 1. **利用目的の明示**
-    
-    - Terms of Service（利用規約）に明記
-    - サインアップ時に同意取得
+   - Terms of Service（利用規約）に明記
+   - サインアップ時に同意取得
+
 2. **第三者提供の同意**
-    
-    - Stripe（決済処理）
-    - GitHub（OAuth認証）
-    - AWS/Cloudflare（インフラ）
+   - Stripe（決済処理）
+   - GitHub（OAuth認証）
+   - AWS/Cloudflare（インフラ）
+
 3. **安全管理措置**
-    
-    - データ暗号化（AES-256）
-    - アクセス制御（RBAC）
-    - 定期的な脆弱性診断
+   - データ暗号化（AES-256）
+   - アクセス制御（RBAC）
+   - 定期的な脆弱性診断
+
 4. **漏えい等発生時の報告義務**
-    
-    - 個人情報保護委員会への報告（知った時から72時間以内）
-    - 本人への通知
+   - 個人情報保護委員会への報告（知った時から72時間以内）
+   - 本人への通知
 
 **Implementation:**
 
@@ -1121,26 +1120,26 @@ Must include:
 pub async fn handle_data_breach(incident: DataBreachIncident) -> Result<(), Error> {
     // 1. Log incident
     db.insert_security_incident(&incident).await?;
-    
+
     // 2. Notify affected users (immediate)
     for user_id in &incident.affected_users {
         notify_user_data_breach(user_id, &incident).await?;
     }
-    
+
     // 3. Notify regulatory authorities (within 72 hours)
     if incident.affects_eu_users {
         notify_gdpr_authority(&incident).await?; // via DPO
     }
-    
+
     if incident.affects_jp_users {
         notify_ppc_japan(&incident).await?; // 個人情報保護委員会
     }
-    
+
     // 4. Public disclosure (if > 1000 users affected)
     if incident.affected_users.len() > 1000 {
         publish_security_notice(&incident).await?;
     }
-    
+
     Ok(())
 }
 ```
@@ -1182,18 +1181,17 @@ impl DataResidencyConfig {
 **Mechanisms:**
 
 1. **Standard Contractual Clauses (SCC)**
-    
-    - EU Commission approved clauses
-    - Module 2: Controller to Processor (Spell → AWS/Stripe)
-    - Module 3: Processor to Processor (AWS → Cloudflare)
+   - EU Commission approved clauses
+   - Module 2: Controller to Processor (Spell → AWS/Stripe)
+   - Module 3: Processor to Processor (AWS → Cloudflare)
+
 2. **EU-US Data Privacy Framework**
-    
-    - Spell Platform to obtain certification (Phase 2)
-    - Stripe already certified
+   - Spell Platform to obtain certification (Phase 2)
+   - Stripe already certified
+
 3. **Adequacy Decisions**
-    
-    - UK: EU adequacy decision exists
-    - Japan: EU-Japan mutual adequacy
+   - UK: EU adequacy decision exists
+   - Japan: EU-Japan mutual adequacy
 
 **Implementation:**
 
@@ -1298,6 +1296,7 @@ Response:
 - **`api.magicspell.io`** → Fly.io (CNAME → `<your-fly-app>.fly.dev`, Managed TLS)
 
 **CAA Records (Recommended)**:
+
 ```
 CAA 0 issue "letsencrypt.org"
 CAA 0 issuewild "letsencrypt.org"
@@ -1311,6 +1310,7 @@ CAA 0 issuewild "letsencrypt.org"
 - `WEBHOOK_SIGNING_SECRET` (API side)
 
 **NextAuth (if using NextAuth for GitHub OAuth)**:
+
 - `NEXTAUTH_URL=https://magicspell.io`
 - `NEXTAUTH_SECRET=<32+ random characters>`
 
@@ -1320,23 +1320,28 @@ CAA 0 issuewild "letsencrypt.org"
 - **API**: GitHub Actions → Fly.io deploy → DB migration (sqlx)
 
 **WWW/Hardening**:
+
 - `www` → `apex` redirect (Vercel Redirects)
 - IPv6 (AAAA) enabled
 - HSTS preload申請 is post-production stabilization
 
 **OAuth Redirect URIs (Caster UI)**:
+
 - `https://magicspell.io/api/auth/callback/github`
 
 **API origins (machine-to-machine)**:
+
 - `https://api.magicspell.io`
 
 ### 32.5 CORS & CSRF
 
 **Allowed Origins (CORS)**:
+
 - `https://magicspell.io` (Caster UI / Vercel)
 - `https://studio.magicspell.dev` (Future: Maker-facing)
 
 **CORS Policy (API)**:
+
 - Origin allowlist: Above only
 - Credentials: `true` (for sessions/Stripe)
 - Methods: `GET, POST, PUT, PATCH, DELETE`
@@ -1347,6 +1352,7 @@ CAA 0 issuewild "letsencrypt.org"
 ### 32.6 Content Security Policy
 
 **Caster UI (Vercel) CSP**:
+
 ```
 default-src 'self';
 script-src 'self' 'unsafe-inline' vercel-insights.com https://js.stripe.com;
@@ -1359,6 +1365,7 @@ upgrade-insecure-requests;
 ```
 
 **Security Headers (Caster UI / API common)**:
+
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-Frame-Options: DENY`
@@ -1464,7 +1471,7 @@ paths:
       responses:
         '200':
           description: SBOM information
-  
+
   /users/me/data-export:
     get:
       summary: GDPR/CCPA data export
@@ -1491,14 +1498,14 @@ paths:
 
 **Version History:**
 
-|Version|Date|Changes|
-|---|---|---|
-|1.0.0|2025-10-01|Initial release|
-|1.1.0|2025-10-03|Backpressure, key lifecycle|
-|1.2.0|2025-10-04|Budget management|
-|1.3.0|2025-10-04|Sigstore, tax, SLO, abuse detection|
-|1.4.0|2025-10-04|**SBOM required, GDPR/CCPA/Japan compliance [ENTERPRISE GRADE]**|
-|1.4.1|2025-10-13|Front-end deployment details added (Vercel + domains, CSP/CORS/HSTS hardening, OAuth/Stripe variables). Phase 5 deployment specifications.|
+| Version | Date       | Changes                                                                                                                                    |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.0.0   | 2025-10-01 | Initial release                                                                                                                            |
+| 1.1.0   | 2025-10-03 | Backpressure, key lifecycle                                                                                                                |
+| 1.2.0   | 2025-10-04 | Budget management                                                                                                                          |
+| 1.3.0   | 2025-10-04 | Sigstore, tax, SLO, abuse detection                                                                                                        |
+| 1.4.0   | 2025-10-04 | **SBOM required, GDPR/CCPA/Japan compliance [ENTERPRISE GRADE]**                                                                           |
+| 1.4.1   | 2025-10-13 | Front-end deployment details added (Vercel + domains, CSP/CORS/HSTS hardening, OAuth/Stripe variables). Phase 5 deployment specifications. |
 
 **Enterprise Readiness Checklist:**
 

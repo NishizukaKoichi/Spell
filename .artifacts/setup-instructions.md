@@ -53,11 +53,13 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=
 ### Vercel (Recommended for Frontend)
 
 1. Install Vercel CLI:
+
    ```bash
    pnpm install -g vercel
    ```
 
 2. Deploy:
+
    ```bash
    vercel --prod
    ```
@@ -144,6 +146,7 @@ Spell/
 See detailed instructions in `/ops/atlas-tasks.md`
 
 Key steps:
+
 1. Create GitHub App at https://github.com/settings/apps/new
 2. Set minimal permissions (Metadata, Contents, Actions - read-only)
 3. Generate and securely store private key
