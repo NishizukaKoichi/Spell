@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ApiKeys } from "@/components/api-keys";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -146,18 +147,11 @@ export default async function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* API Keys (Future) */}
-        <Card className="border-white/10 opacity-50">
-          <CardHeader>
-            <h2 className="text-xl font-semibold">API Keys</h2>
-            <p className="text-sm text-white/60">
-              Manage API keys for programmatic access
-            </p>
-          </CardHeader>
-          <CardContent>
-            <p className="text-white/60">Coming soon...</p>
-          </CardContent>
-        </Card>
+        {/* API Keys */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">API Keys</h2>
+          <ApiKeys />
+        </div>
       </div>
     </DashboardLayout>
   );
