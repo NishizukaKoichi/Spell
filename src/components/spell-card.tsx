@@ -21,28 +21,14 @@ export function SpellCard({ spell }: SpellCardProps) {
     }
   }
 
-  const getModeColor = () => {
-    switch (spell.executionMode) {
-      case 'workflow':
-        return 'bg-blue-500/10 text-blue-600 border-blue-500/20'
-      case 'service':
-        return 'bg-purple-500/10 text-purple-600 border-purple-500/20'
-      case 'clone':
-        return 'bg-green-500/10 text-green-600 border-green-500/20'
-    }
-  }
-
   return (
-    <Card className="group transition-all hover:shadow-lg">
+    <Card className="group border-white/10 transition-all hover:border-white/30">
       <CardHeader>
         <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{spell.author.avatar}</span>
-            <div className="text-sm">
-              <p className="font-medium">{spell.author.name}</p>
-            </div>
+          <div className="text-sm">
+            <p className="text-muted-foreground">{spell.author.name}</p>
           </div>
-          <Badge className={getModeColor()}>{spell.executionMode}</Badge>
+          <Badge variant="outline">{spell.executionMode}</Badge>
         </div>
         <h3 className="text-xl font-bold">{spell.name}</h3>
         <p className="text-sm text-muted-foreground">{spell.description}</p>
@@ -54,27 +40,18 @@ export function SpellCard({ spell }: SpellCardProps) {
               {tag}
             </Badge>
           ))}
-          {spell.tags.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{spell.tags.length - 3}
-            </Badge>
-          )}
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium">{spell.rating}</span>
-          </div>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Zap className="h-4 w-4" />
-            <span>{spell.totalCasts.toLocaleString()} casts</span>
-          </div>
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{spell.rating} / 5</span>
+          <span>{spell.totalCasts.toLocaleString()} casts</span>
         </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between">
-        <p className="text-lg font-bold">{formatPrice()}</p>
+        <p className="font-mono text-sm">{formatPrice()}</p>
         <Link href={`/spells/${spell.id}`}>
-          <Button>View Details</Button>
+          <Button variant="outline" size="sm">
+            View
+          </Button>
         </Link>
       </CardFooter>
     </Card>

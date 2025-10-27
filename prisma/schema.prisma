@@ -19,12 +19,13 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relationships
-  accounts      Account[]
-  sessions      Session[]
-  apiKeys       ApiKey[]
-  casts         Cast[]
-  spells        Spell[]   @relation("SpellAuthor")
-  budget        Budget?
+  accounts       Account[]
+  sessions       Session[]
+  authenticators Authenticator[]
+  apiKeys        ApiKey[]
+  casts          Cast[]
+  spells         Spell[]   @relation("SpellAuthor")
+  budget         Budget?
 
   @@map("users")
 }
@@ -66,6 +67,22 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@map("authenticators")
 }
 
 model Spell {

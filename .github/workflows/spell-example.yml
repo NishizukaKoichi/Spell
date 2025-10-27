@@ -1,0 +1,68 @@
+# Example Spell Workflow
+# This is a template for executing spells via GitHub Actions
+# Each spell will have its own workflow file named: spell-{spellKey}.yml
+
+name: Spell Execution Example
+
+on:
+  workflow_dispatch:
+    inputs:
+      castId:
+        description: 'Cast ID'
+        required: true
+        type: string
+      spellId:
+        description: 'Spell ID'
+        required: true
+        type: string
+      userId:
+        description: 'User ID'
+        required: true
+        type: string
+      input:
+        description: 'JSON input for spell'
+        required: true
+        type: string
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Parse input
+        id: parse
+        run: |
+          echo "input=${{ github.event.inputs.input }}" >> $GITHUB_OUTPUT
+
+      - name: Execute spell logic
+        run: |
+          echo "Executing spell with input:"
+          echo '${{ steps.parse.outputs.input }}'
+          # Add your spell execution logic here
+          # This is where you would run your custom code
+
+      - name: Update cast status
+        if: always()
+        run: |
+          # Call back to API to update cast status
+          STATUS="succeeded"
+          if [ $? -ne 0 ]; then
+            STATUS="failed"
+          fi
+
+          curl -X POST "${{ secrets.API_URL }}/api/webhooks/cast-status" \
+            -H "Authorization: Bearer ${{ secrets.API_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "castId": "${{ github.event.inputs.castId }}",
+              "status": "'"$STATUS"'",
+              "artifactUrl": "https://example.com/output.json"
+            }'

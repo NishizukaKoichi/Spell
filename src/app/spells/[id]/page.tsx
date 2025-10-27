@@ -61,14 +61,7 @@ export default function SpellDetailPage() {
   }
 
   const getModeColor = () => {
-    switch (spell.executionMode) {
-      case 'workflow':
-        return 'bg-blue-500/10 text-blue-600 border-blue-500/20'
-      case 'service':
-        return 'bg-purple-500/10 text-purple-600 border-purple-500/20'
-      case 'clone':
-        return 'bg-green-500/10 text-green-600 border-green-500/20'
-    }
+    return 'bg-muted text-foreground border-border'
   }
 
   const exampleInputSchema = {
@@ -118,8 +111,8 @@ export default function SpellDetailPage() {
                     key={i}
                     className={`h-5 w-5 ${
                       i < Math.floor(spell.rating)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-300'
+                        ? 'fill-foreground text-foreground'
+                        : 'text-muted-foreground'
                     }`}
                   />
                 ))}
@@ -231,8 +224,8 @@ export default function SpellDetailPage() {
                                 key={i}
                                 className={`h-4 w-4 ${
                                   i < review.rating
-                                    ? 'fill-yellow-400 text-yellow-400'
-                                    : 'text-gray-300'
+                                    ? 'fill-foreground text-foreground'
+                                    : 'text-muted-foreground'
                                 }`}
                               />
                             ))}

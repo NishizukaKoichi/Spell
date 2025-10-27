@@ -11,9 +11,6 @@ import {
   DollarSign,
   Package,
   TrendingUp,
-  CheckCircle,
-  XCircle,
-  Loader2,
   Download,
   FileText,
 } from 'lucide-react'
@@ -34,42 +31,8 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'running':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      default:
-        return <Loader2 className="h-4 w-4 text-gray-400" />
-    }
-  }
-
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return (
-          <Badge variant="outline" className="border-green-500/20 bg-green-500/10 text-green-600">
-            Succeeded
-          </Badge>
-        )
-      case 'running':
-        return (
-          <Badge variant="outline" className="border-blue-500/20 bg-blue-500/10 text-blue-600">
-            Running
-          </Badge>
-        )
-      case 'failed':
-        return (
-          <Badge variant="outline" className="border-red-500/20 bg-red-500/10 text-red-600">
-            Failed
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">Queued</Badge>
-    }
+    return <Badge variant="outline">{status}</Badge>
   }
 
   return (
@@ -162,7 +125,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full bg-blue-600 transition-all"
+                        className="h-full bg-foreground transition-all"
                         style={{ width: `${(data.casts / 20) * 100}%` }}
                       />
                     </div>
@@ -216,16 +179,13 @@ export default function DashboardPage() {
                       <td className="py-4">
                         <Link
                           href={`/spells/${cast.spellId}`}
-                          className="font-medium hover:text-blue-600"
+                          className="font-medium hover:underline"
                         >
                           {cast.spellName}
                         </Link>
                       </td>
                       <td className="py-4">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(cast.status)}
-                          {getStatusBadge(cast.status)}
-                        </div>
+                        {getStatusBadge(cast.status)}
                       </td>
                       <td className="py-4 text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(cast.timestamp), { addSuffix: true })}
