@@ -20,10 +20,10 @@
 | Edge（WASI）   | —（**実験**）                                                     | —                 | 必要処理は Core へ委譲。     |
 | Core API       | **Actix Web 4.11.x**                                              | 重量処理/橋渡し   | ステートレス指向。           |
 | メッセージング | **NATS JetStream**                                                | コマンド/イベント | Msg-Id重複排除＋Double Ack。 |
-| 永続化         | PlanetScale（MySQL系）＋ CF **KV/R2**                             | メタ／バイナリ    | R2はS3互換、台帳はRDB。      |
+| 永続化         | Neon PostgreSQL（Serverless）＋ CF **KV/R2**                      | メタ／バイナリ    | R2はS3互換、台帳はRDB。      |
 | Observability  | `tracing` + **OpenTelemetry 0.30**（OTLP→Tempo）                  | 分散トレース      | W3C trace を貫通。           |
 | 認証           | Passkeys(WebAuthn) + OAuth2                                       | 1タップ認証       | GitHub/OIDC併用。            |
-| フロント       | **SvelteKit 2** + **Vite 5** + TypeScript                         | PWA               | CLI/Capacitor/Tauri併設。    |
+| フロント       | **Next.js 16** + **React 19** + TypeScript                        | PWA               | CLI/Capacitor/Tauri併設。    |
 | モバイル       | **Capacitor 5**                                                   | iOS/Android       | —                            |
 | デスクトップ   | **Tauri 2**                                                       | Win/macOS/Linux   | —                            |
 | リアルタイム   | WebTransport + NATS WS bridge                                     | sub-50ms Push     | SSEフォールバック。          |
@@ -61,7 +61,7 @@ Cloudflare Workers (Edge)
         ▼
 Actix Cluster (Tokio) ──▶ Isolated Sandbox（ro FS / allowlist net / time&mem limit）
         │                    ├─ (任意) Optimizer/Grader
-        │                    └─ Ledger (PlanetScale + R2/KV)
+        │                    └─ Ledger (Neon PostgreSQL + R2/KV)
         │
 OpenTelemetry (OTLP) ─────► Tempo/Grafana
 ```
@@ -205,7 +205,7 @@ jobs:
 | `CF_API_TOKEN`                          | `wrangler deploy`                   |
 | `CF_ACCOUNT_ID` / `CF_R2_*` / `CF_KV_*` | Workers/KV/R2 バインディング        |
 | `NATS_URL` / `NATS_CREDS`               | JetStream 接続                      |
-| `PLANETSCALE_URL` or `PS_DB_*`          | DB 接続（Edgeは Serverless Driver） |
+| `DATABASE_URL` / `POSTGRES_PRISMA_URL`  | Neon PostgreSQL 接続（Serverless）   |
 | `OTLP_ENDPOINT` / `OTLP_API_KEY`        | Tempo/Grafana Cloud 送信            |
 | `COSIGN_KEY` / `COSIGN_PASSWORD`        | cosign 署名鍵                       |
 
@@ -237,7 +237,7 @@ jobs:
 1. GitHub App（最小権限）を組織/個人へ導入。
 2. Cloudflare: Workers / KV / R2 / DO を発行し `CF_API_TOKEN` を投入。
 3. `wrangler.jsonc` を用意して `wrangler deploy`。
-4. DB: PlanetScale を作成（Serverless Driver/HTTP）。
+4. DB: Neon PostgreSQL を作成（Serverless）。
 5. OTLP エンドポイント/キー設定（Tempo/Grafana Cloud）。
 6. ダミーSKUで **cast→進捗→成果物返却** まで E2E を通す。
 

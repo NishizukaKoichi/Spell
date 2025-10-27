@@ -1,0 +1,110 @@
+name: Spell Execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      cast_id:
+        description: "Cast ID from database"
+        required: true
+        type: string
+      spell_key:
+        description: "Spell key to execute"
+        required: true
+        type: string
+      input_data:
+        description: "Input data as JSON string"
+        required: false
+        type: string
+        default: "{}"
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse input data
+        id: parse
+        run: |
+          echo "cast_id=${{ github.event.inputs.cast_id }}" >> $GITHUB_OUTPUT
+          echo "spell_key=${{ github.event.inputs.spell_key }}" >> $GITHUB_OUTPUT
+          echo 'input_data=${{ github.event.inputs.input_data }}' >> $GITHUB_OUTPUT
+
+      - name: Execute spell (placeholder)
+        id: execute
+        run: |
+          echo "Executing spell: ${{ steps.parse.outputs.spell_key }}"
+          echo "Cast ID: ${{ steps.parse.outputs.cast_id }}"
+          echo "Input data: ${{ steps.parse.outputs.input_data }}"
+
+          # Placeholder: In a real implementation, this would:
+          # 1. Download the WASM binary for the spell
+          # 2. Execute it with the input data
+          # 3. Capture the output
+
+          # For now, just create a mock output
+          mkdir -p output
+          echo "Mock output for spell ${{ steps.parse.outputs.spell_key }}" > output/result.txt
+          echo "Executed at: $(date)" >> output/result.txt
+
+      - name: Upload artifact to R2
+        id: upload
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+        run: |
+          # Install AWS CLI for R2 (S3-compatible)
+          pip install awscli
+
+          # Configure AWS CLI for R2
+          aws configure set aws_access_key_id $CLOUDFLARE_R2_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $CLOUDFLARE_R2_SECRET_ACCESS_KEY
+          aws configure set region auto
+
+          # Upload to R2
+          ARTIFACT_KEY="casts/${{ steps.parse.outputs.cast_id }}/result.txt"
+          aws s3 cp output/result.txt \
+            "s3://$CLOUDFLARE_R2_BUCKET_NAME/$ARTIFACT_KEY" \
+            --endpoint-url "https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com"
+
+          ARTIFACT_URL="https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com/$CLOUDFLARE_R2_BUCKET_NAME/$ARTIFACT_KEY"
+          echo "artifact_url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+
+      - name: Update cast status
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          API_SECRET: ${{ secrets.API_SECRET }}
+        run: |
+          # Calculate duration
+          DURATION=$SECONDS
+
+          # Update cast in database via API
+          curl -X PATCH "$API_URL/api/casts/${{ steps.parse.outputs.cast_id }}" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $API_SECRET" \
+            -d "{
+              \"status\": \"completed\",
+              \"finishedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"duration\": $DURATION,
+              \"artifactUrl\": \"${{ steps.upload.outputs.artifact_url }}\"
+            }"
+
+      - name: Update cast status on failure
+        if: failure()
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          API_SECRET: ${{ secrets.API_SECRET }}
+        run: |
+          curl -X PATCH "$API_URL/api/casts/${{ steps.parse.outputs.cast_id }}" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $API_SECRET" \
+            -d "{
+              \"status\": \"failed\",
+              \"finishedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"errorMessage\": \"Workflow execution failed\"
+            }"

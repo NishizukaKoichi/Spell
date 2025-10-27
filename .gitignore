@@ -48,3 +48,5 @@ next-env.d.ts
 *.tmp
 *.temp
 .cache/
+
+/src/generated/prisma

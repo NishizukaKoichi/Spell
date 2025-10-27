@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(cuid())
+  name           String?
+  email          String           @unique
+  emailVerified  DateTime?
+  image          String?
+  githubId       String?          @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  accounts       accounts[]
+  api_keys       api_keys[]
+  authenticators authenticators[]
+  budgets        budgets?
+  casts          Cast[]
+  sessions       sessions[]
+  spells         Spell[]
+
+  @@map("users")
+}
+
+model Spell {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  name            String
+  description     String
+  longDescription String?
+  version         String   @default("1.0.0")
+  priceModel      String
+  priceAmount     Float
+  priceCurrency   String   @default("USD")
+  executionMode   String
+  tags            String[]
+  category        String?
+  rating          Float    @default(0)
+  totalCasts      Int      @default(0)
+  inputSchema     Json?
+  outputSchema    Json?
+  authorId        String
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  casts           Cast[]
+  author          User     @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@index([executionMode])
+  @@index([status])
+  @@map("spells")
+}
+
+model Cast {
+  id           String    @id @default(cuid())
+  spellId      String
+  casterId     String
+  status       String    @default("queued")
+  inputHash    String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  duration     Int?
+  costCents    Int       @default(0)
+  artifactUrl  String?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  caster       User      @relation(fields: [casterId], references: [id])
+  spell        Spell     @relation(fields: [spellId], references: [id])
+
+  @@index([casterId])
+  @@index([createdAt])
+  @@index([spellId])
+  @@index([status])
+  @@map("casts")
+}
+
+model accounts {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  users             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model api_keys {
+  id         String    @id
+  userId     String
+  name       String
+  key        String    @unique
+  lastUsedAt DateTime?
+  status     String    @default("active")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  users      User      @relation(fields: [userId], references: [id])
+
+  @@index([key])
+  @@index([userId])
+}
+
+model authenticators {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  users                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+model budgets {
+  id           String   @id
+  userId       String   @unique
+  monthlyCap   Float    @default(100.00)
+  currentSpend Float    @default(0)
+  lastResetAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  users        User     @relation(fields: [userId], references: [id])
+}
+
+model sessions {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  users        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model verification_tokens {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
