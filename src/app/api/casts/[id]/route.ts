@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Verify API secret for GitHub Actions
     const authHeader = req.headers.get("authorization");
@@ -31,7 +32,7 @@ export async function PATCH(
     if (errorMessage) updateData.errorMessage = errorMessage;
 
     const cast = await prisma.cast.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -47,11 +48,12 @@ export async function PATCH(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const cast = await prisma.cast.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         spell: true,
         caster: {

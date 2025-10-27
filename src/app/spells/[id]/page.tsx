@@ -23,9 +23,10 @@ async function getSpell(id: string) {
 export default async function SpellDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const spell = await getSpell(params.id);
+  const { id } = await params;
+  const spell = await getSpell(id);
 
   if (!spell) {
     notFound();
