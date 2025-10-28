@@ -5,12 +5,20 @@ import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { SpellCard } from "@/components/spell-card";
+import { MySpellsClient } from "./my-spells-client";
 import Link from "next/link";
 
 async function getUserSpells(userId: string) {
   return prisma.spell.findMany({
     where: { authorId: userId },
+    include: {
+      _count: {
+        select: {
+          casts: true,
+          reviews: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -57,11 +65,7 @@ export default async function MySpellsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {spells.map((spell) => (
-              <SpellCard key={spell.id} spell={spell} />
-            ))}
-          </div>
+          <MySpellsClient spells={spells} />
         )}
       </div>
     </DashboardLayout>

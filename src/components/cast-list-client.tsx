@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { SearchBar } from "@/components/search-bar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 interface Cast {
@@ -39,6 +47,8 @@ function getStatusBadgeVariant(status: string): "default" | "outline" {
 
 export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     // Check if any casts are in non-terminal state
@@ -66,6 +76,27 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
     return () => clearInterval(pollInterval);
   }, [casts]);
 
+  const filteredCasts = useMemo(() => {
+    let filtered = casts;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (cast) =>
+          cast.spell.name.toLowerCase().includes(query) ||
+          cast.id.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((cast) => cast.status === statusFilter);
+    }
+
+    return filtered;
+  }, [casts, searchQuery, statusFilter]);
+
   if (casts.length === 0) {
     return (
       <Card className="border-white/10">
@@ -85,8 +116,45 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      {casts.map((cast) => (
+    <div className="space-y-6">
+      {/* Search and filters */}
+      <div className="flex gap-4">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by spell name or cast ID..."
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px] bg-white/5 border-white/10">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="running">Running</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Results count */}
+      {(searchQuery || statusFilter !== "all") && (
+        <div className="text-sm text-white/60">
+          Found {filteredCasts.length} cast{filteredCasts.length !== 1 ? "s" : ""}
+        </div>
+      )}
+
+      {/* Cast list */}
+      {filteredCasts.length === 0 ? (
+        <Card className="border-white/10">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-white/60">No casts found matching your criteria</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredCasts.map((cast) => (
         <Link key={cast.id} href={`/casts/${cast.id}`}>
           <Card className="border-white/10 hover:border-white/20 transition-colors cursor-pointer">
             <CardHeader>
@@ -153,7 +221,9 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
             </CardContent>
           </Card>
         </Link>
-      ))}
+          ))}
+        </div>
+      )}
     </div>
   );
 }

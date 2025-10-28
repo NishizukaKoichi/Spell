@@ -19,6 +19,10 @@ export interface Spell {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  _count?: {
+    casts: number;
+    reviews: number;
+  };
 }
 
 export interface Cast {
