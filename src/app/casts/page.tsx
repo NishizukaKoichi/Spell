@@ -72,29 +72,24 @@ export default async function CastsPage() {
         ) : (
           <div className="space-y-4">
             {casts.map((cast: any) => (
-              <Card
-                key={cast.id}
-                className="border-white/10 hover:border-white/20 transition-colors"
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(cast.status)}
-                        <Link
-                          href={`/spells/${cast.spell.id}`}
-                          className="text-xl font-semibold hover:text-purple-400 transition-colors"
-                        >
-                          {cast.spell.name}
-                        </Link>
-                        <Badge variant={getStatusBadgeVariant(cast.status)}>
-                          {cast.status}
-                        </Badge>
+              <Link key={cast.id} href={`/casts/${cast.id}`}>
+                <Card className="border-white/10 hover:border-white/20 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon(cast.status)}
+                          <span className="text-xl font-semibold hover:text-purple-400 transition-colors">
+                            {cast.spell.name}
+                          </span>
+                          <Badge variant={getStatusBadgeVariant(cast.status)}>
+                            {cast.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-white/60">
+                          Cast ID: {cast.id}
+                        </p>
                       </div>
-                      <p className="text-sm text-white/60">
-                        Cast ID: {cast.id}
-                      </p>
-                    </div>
                     <div className="text-right text-sm text-white/60">
                       <p>
                         {new Date(cast.createdAt).toLocaleDateString("en-US", {
@@ -142,7 +137,8 @@ export default async function CastsPage() {
                     )}
                   </div>
                 </CardContent>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
