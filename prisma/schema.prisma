@@ -23,6 +23,7 @@ model User {
   casts          Cast[]
   sessions       sessions[]
   spells         Spell[]
+  reviews        Review[]
 
   @@map("users")
 }
@@ -50,6 +51,7 @@ model Spell {
   updatedAt       DateTime @updatedAt
   casts           Cast[]
   author          User     @relation(fields: [authorId], references: [id])
+  reviews         Review[]
 
   @@index([authorId])
   @@index([executionMode])
@@ -73,12 +75,32 @@ model Cast {
   updatedAt    DateTime  @updatedAt
   caster       User      @relation(fields: [casterId], references: [id])
   spell        Spell     @relation(fields: [spellId], references: [id])
+  review       Review?
 
   @@index([casterId])
   @@index([createdAt])
   @@index([spellId])
   @@index([status])
   @@map("casts")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  castId    String   @unique
+  spellId   String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cast      Cast     @relation(fields: [castId], references: [id], onDelete: Cascade)
+  spell     Spell    @relation(fields: [spellId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([spellId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("reviews")
 }
 
 model accounts {

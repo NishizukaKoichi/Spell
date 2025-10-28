@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CastProgress } from "@/components/cast-progress";
+import { ReviewForm } from "@/components/review-form";
 import {
   Clock,
   CheckCircle,
@@ -477,6 +478,11 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Review Form (only show for completed casts) */}
+      {cast.status === "completed" && (
+        <ReviewForm castId={cast.id} spellName={cast.spell.name} />
+      )}
       </div>
     </>
   );

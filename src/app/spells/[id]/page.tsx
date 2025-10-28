@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Star, Zap, Clock, TrendingUp } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CastButton } from "@/components/cast-button";
+import { SpellReviews } from "@/components/spell-reviews";
 
 async function getSpell(id: string) {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -124,6 +125,9 @@ export default async function SpellDetailPage({
             </CardContent>
           </Card>
         )}
+
+        {/* Reviews */}
+        <SpellReviews spellId={spell.id} />
 
         {/* Cast Button */}
         <div className="flex justify-end">
