@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendCastCompletedWebhook } from "@/lib/webhook";
 
 export async function PATCH(
   req: NextRequest,
@@ -34,7 +35,23 @@ export async function PATCH(
     const cast = await prisma.cast.update({
       where: { id },
       data: updateData,
+      include: {
+        spell: {
+          select: {
+            name: true,
+            webhookUrl: true,
+          },
+        },
+      },
     });
+
+    // Send webhook if cast is completed or failed
+    if (
+      cast.status === "completed" ||
+      (cast.status === "failed" && cast.spell.webhookUrl)
+    ) {
+      sendCastCompletedWebhook(cast);
+    }
 
     return NextResponse.json(cast);
   } catch (error) {

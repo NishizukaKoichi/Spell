@@ -77,6 +77,7 @@ export default function NewSpellPage() {
     priceModel: "metered",
     priceAmount: "",
     executionMode: "workflow",
+    webhookUrl: "",
   });
 
   const [tags, setTags] = useState<string[]>([]);
@@ -415,23 +416,43 @@ export default function NewSpellPage() {
               <CardHeader>
                 <h2 className="text-xl font-semibold">Execution</h2>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <label className="text-sm font-medium">Execution Mode</label>
-                <select
-                  value={formData.executionMode}
-                  onChange={(e) =>
-                    setFormData({ ...formData, executionMode: e.target.value })
-                  }
-                  className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
-                >
-                  <option value="workflow">Workflow (GitHub Actions)</option>
-                  <option value="service" disabled>
-                    Service (Coming Soon)
-                  </option>
-                  <option value="clone" disabled>
-                    Clone (Coming Soon)
-                  </option>
-                </select>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Execution Mode</label>
+                  <select
+                    value={formData.executionMode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, executionMode: e.target.value })
+                    }
+                    className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                  >
+                    <option value="workflow">Workflow (GitHub Actions)</option>
+                    <option value="service" disabled>
+                      Service (Coming Soon)
+                    </option>
+                    <option value="clone" disabled>
+                      Clone (Coming Soon)
+                    </option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Webhook URL (Optional)
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.webhookUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, webhookUrl: e.target.value })
+                    }
+                    placeholder="https://your-api.com/webhook"
+                    className="bg-white/5 border-white/10"
+                  />
+                  <p className="text-xs text-white/60">
+                    Receive POST notifications when spell execution completes
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

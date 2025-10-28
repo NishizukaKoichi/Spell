@@ -45,6 +45,7 @@ model Spell {
   totalCasts      Int      @default(0)
   inputSchema     Json?
   outputSchema    Json?
+  webhookUrl      String?
   authorId        String
   status          String   @default("active")
   createdAt       DateTime @default(now())

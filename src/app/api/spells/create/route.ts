@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
       priceAmount,
       executionMode,
       tags,
+      webhookUrl,
+      inputSchema,
+      outputSchema,
     } = body;
 
     // Validation
@@ -63,6 +66,9 @@ export async function POST(req: NextRequest) {
         priceCurrency: "USD",
         executionMode: executionMode || "workflow",
         tags,
+        webhookUrl: webhookUrl || null,
+        inputSchema: inputSchema || null,
+        outputSchema: outputSchema || null,
         authorId: session.user.id,
         version: "1.0.0",
         status: "active",
