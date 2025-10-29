@@ -109,7 +109,10 @@ export async function GET() {
     });
 
     // Calculate caster stats
-    const casterTotalSpending = casterCasts.reduce((sum: number, cast) => sum + cast.costCents, 0);
+    const casterTotalSpending = casterCasts.reduce(
+      (sum: number, cast: { costCents: number }) => sum + cast.costCents,
+      0
+    );
 
     const casterTotalCasts = casterCasts.length;
 
@@ -150,8 +153,15 @@ export async function GET() {
       >
     );
 
-    const casterTopSpells = Object.values(spellUsage)
-      .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
+    type SpellUsageValue = {
+      id: string;
+      name: string;
+      category: string | null;
+      count: number;
+      spending: number;
+    };
+    const casterTopSpells = (Object.values(spellUsage) as SpellUsageValue[])
+      .sort((a: SpellUsageValue, b: SpellUsageValue) => b.count - a.count)
       .slice(0, 5);
 
     // Spending by month for the last 6 months

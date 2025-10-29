@@ -108,28 +108,28 @@ export async function GET() {
     );
 
     // Convert to array and calculate totals
-    const monthlyData = Object.values(paymentsByMonth).map(
-      (month: {
-        month: string;
-        totalAmount: number;
-        transactionCount: number;
-        transactions: Array<{
-          id: string;
-          date: Date;
-          spellName: string;
-          spellCategory: string | null;
-          makerName: string;
-          amount: number;
-          status: string;
-        }>;
-      }) => ({
-        ...month,
-        totalAmount: month.totalAmount / 100,
-      })
-    );
+    type MonthData = {
+      month: string;
+      totalAmount: number;
+      transactionCount: number;
+      transactions: Array<{
+        id: string;
+        date: Date;
+        spellName: string;
+        spellCategory: string | null;
+        makerName: string;
+        amount: number;
+        status: string;
+      }>;
+    };
+    const monthlyData = (Object.values(paymentsByMonth) as MonthData[]).map((month: MonthData) => ({
+      ...month,
+      totalAmount: month.totalAmount / 100,
+    }));
 
     // Calculate overall statistics
-    const totalSpent = payments.reduce((sum: number, p) => sum + p.costCents, 0) / 100;
+    const totalSpent =
+      payments.reduce((sum: number, p: { costCents: number }) => sum + p.costCents, 0) / 100;
     const totalTransactions = payments.length;
     const averageTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0;
 

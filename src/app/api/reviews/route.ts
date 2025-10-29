@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
       where: { spellId: cast.spellId },
     });
 
-    const averageRating = reviews.reduce((sum: number, r) => sum + r.rating, 0) / reviews.length;
+    const averageRating =
+      reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length;
 
     await prisma.spell.update({
       where: { id: cast.spellId },
