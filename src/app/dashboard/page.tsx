@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BarChart,
   Bar,
@@ -16,18 +16,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-} from "recharts";
-import {
-  DollarSign,
-  TrendingUp,
-  Zap,
-  Star,
-  CheckCircle,
-  XCircle,
-  Target,
-} from "lucide-react";
+} from 'recharts';
+import { DollarSign, TrendingUp, Zap, Star, CheckCircle, XCircle, Target } from 'lucide-react';
 
 interface Stats {
   maker: {
@@ -61,14 +52,7 @@ interface Stats {
   };
 }
 
-const COLORS = [
-  "#8b5cf6",
-  "#06b6d4",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#ec4899",
-];
+const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -77,13 +61,13 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch("/api/stats");
+        const response = await fetch('/api/stats');
         if (response.ok) {
           const data = await response.json();
           setStats(data);
         }
       } catch (error) {
-        console.error("Failed to fetch stats:", error);
+        console.error('Failed to fetch stats:', error);
       } finally {
         setIsLoading(false);
       }
@@ -117,9 +101,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <div>
           <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-          <p className="text-white/60">
-            View your spell marketplace statistics and insights
-          </p>
+          <p className="text-white/60">View your spell marketplace statistics and insights</p>
         </div>
 
         <Tabs defaultValue="caster" className="space-y-6">
@@ -134,15 +116,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Spending
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Spending</CardTitle>
                   <DollarSign className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${stats.caster.totalSpending.toFixed(2)}
-                  </div>
+                  <div className="text-2xl font-bold">${stats.caster.totalSpending.toFixed(2)}</div>
                   <p className="text-xs text-white/60 mt-1">
                     Across {stats.caster.totalCasts} casts
                   </p>
@@ -151,56 +129,42 @@ export default function DashboardPage() {
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Casts
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Casts</CardTitle>
                   <Zap className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.caster.totalCasts}
-                  </div>
-                  <p className="text-xs text-white/60 mt-1">
-                    Spell executions
-                  </p>
+                  <div className="text-2xl font-bold">{stats.caster.totalCasts}</div>
+                  <p className="text-xs text-white/60 mt-1">Spell executions</p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Success Rate
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
                   <Target className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.caster.successRate}%
-                  </div>
+                  <div className="text-2xl font-bold">{stats.caster.successRate}%</div>
                   <p className="text-xs text-white/60 mt-1">
-                    <CheckCircle className="h-3 w-3 inline text-green-500" />{" "}
-                    {stats.caster.completedCasts} completed{" "}
-                    <XCircle className="h-3 w-3 inline text-red-500" />{" "}
-                    {stats.caster.failedCasts} failed
+                    <CheckCircle className="h-3 w-3 inline text-green-500" />{' '}
+                    {stats.caster.completedCasts} completed{' '}
+                    <XCircle className="h-3 w-3 inline text-red-500" /> {stats.caster.failedCasts}{' '}
+                    failed
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Avg Cost per Cast
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Avg Cost per Cast</CardTitle>
                   <TrendingUp className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
                     $
                     {stats.caster.totalCasts > 0
-                      ? (
-                          stats.caster.totalSpending / stats.caster.totalCasts
-                        ).toFixed(2)
-                      : "0.00"}
+                      ? (stats.caster.totalSpending / stats.caster.totalCasts).toFixed(2)
+                      : '0.00'}
                   </div>
                   <p className="text-xs text-white/60 mt-1">Per execution</p>
                 </CardContent>
@@ -223,16 +187,11 @@ export default function DashboardPage() {
                         <YAxis stroke="#ffffff60" />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#1a1a1a",
-                            border: "1px solid #ffffff20",
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #ffffff20',
                           }}
                         />
-                        <Line
-                          type="monotone"
-                          dataKey="spending"
-                          stroke="#8b5cf6"
-                          strokeWidth={2}
-                        />
+                        <Line type="monotone" dataKey="spending" stroke="#8b5cf6" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
@@ -263,16 +222,13 @@ export default function DashboardPage() {
                           dataKey="spending"
                         >
                           {stats.caster.spendingByCategory.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#1a1a1a",
-                            border: "1px solid #ffffff20",
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #ffffff20',
                           }}
                         />
                       </PieChart>
@@ -300,13 +256,11 @@ export default function DashboardPage() {
                         className="flex items-center justify-between p-4 bg-white text-black/5 rounded-lg"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="text-2xl font-bold text-white/40">
-                            #{index + 1}
-                          </div>
+                          <div className="text-2xl font-bold text-white/40">#{index + 1}</div>
                           <div>
                             <p className="font-semibold">{spell.name}</p>
                             <p className="text-sm text-white/60">
-                              {spell.category || "Uncategorized"}
+                              {spell.category || 'Uncategorized'}
                             </p>
                           </div>
                         </div>
@@ -320,9 +274,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-white/60">
-                    No spells used yet
-                  </div>
+                  <div className="text-center py-8 text-white/60">No spells used yet</div>
                 )}
               </CardContent>
             </Card>
@@ -334,70 +286,48 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Revenue
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
                   <DollarSign className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${stats.maker.totalRevenue.toFixed(2)}
-                  </div>
-                  <p className="text-xs text-white/60 mt-1">
-                    From {stats.maker.totalCasts} casts
-                  </p>
+                  <div className="text-2xl font-bold">${stats.maker.totalRevenue.toFixed(2)}</div>
+                  <p className="text-xs text-white/60 mt-1">From {stats.maker.totalCasts} casts</p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Spells
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Spells</CardTitle>
                   <Star className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.maker.totalSpells}
-                  </div>
-                  <p className="text-xs text-white/60 mt-1">
-                    Published spells
-                  </p>
+                  <div className="text-2xl font-bold">{stats.maker.totalSpells}</div>
+                  <p className="text-xs text-white/60 mt-1">Published spells</p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Usage
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Usage</CardTitle>
                   <Zap className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.maker.totalCasts}
-                  </div>
-                  <p className="text-xs text-white/60 mt-1">
-                    Times your spells were cast
-                  </p>
+                  <div className="text-2xl font-bold">{stats.maker.totalCasts}</div>
+                  <p className="text-xs text-white/60 mt-1">Times your spells were cast</p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Avg Revenue per Spell
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Avg Revenue per Spell</CardTitle>
                   <TrendingUp className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
                     $
                     {stats.maker.totalSpells > 0
-                      ? (
-                          stats.maker.totalRevenue / stats.maker.totalSpells
-                        ).toFixed(2)
-                      : "0.00"}
+                      ? (stats.maker.totalRevenue / stats.maker.totalSpells).toFixed(2)
+                      : '0.00'}
                   </div>
                   <p className="text-xs text-white/60 mt-1">Per spell</p>
                 </CardContent>
@@ -418,8 +348,8 @@ export default function DashboardPage() {
                       <YAxis stroke="#ffffff60" />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#1a1a1a",
-                          border: "1px solid #ffffff20",
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid #ffffff20',
                         }}
                       />
                       <Bar dataKey="revenue" fill="#8b5cf6" />
@@ -447,9 +377,7 @@ export default function DashboardPage() {
                         className="flex items-center justify-between p-4 bg-white text-black/5 rounded-lg"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="text-2xl font-bold text-white/40">
-                            #{index + 1}
-                          </div>
+                          <div className="text-2xl font-bold text-white/40">#{index + 1}</div>
                           <div>
                             <p className="font-semibold">{spell.name}</p>
                             <div className="flex items-center gap-2 mt-1">
@@ -472,9 +400,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-white/60">
-                    No spells published yet
-                  </div>
+                  <div className="text-center py-8 text-white/60">No spells published yet</div>
                 )}
               </CardContent>
             </Card>

@@ -46,6 +46,7 @@ curl -X POST https://your-domain.com/api/v1/cast \
 ```
 
 **Response:**
+
 ```json
 {
   "cast_id": "cast_abc123",
@@ -69,6 +70,7 @@ curl https://your-domain.com/api/casts/cast_abc123
 ```
 
 **Response when completed:**
+
 ```json
 {
   "id": "cast_abc123",
@@ -84,9 +86,7 @@ curl https://your-domain.com/api/casts/cast_abc123
 For real-time updates, use SSE:
 
 ```javascript
-const eventSource = new EventSource(
-  'https://your-domain.com/api/casts/cast_abc123/stream'
-);
+const eventSource = new EventSource('https://your-domain.com/api/casts/cast_abc123/stream');
 
 eventSource.addEventListener('status', (event) => {
   const data = JSON.parse(event.data);
@@ -173,11 +173,12 @@ curl https://your-domain.com/api/budget \
 ```
 
 **Response:**
+
 ```json
 {
   "monthlyCap": 100.0,
-  "currentSpend": 45.50,
-  "remaining": 54.50,
+  "currentSpend": 45.5,
+  "remaining": 54.5,
   "lastResetAt": "2024-01-01T00:00:00Z",
   "percentUsed": 45.5
 }
@@ -212,7 +213,7 @@ class SpellClient {
     const response = await fetch(`${this.baseUrl}/v1/cast`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ spell_key: spellKey, input }),
@@ -247,7 +248,7 @@ class SpellClient {
         throw new Error(`Cast failed: ${status.errorMessage}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
   }
 }
@@ -256,7 +257,7 @@ class SpellClient {
 const client = new SpellClient('sk_live_your_api_key');
 
 const cast = await client.cast('pdf-converter', {
-  file_url: 'https://example.com/document.docx'
+  file_url: 'https://example.com/document.docx',
 });
 
 console.log(`Cast initiated: ${cast.cast_id}`);
@@ -399,21 +400,25 @@ const cast = await client.cast(spellKey, input);
 ### Common Issues
 
 **Issue: "Invalid or inactive API key"**
+
 - Check your API key is correct
 - Verify the key hasn't been revoked
 - Ensure you're using the `Authorization: Bearer` format
 
 **Issue: "Rate limit exceeded"**
+
 - You're making too many requests
 - Implement exponential backoff
 - Consider upgrading your plan (coming soon)
 
 **Issue: "Spell not found"**
+
 - Check the spell_key is correct
 - Verify the spell is published and active
 - Use GET /api/spells to list available spells
 
 **Issue: "Budget exceeded"**
+
 - Your monthly cap has been reached
 - Update your budget via PATCH /api/budget
 - Wait for monthly reset (automatic)
@@ -428,6 +433,7 @@ const cast = await client.cast(spellKey, input);
 ## Support
 
 Need help? Contact us:
+
 - **Email**: support@spell-platform.com
 - **GitHub**: [Issues](https://github.com/yourusername/spell-platform/issues)
 - **Discord**: [Community Server](https://discord.gg/spell) (coming soon)

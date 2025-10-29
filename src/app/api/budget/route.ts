@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/config";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/prisma';
 
 // GET /api/budget - Get user's budget
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await auth();
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let budget = await prisma.budgets.findUnique({
@@ -33,9 +33,7 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const lastReset = new Date(budget.lastResetAt);
     const monthsDiff =
-      (now.getFullYear() - lastReset.getFullYear()) * 12 +
-      now.getMonth() -
-      lastReset.getMonth();
+      (now.getFullYear() - lastReset.getFullYear()) * 12 + now.getMonth() - lastReset.getMonth();
 
     if (monthsDiff >= 1) {
       budget = await prisma.budgets.update({
@@ -56,11 +54,8 @@ export async function GET(req: NextRequest) {
       percentUsed: (budget.currentSpend / budget.monthlyCap) * 100,
     });
   } catch (error) {
-    console.error("Failed to fetch budget:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch budget" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch budget:', error);
+    return NextResponse.json({ error: 'Failed to fetch budget' }, { status: 500 });
   }
 }
 
@@ -70,17 +65,14 @@ export async function PATCH(req: NextRequest) {
     const session = await auth();
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const { monthlyCap } = body;
 
-    if (typeof monthlyCap !== "number" || monthlyCap < 0) {
-      return NextResponse.json(
-        { error: "Invalid monthly cap value" },
-        { status: 400 }
-      );
+    if (typeof monthlyCap !== 'number' || monthlyCap < 0) {
+      return NextResponse.json({ error: 'Invalid monthly cap value' }, { status: 400 });
     }
 
     const budget = await prisma.budgets.upsert({
@@ -105,10 +97,7 @@ export async function PATCH(req: NextRequest) {
       remaining: budget.monthlyCap - budget.currentSpend,
     });
   } catch (error) {
-    console.error("Failed to update budget:", error);
-    return NextResponse.json(
-      { error: "Failed to update budget" },
-      { status: 500 }
-    );
+    console.error('Failed to update budget:', error);
+    return NextResponse.json({ error: 'Failed to update budget' }, { status: 500 });
   }
 }

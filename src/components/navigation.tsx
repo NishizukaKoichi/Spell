@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Zap, BookOpen, History, User, LogOut } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Zap, BookOpen, History, User, LogOut } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
+import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: "/", label: "Marketplace", icon: BookOpen },
-  { href: "/my-spells", label: "My Spells", icon: Zap },
-  { href: "/casts", label: "Cast History", icon: History },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: '/', label: 'Marketplace', icon: BookOpen },
+  { href: '/my-spells', label: 'My Spells', icon: Zap },
+  { href: '/casts', label: 'Cast History', icon: History },
+  { href: '/profile', label: 'Profile', icon: User },
 ];
 
 export function Navigation() {
@@ -40,10 +40,10 @@ export function Navigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                 isActive
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white'
               )}
             >
               <Icon className="h-5 w-5" />

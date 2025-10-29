@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Select,
@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 interface CategoryFilterProps {
   value: string;
@@ -14,14 +14,14 @@ interface CategoryFilterProps {
 }
 
 const categories = [
-  { value: "all", label: "All Categories" },
-  { value: "ai-ml", label: "AI & Machine Learning" },
-  { value: "data", label: "Data Processing" },
-  { value: "web", label: "Web Automation" },
-  { value: "productivity", label: "Productivity" },
-  { value: "communication", label: "Communication" },
-  { value: "analytics", label: "Analytics" },
-  { value: "other", label: "Other" },
+  { value: 'all', label: 'All Categories' },
+  { value: 'ai-ml', label: 'AI & Machine Learning' },
+  { value: 'data', label: 'Data Processing' },
+  { value: 'web', label: 'Web Automation' },
+  { value: 'productivity', label: 'Productivity' },
+  { value: 'communication', label: 'Communication' },
+  { value: 'analytics', label: 'Analytics' },
+  { value: 'other', label: 'Other' },
 ];
 
 export function CategoryFilter({ value, onChange }: CategoryFilterProps) {

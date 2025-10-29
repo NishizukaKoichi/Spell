@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/config";
-import { prisma } from "@/lib/prisma";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/prisma';
+import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-09-30.clover",
+  apiVersion: '2025-09-30.clover',
 });
 
 export async function POST(req: NextRequest) {
@@ -12,16 +12,13 @@ export async function POST(req: NextRequest) {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { spellId } = await req.json();
 
     if (!spellId) {
-      return NextResponse.json(
-        { error: "spellId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'spellId is required' }, { status: 400 });
     }
 
     // Get spell details
@@ -30,13 +27,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (!spell) {
-      return NextResponse.json({ error: "Spell not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
     }
 
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
+      mode: 'payment',
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
@@ -64,10 +61,7 @@ export async function POST(req: NextRequest) {
       url: checkoutSession.url,
     });
   } catch (error) {
-    console.error("Checkout session error:", error);
-    return NextResponse.json(
-      { error: "Failed to create checkout session" },
-      { status: 500 }
-    );
+    console.error('Checkout session error:', error);
+    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
   }
 }

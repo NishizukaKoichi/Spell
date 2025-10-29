@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RateLimitStore {
   [key: string]: {
@@ -25,7 +25,10 @@ export class RateLimiter {
     this.store = store;
   }
 
-  check(limit: number, token: string): {
+  check(
+    limit: number,
+    token: string
+  ): {
     success: boolean;
     limit: number;
     remaining: number;
@@ -75,10 +78,10 @@ export async function rateLimitMiddleware(
 ): Promise<NextResponse | null> {
   // Use IP address or API key as identifier
   const identifier =
-    req.headers.get("x-api-key") ||
-    req.headers.get("x-forwarded-for") ||
-    req.headers.get("x-real-ip") ||
-    "anonymous";
+    req.headers.get('x-api-key') ||
+    req.headers.get('x-forwarded-for') ||
+    req.headers.get('x-real-ip') ||
+    'anonymous';
 
   const rateLimiter = new RateLimiter({
     uniqueTokenPerInterval: 500,
@@ -90,19 +93,17 @@ export async function rateLimitMiddleware(
   if (!result.success) {
     return NextResponse.json(
       {
-        error: "Rate limit exceeded",
+        error: 'Rate limit exceeded',
         limit: result.limit,
         reset: new Date(result.reset).toISOString(),
       },
       {
         status: 429,
         headers: {
-          "X-RateLimit-Limit": result.limit.toString(),
-          "X-RateLimit-Remaining": result.remaining.toString(),
-          "X-RateLimit-Reset": new Date(result.reset).toISOString(),
-          "Retry-After": Math.ceil(
-            (result.reset - Date.now()) / 1000
-          ).toString(),
+          'X-RateLimit-Limit': result.limit.toString(),
+          'X-RateLimit-Remaining': result.remaining.toString(),
+          'X-RateLimit-Reset': new Date(result.reset).toISOString(),
+          'Retry-After': Math.ceil((result.reset - Date.now()) / 1000).toString(),
         },
       }
     );

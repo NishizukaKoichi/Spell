@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/config";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -29,39 +29,42 @@ export async function GET() {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     // Group by month for summary
-    const paymentsByMonth = payments.reduce((acc, payment) => {
-      const monthKey = new Date(payment.createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-      });
+    const paymentsByMonth = payments.reduce(
+      (acc, payment) => {
+        const monthKey = new Date(payment.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+        });
 
-      if (!acc[monthKey]) {
-        acc[monthKey] = {
-          month: monthKey,
-          totalAmount: 0,
-          transactionCount: 0,
-          transactions: [],
-        };
-      }
+        if (!acc[monthKey]) {
+          acc[monthKey] = {
+            month: monthKey,
+            totalAmount: 0,
+            transactionCount: 0,
+            transactions: [],
+          };
+        }
 
-      acc[monthKey].totalAmount += payment.costCents;
-      acc[monthKey].transactionCount += 1;
-      acc[monthKey].transactions.push({
-        id: payment.id,
-        date: payment.createdAt,
-        spellName: payment.spell.name,
-        spellCategory: payment.spell.category,
-        makerName: payment.spell.author.name || "Unknown",
-        amount: payment.costCents / 100,
-        status: payment.status,
-      });
+        acc[monthKey].totalAmount += payment.costCents;
+        acc[monthKey].transactionCount += 1;
+        acc[monthKey].transactions.push({
+          id: payment.id,
+          date: payment.createdAt,
+          spellName: payment.spell.name,
+          spellCategory: payment.spell.category,
+          makerName: payment.spell.author.name || 'Unknown',
+          amount: payment.costCents / 100,
+          status: payment.status,
+        });
 
-      return acc;
-    }, {} as Record<string, any>);
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     // Convert to array and calculate totals
     const monthlyData = Object.values(paymentsByMonth).map((month: any) => ({
@@ -72,8 +75,7 @@ export async function GET() {
     // Calculate overall statistics
     const totalSpent = payments.reduce((sum, p) => sum + p.costCents, 0) / 100;
     const totalTransactions = payments.length;
-    const averageTransaction =
-      totalTransactions > 0 ? totalSpent / totalTransactions : 0;
+    const averageTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0;
 
     // Get recent transactions (last 10)
     const recentTransactions = payments.slice(0, 10).map((payment) => ({
@@ -81,7 +83,7 @@ export async function GET() {
       date: payment.createdAt,
       spellName: payment.spell.name,
       spellCategory: payment.spell.category,
-      makerName: payment.spell.author.name || "Unknown",
+      makerName: payment.spell.author.name || 'Unknown',
       amount: payment.costCents / 100,
       status: payment.status,
     }));
@@ -96,10 +98,7 @@ export async function GET() {
       recentTransactions,
     });
   } catch (error) {
-    console.error("Failed to fetch payment history:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch payment history" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch payment history:', error);
+    return NextResponse.json({ error: 'Failed to fetch payment history' }, { status: 500 });
   }
 }

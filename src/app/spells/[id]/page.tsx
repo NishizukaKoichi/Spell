@@ -1,17 +1,16 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Star, Zap, Clock, TrendingUp } from "lucide-react";
-import { notFound } from "next/navigation";
-import { CastButton } from "@/components/cast-button";
-import { SpellReviews } from "@/components/spell-reviews";
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Star, Zap, Clock } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { CastButton } from '@/components/cast-button';
+import { SpellReviews } from '@/components/spell-reviews';
 
 async function getSpell(id: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const res = await fetch(`${baseUrl}/api/spells/${id}`, {
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -21,11 +20,7 @@ async function getSpell(id: string) {
   return res.json();
 }
 
-export default async function SpellDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function SpellDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const spell = await getSpell(id);
 
@@ -45,9 +40,7 @@ export default async function SpellDetailPage({
                 <Badge variant="outline">{spell.executionMode}</Badge>
               </div>
               <p className="text-lg text-white/60">{spell.description}</p>
-              <p className="text-sm text-white/40">
-                by {spell.author?.name || "Unknown"}
-              </p>
+              <p className="text-sm text-white/40">by {spell.author?.name || 'Unknown'}</p>
             </div>
           </div>
 
@@ -82,16 +75,14 @@ export default async function SpellDetailPage({
                     ${(spell.priceAmount / 100).toFixed(2)}
                   </span>
                   <span className="text-white/60">
-                    {spell.priceModel === "one_time"
-                      ? "one-time"
-                      : spell.priceModel === "metered"
-                        ? "per use"
-                        : "per cast"}
+                    {spell.priceModel === 'one_time'
+                      ? 'one-time'
+                      : spell.priceModel === 'metered'
+                        ? 'per use'
+                        : 'per cast'}
                   </span>
                 </div>
-                <p className="text-sm text-white/60">
-                  {spell.priceCurrency} currency
-                </p>
+                <p className="text-sm text-white/60">{spell.priceCurrency} currency</p>
               </div>
             </CardContent>
           </Card>
@@ -119,9 +110,7 @@ export default async function SpellDetailPage({
               <h3 className="text-xl font-semibold">About this Spell</h3>
             </CardHeader>
             <CardContent>
-              <p className="text-white/80 whitespace-pre-wrap">
-                {spell.longDescription}
-              </p>
+              <p className="text-white/80 whitespace-pre-wrap">{spell.longDescription}</p>
             </CardContent>
           </Card>
         )}

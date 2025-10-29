@@ -26,7 +26,7 @@ describe('Cast API (v1)', () => {
       const response = await fetch(`${BASE_URL}/api/v1/cast`, {
         method: 'POST',
         headers: {
-          'Authorization': 'InvalidFormat',
+          Authorization: 'InvalidFormat',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -42,7 +42,7 @@ describe('Cast API (v1)', () => {
       const response = await fetch(`${BASE_URL}/api/v1/cast`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${TEST_API_KEY}`,
+          Authorization: `Bearer ${TEST_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -59,7 +59,7 @@ describe('Cast API (v1)', () => {
       const response = await fetch(`${BASE_URL}/api/v1/cast`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${TEST_API_KEY}`,
+          Authorization: `Bearer ${TEST_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -77,7 +77,7 @@ describe('Cast API (v1)', () => {
         fetch(`${BASE_URL}/api/v1/cast`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${TEST_API_KEY}`,
+            Authorization: `Bearer ${TEST_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

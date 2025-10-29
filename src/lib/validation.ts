@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Spell creation validation
 export const createSpellSchema = z.object({
@@ -7,15 +7,18 @@ export const createSpellSchema = z.object({
     .string()
     .min(3)
     .max(50)
-    .regex(/^[a-z0-9-_]+$/i, "Key must contain only alphanumeric characters, hyphens, and underscores"),
+    .regex(
+      /^[a-z0-9-_]+$/i,
+      'Key must contain only alphanumeric characters, hyphens, and underscores'
+    ),
   description: z.string().min(10).max(500),
   longDescription: z.string().max(5000).optional(),
   category: z.string().optional(),
-  priceModel: z.enum(["one_time", "metered"]),
+  priceModel: z.enum(['one_time', 'metered']),
   priceAmount: z.number().min(0).max(1000000),
-  executionMode: z.enum(["workflow", "api", "lambda"]),
+  executionMode: z.enum(['workflow', 'api', 'lambda']),
   tags: z.array(z.string()).max(10).optional(),
-  webhookUrl: z.string().url().optional().or(z.literal("")),
+  webhookUrl: z.string().url().optional().or(z.literal('')),
   inputSchema: z.any().optional(),
   outputSchema: z.any().optional(),
 });
@@ -26,11 +29,11 @@ export const updateSpellSchema = z.object({
   description: z.string().min(10).max(500).optional(),
   longDescription: z.string().max(5000).optional().nullable(),
   category: z.string().optional().nullable(),
-  priceModel: z.enum(["one_time", "metered"]).optional(),
+  priceModel: z.enum(['one_time', 'metered']).optional(),
   priceAmount: z.number().min(0).max(1000000).optional(),
   tags: z.array(z.string()).max(10).optional(),
-  status: z.enum(["active", "inactive", "archived"]).optional(),
-  webhookUrl: z.string().url().optional().nullable().or(z.literal("")),
+  status: z.enum(['active', 'inactive', 'archived']).optional(),
+  webhookUrl: z.string().url().optional().nullable().or(z.literal('')),
   inputSchema: z.any().optional().nullable(),
   outputSchema: z.any().optional().nullable(),
 });
@@ -60,7 +63,7 @@ export const createApiKeySchema = z.object({
 
 // Cast status update validation (internal)
 export const updateCastStatusSchema = z.object({
-  status: z.enum(["queued", "running", "completed", "failed"]),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
   finishedAt: z.string().datetime().optional(),
   duration: z.number().int().min(0).optional(),
   artifactUrl: z.string().url().optional(),
@@ -77,9 +80,9 @@ export function validateRequest<T>(
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((err) => `${err.path.join(".")}: ${err.message}`);
+      const errors = error.errors.map((err) => `${err.path.join('.')}: ${err.message}`);
       return { success: false, errors };
     }
-    return { success: false, errors: ["Invalid request data"] };
+    return { success: false, errors: ['Invalid request data'] };
   }
 }

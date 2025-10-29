@@ -1,24 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { sendCastCompletedWebhook } from "@/lib/webhook";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { sendCastCompletedWebhook } from '@/lib/webhook';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
     // Verify API secret for GitHub Actions
-    const authHeader = req.headers.get("authorization");
+    const authHeader = req.headers.get('authorization');
     const expectedSecret = process.env.API_SECRET;
 
     if (!authHeader || !expectedSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace('Bearer ', '');
     if (token !== expectedSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -46,27 +43,18 @@ export async function PATCH(
     });
 
     // Send webhook if cast is completed or failed
-    if (
-      cast.status === "completed" ||
-      (cast.status === "failed" && cast.spell.webhookUrl)
-    ) {
+    if (cast.status === 'completed' || (cast.status === 'failed' && cast.spell.webhookUrl)) {
       sendCastCompletedWebhook(cast);
     }
 
     return NextResponse.json(cast);
   } catch (error) {
-    console.error("Failed to update cast:", error);
-    return NextResponse.json(
-      { error: "Failed to update cast" },
-      { status: 500 }
-    );
+    console.error('Failed to update cast:', error);
+    return NextResponse.json({ error: 'Failed to update cast' }, { status: 500 });
   }
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const cast = await prisma.cast.findUnique({
@@ -84,15 +72,12 @@ export async function GET(
     });
 
     if (!cast) {
-      return NextResponse.json({ error: "Cast not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Cast not found' }, { status: 404 });
     }
 
     return NextResponse.json(cast);
   } catch (error) {
-    console.error("Failed to fetch cast:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch cast" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch cast:', error);
+    return NextResponse.json({ error: 'Failed to fetch cast' }, { status: 500 });
   }
 }

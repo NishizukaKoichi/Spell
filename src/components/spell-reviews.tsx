@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, User } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Star, User } from 'lucide-react';
 
 interface Review {
   id: string;
@@ -33,7 +33,7 @@ export function SpellReviews({ spellId }: SpellReviewsProps) {
           setReviews(data);
         }
       } catch (error) {
-        console.error("Failed to fetch reviews:", error);
+        console.error('Failed to fetch reviews:', error);
       } finally {
         setIsLoading(false);
       }
@@ -77,9 +77,7 @@ export function SpellReviews({ spellId }: SpellReviewsProps) {
           <Star
             key={star}
             className={`h-4 w-4 ${
-              star <= rating
-                ? "fill-yellow-500 text-yellow-500"
-                : "text-white/20"
+              star <= rating ? 'fill-yellow-500 text-yellow-500' : 'text-white/20'
             }`}
           />
         ))}
@@ -101,7 +99,7 @@ export function SpellReviews({ spellId }: SpellReviewsProps) {
                   {review.user.image ? (
                     <img
                       src={review.user.image}
-                      alt={review.user.name || "User"}
+                      alt={review.user.name || 'User'}
                       className="h-10 w-10 rounded-full"
                     />
                   ) : (
@@ -114,23 +112,19 @@ export function SpellReviews({ spellId }: SpellReviewsProps) {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold">
-                        {review.user.name || "Anonymous"}
-                      </p>
+                      <p className="font-semibold">{review.user.name || 'Anonymous'}</p>
                       <p className="text-sm text-white/60">
-                        {new Date(review.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
+                        {new Date(review.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
                         })}
                       </p>
                     </div>
                     {renderStars(review.rating)}
                   </div>
 
-                  {review.comment && (
-                    <p className="text-white/80">{review.comment}</p>
-                  )}
+                  {review.comment && <p className="text-white/80">{review.comment}</p>}
                 </div>
               </div>
 

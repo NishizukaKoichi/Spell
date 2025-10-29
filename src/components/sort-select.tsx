@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Select,
@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 interface SortSelectProps {
   value: string;
@@ -14,10 +14,10 @@ interface SortSelectProps {
 }
 
 const sortOptions = [
-  { value: "createdAt", label: "Newest First", order: "desc" },
-  { value: "rating", label: "Highest Rated", order: "desc" },
-  { value: "casts", label: "Most Popular", order: "desc" },
-  { value: "name", label: "Name (A-Z)", order: "asc" },
+  { value: 'createdAt', label: 'Newest First', order: 'desc' },
+  { value: 'rating', label: 'Highest Rated', order: 'desc' },
+  { value: 'casts', label: 'Most Popular', order: 'desc' },
+  { value: 'name', label: 'Name (A-Z)', order: 'asc' },
 ];
 
 export function SortSelect({ value, onChange }: SortSelectProps) {

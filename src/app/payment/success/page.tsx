@@ -1,8 +1,8 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
-import Link from "next/link";
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PaymentSuccessPage({
   searchParams,
@@ -21,8 +21,8 @@ export default function PaymentSuccessPage({
           </CardHeader>
           <CardContent className="space-y-4 text-center">
             <p className="text-white/60">
-              Your payment has been processed successfully. Your spell execution
-              has been queued and will start shortly.
+              Your payment has been processed successfully. Your spell execution has been queued and
+              will start shortly.
             </p>
             {searchParams.session_id && (
               <p className="text-xs text-white/40 font-mono">

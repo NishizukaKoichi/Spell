@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/config";
-import { prisma } from "@/lib/prisma";
-import { randomBytes } from "crypto";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/prisma';
+import { randomBytes } from 'crypto';
 
 // Generate a secure API key
 function generateApiKey(): string {
-  const prefix = "sk_live_";
-  const randomPart = randomBytes(32).toString("base64url");
+  const prefix = 'sk_live_';
+  const randomPart = randomBytes(32).toString('base64url');
   return `${prefix}${randomPart}`;
 }
 
 // GET /api/keys - List user's API keys
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const apiKeys = await prisma.api_keys.findMany({
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
@@ -44,11 +44,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ apiKeys: maskedKeys });
   } catch (error) {
-    console.error("Failed to fetch API keys:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch API keys" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch API keys:', error);
+    return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 });
   }
 }
 
@@ -57,43 +54,37 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const { name } = body;
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     // Check if user already has 5 or more active keys (rate limiting)
     const existingKeysCount = await prisma.api_keys.count({
       where: {
         userId: session.user.id,
-        status: "active",
+        status: 'active',
       },
     });
 
     if (existingKeysCount >= 5) {
-      return NextResponse.json(
-        { error: "Maximum of 5 active API keys allowed" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Maximum of 5 active API keys allowed' }, { status: 400 });
     }
 
     const apiKey = generateApiKey();
 
     const newKey = await prisma.api_keys.create({
       data: {
-        id: randomBytes(16).toString("hex"),
+        id: randomBytes(16).toString('hex'),
         userId: session.user.id,
         name: name.trim(),
         key: apiKey,
-        status: "active",
+        status: 'active',
         updatedAt: new Date(),
       },
     });
@@ -111,10 +102,7 @@ export async function POST(req: NextRequest) {
         "API key created successfully. Make sure to copy it now - you won't be able to see it again!",
     });
   } catch (error) {
-    console.error("Failed to create API key:", error);
-    return NextResponse.json(
-      { error: "Failed to create API key" },
-      { status: 500 }
-    );
+    console.error('Failed to create API key:', error);
+    return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 });
   }
 }

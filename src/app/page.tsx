@@ -1,20 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { SpellCard } from "@/components/spell-card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Spell } from "@/types/spell";
-import {
-  Search,
-  SlidersHorizontal,
-  X,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { SpellCard } from '@/components/spell-card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Spell } from '@/types/spell';
+import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FiltersData {
   categories: string[];
@@ -34,36 +28,27 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Filter states
-  const [searchQuery, setSearchQuery] = useState(
-    searchParams.get("search") || ""
-  );
-  const [selectedCategory, setSelectedCategory] = useState(
-    searchParams.get("category") || "all"
-  );
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    searchParams.get("tags")?.split(",").filter(Boolean) || []
+    searchParams.get('tags')?.split(',').filter(Boolean) || []
   );
-  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
-  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
-  const [priceModel, setPriceModel] = useState(
-    searchParams.get("priceModel") || "all"
-  );
-  const [sortBy, setSortBy] = useState(
-    searchParams.get("sortBy") || "popularity"
-  );
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [priceModel, setPriceModel] = useState(searchParams.get('priceModel') || 'all');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'popularity');
 
   const fetchSpells = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (searchQuery) params.set("search", searchQuery);
-      if (selectedCategory !== "all")
-        params.set("category", selectedCategory);
-      if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
-      if (minPrice) params.set("minPrice", minPrice);
-      if (maxPrice) params.set("maxPrice", maxPrice);
-      if (priceModel !== "all") params.set("priceModel", priceModel);
-      params.set("sortBy", sortBy);
+      if (searchQuery) params.set('search', searchQuery);
+      if (selectedCategory !== 'all') params.set('category', selectedCategory);
+      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+      if (minPrice) params.set('minPrice', minPrice);
+      if (maxPrice) params.set('maxPrice', maxPrice);
+      if (priceModel !== 'all') params.set('priceModel', priceModel);
+      params.set('sortBy', sortBy);
 
       const response = await fetch(`/api/spells?${params.toString()}`);
       if (response.ok) {
@@ -74,19 +59,11 @@ export default function Home() {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch spells:", error);
+      console.error('Failed to fetch spells:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [
-    searchQuery,
-    selectedCategory,
-    selectedTags,
-    minPrice,
-    maxPrice,
-    priceModel,
-    sortBy,
-  ]);
+  }, [searchQuery, selectedCategory, selectedTags, minPrice, maxPrice, priceModel, sortBy]);
 
   useEffect(() => {
     fetchSpells();
@@ -95,26 +72,17 @@ export default function Home() {
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set("search", searchQuery);
-    if (selectedCategory !== "all") params.set("category", selectedCategory);
-    if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
-    if (minPrice) params.set("minPrice", minPrice);
-    if (maxPrice) params.set("maxPrice", maxPrice);
-    if (priceModel !== "all") params.set("priceModel", priceModel);
-    if (sortBy !== "popularity") params.set("sortBy", sortBy);
+    if (searchQuery) params.set('search', searchQuery);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (minPrice) params.set('minPrice', minPrice);
+    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (priceModel !== 'all') params.set('priceModel', priceModel);
+    if (sortBy !== 'popularity') params.set('sortBy', sortBy);
 
     const queryString = params.toString();
-    router.push(queryString ? `/?${queryString}` : "/", { scroll: false });
-  }, [
-    searchQuery,
-    selectedCategory,
-    selectedTags,
-    minPrice,
-    maxPrice,
-    priceModel,
-    sortBy,
-    router,
-  ]);
+    router.push(queryString ? `/?${queryString}` : '/', { scroll: false });
+  }, [searchQuery, selectedCategory, selectedTags, minPrice, maxPrice, priceModel, sortBy, router]);
 
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) =>
@@ -123,32 +91,30 @@ export default function Home() {
   };
 
   const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory("all");
+    setSearchQuery('');
+    setSelectedCategory('all');
     setSelectedTags([]);
-    setMinPrice("");
-    setMaxPrice("");
-    setPriceModel("all");
-    setSortBy("popularity");
+    setMinPrice('');
+    setMaxPrice('');
+    setPriceModel('all');
+    setSortBy('popularity');
   };
 
   const hasActiveFilters =
     searchQuery ||
-    selectedCategory !== "all" ||
+    selectedCategory !== 'all' ||
     selectedTags.length > 0 ||
     minPrice ||
     maxPrice ||
-    priceModel !== "all" ||
-    sortBy !== "popularity";
+    priceModel !== 'all' ||
+    sortBy !== 'popularity';
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
           <h1 className="text-4xl font-bold mb-2">Spell Marketplace</h1>
-          <p className="text-white/60">
-            Discover and cast powerful spells for your workflows
-          </p>
+          <p className="text-white/60">Discover and cast powerful spells for your workflows</p>
         </div>
 
         {/* Search and Filter Bar */}
@@ -162,10 +128,7 @@ export default function Home() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-          >
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters
             {showFilters ? (
@@ -180,11 +143,11 @@ export default function Home() {
         {hasActiveFilters && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-white/60">Active filters:</span>
-            {selectedCategory !== "all" && (
+            {selectedCategory !== 'all' && (
               <Badge
                 variant="outline"
                 className="cursor-pointer"
-                onClick={() => setSelectedCategory("all")}
+                onClick={() => setSelectedCategory('all')}
               >
                 {selectedCategory}
                 <X className="h-3 w-3 ml-1" />
@@ -201,13 +164,13 @@ export default function Home() {
                 <X className="h-3 w-3 ml-1" />
               </Badge>
             ))}
-            {priceModel !== "all" && (
+            {priceModel !== 'all' && (
               <Badge
                 variant="outline"
                 className="cursor-pointer"
-                onClick={() => setPriceModel("all")}
+                onClick={() => setPriceModel('all')}
               >
-                {priceModel === "one_time" ? "One-time" : "Metered"}
+                {priceModel === 'one_time' ? 'One-time' : 'Metered'}
                 <X className="h-3 w-3 ml-1" />
               </Badge>
             )}
@@ -216,20 +179,15 @@ export default function Home() {
                 variant="outline"
                 className="cursor-pointer"
                 onClick={() => {
-                  setMinPrice("");
-                  setMaxPrice("");
+                  setMinPrice('');
+                  setMaxPrice('');
                 }}
               >
-                ${minPrice || "0"} - ${maxPrice || "∞"}
+                ${minPrice || '0'} - ${maxPrice || '∞'}
                 <X className="h-3 w-3 ml-1" />
               </Badge>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
               Clear all
             </Button>
           </div>
@@ -246,17 +204,14 @@ export default function Home() {
                   <input
                     type="radio"
                     name="category"
-                    checked={selectedCategory === "all"}
-                    onChange={() => setSelectedCategory("all")}
+                    checked={selectedCategory === 'all'}
+                    onChange={() => setSelectedCategory('all')}
                     className="accent-purple-500"
                   />
                   <span className="text-sm">All Categories</span>
                 </label>
                 {filters.categories.map((cat) => (
-                  <label
-                    key={cat}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
+                  <label key={cat} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="category"
@@ -294,8 +249,8 @@ export default function Home() {
                   <input
                     type="radio"
                     name="priceModel"
-                    checked={priceModel === "all"}
-                    onChange={() => setPriceModel("all")}
+                    checked={priceModel === 'all'}
+                    onChange={() => setPriceModel('all')}
                     className="accent-purple-500"
                   />
                   <span className="text-sm">All Models</span>
@@ -304,8 +259,8 @@ export default function Home() {
                   <input
                     type="radio"
                     name="priceModel"
-                    checked={priceModel === "one_time"}
-                    onChange={() => setPriceModel("one_time")}
+                    checked={priceModel === 'one_time'}
+                    onChange={() => setPriceModel('one_time')}
                     className="accent-purple-500"
                   />
                   <span className="text-sm">One-time</span>
@@ -314,8 +269,8 @@ export default function Home() {
                   <input
                     type="radio"
                     name="priceModel"
-                    checked={priceModel === "metered"}
-                    onChange={() => setPriceModel("metered")}
+                    checked={priceModel === 'metered'}
+                    onChange={() => setPriceModel('metered')}
                     className="accent-purple-500"
                   />
                   <span className="text-sm">Metered</span>
@@ -330,9 +285,7 @@ export default function Home() {
                 {filters.tags.map((tag) => (
                   <Badge
                     key={tag}
-                    variant={
-                      selectedTags.includes(tag) ? "default" : "outline"
-                    }
+                    variant={selectedTags.includes(tag) ? 'default' : 'outline'}
                     className="cursor-pointer"
                     onClick={() => handleTagToggle(tag)}
                   >
@@ -363,9 +316,7 @@ export default function Home() {
 
         {/* Results */}
         {isLoading ? (
-          <div className="text-center py-12 text-white/60">
-            Loading spells...
-          </div>
+          <div className="text-center py-12 text-white/60">Loading spells...</div>
         ) : spells.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-white/60 mb-4">No spells found</p>
@@ -378,7 +329,7 @@ export default function Home() {
         ) : (
           <>
             <div className="text-sm text-white/60">
-              Found {spells.length} spell{spells.length !== 1 ? "s" : ""}
+              Found {spells.length} spell{spells.length !== 1 ? 's' : ''}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {spells.map((spell) => (

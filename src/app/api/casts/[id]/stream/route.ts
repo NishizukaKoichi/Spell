@@ -1,13 +1,10 @@
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   // Create a TransformStream for SSE
@@ -18,11 +15,9 @@ export async function GET(
   // Function to send SSE message
   const sendEvent = async (data: any) => {
     try {
-      await writer.write(
-        encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
-      );
+      await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
     } catch (error) {
-      console.error("Error writing to stream:", error);
+      console.error('Error writing to stream:', error);
     }
   };
 
@@ -37,7 +32,7 @@ export async function GET(
       });
 
       if (!cast) {
-        await sendEvent({ error: "Cast not found" });
+        await sendEvent({ error: 'Cast not found' });
         clearInterval(pollInterval);
         await writer.close();
         return;
@@ -56,29 +51,29 @@ export async function GET(
       });
 
       // If cast is in a terminal state, stop polling
-      if (cast.status === "completed" || cast.status === "failed") {
+      if (cast.status === 'completed' || cast.status === 'failed') {
         clearInterval(pollInterval);
         await writer.close();
       }
     } catch (error) {
-      console.error("Error polling cast:", error);
-      await sendEvent({ error: "Failed to fetch cast status" });
+      console.error('Error polling cast:', error);
+      await sendEvent({ error: 'Failed to fetch cast status' });
       clearInterval(pollInterval);
       await writer.close();
     }
   }, 2000); // Poll every 2 seconds
 
   // Handle client disconnect
-  req.signal.addEventListener("abort", () => {
+  req.signal.addEventListener('abort', () => {
     clearInterval(pollInterval);
     writer.close();
   });
 
   return new Response(stream.readable, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
     },
   });
 }

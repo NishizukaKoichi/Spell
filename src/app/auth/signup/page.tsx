@@ -1,38 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Zap } from "lucide-react";
-import Link from "next/link";
-import { startRegistration } from "@simplewebauthn/browser";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Zap } from 'lucide-react';
+import Link from 'next/link';
+import { startRegistration } from '@simplewebauthn/browser';
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const handleSignUp = async () => {
     if (!email) {
-      setError("Email is required");
+      setError('Email is required');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       // Get registration options
-      const optionsResponse = await fetch("/api/webauthn/register-options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const optionsResponse = await fetch('/api/webauthn/register-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
 
       if (!optionsResponse.ok) {
         const error = await optionsResponse.json();
-        throw new Error(error.error || "Failed to get registration options");
+        throw new Error(error.error || 'Failed to get registration options');
       }
 
       const { options } = await optionsResponse.json();
@@ -41,9 +41,9 @@ export default function SignUpPage() {
       const registrationResponse = await startRegistration(options);
 
       // Verify registration
-      const verifyResponse = await fetch("/api/webauthn/register-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const verifyResponse = await fetch('/api/webauthn/register-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           response: registrationResponse,
@@ -53,17 +53,15 @@ export default function SignUpPage() {
 
       if (!verifyResponse.ok) {
         const error = await verifyResponse.json();
-        throw new Error(error.error || "Registration failed");
+        throw new Error(error.error || 'Registration failed');
       }
 
       // Redirect to sign in page
-      alert("Registration successful! Please sign in.");
-      window.location.href = "/auth/signin";
+      alert('Registration successful! Please sign in.');
+      window.location.href = '/auth/signin';
     } catch (err) {
-      console.error("Registration error:", err);
-      setError(
-        err instanceof Error ? err.message : "Registration failed"
-      );
+      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -111,15 +109,12 @@ export default function SignUpPage() {
             disabled={loading}
             className="w-full bg-white hover:bg-white text-black/90"
           >
-            {loading ? "Creating account..." : "Sign up with Passkey"}
+            {loading ? 'Creating account...' : 'Sign up with Passkey'}
           </Button>
 
           <div className="text-center text-sm">
             <span className="text-white/60">Already have an account? </span>
-            <Link
-              href="/auth/signin"
-              className="text-white/80 hover:text-white"
-            >
+            <Link href="/auth/signin" className="text-white/80 hover:text-white">
               Sign in
             </Link>
           </div>
@@ -127,9 +122,8 @@ export default function SignUpPage() {
           <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-xs text-blue-400">
             <p className="font-semibold mb-1">What is a passkey?</p>
             <p>
-              A passkey is a secure, passwordless way to sign in. It uses your
-              device's biometric authentication (like fingerprint or face
-              recognition) or PIN.
+              A passkey is a secure, passwordless way to sign in. It uses your device's biometric
+              authentication (like fingerprint or face recognition) or PIN.
             </p>
           </div>
         </CardContent>

@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const query = searchParams.get("q") || "";
-    const category = searchParams.get("category");
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const order = searchParams.get("order") || "desc";
+    const query = searchParams.get('q') || '';
+    const category = searchParams.get('category');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const order = searchParams.get('order') || 'desc';
 
     const where: any = {
       isPublished: true,
@@ -16,22 +16,22 @@ export async function GET(req: NextRequest) {
     // Text search in name and description
     if (query) {
       where.OR = [
-        { name: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
-        { longDescription: { contains: query, mode: "insensitive" } },
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { longDescription: { contains: query, mode: 'insensitive' } },
       ];
     }
 
     // Category filter
-    if (category && category !== "all") {
+    if (category && category !== 'all') {
       where.category = category;
     }
 
     // Build orderBy
     const orderBy: any = {};
-    if (sortBy === "rating") {
+    if (sortBy === 'rating') {
       orderBy.rating = order;
-    } else if (sortBy === "casts") {
+    } else if (sortBy === 'casts') {
       orderBy.casts = { _count: order };
     } else {
       orderBy[sortBy] = order;
@@ -59,10 +59,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(spells);
   } catch (error) {
-    console.error("Failed to search spells:", error);
-    return NextResponse.json(
-      { error: "Failed to search spells" },
-      { status: 500 }
-    );
+    console.error('Failed to search spells:', error);
+    return NextResponse.json({ error: 'Failed to search spells' }, { status: 500 });
   }
 }

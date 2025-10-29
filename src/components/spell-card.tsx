@@ -1,25 +1,24 @@
-import { Spell } from '@/types/spell'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Star, Zap } from 'lucide-react'
-import Link from 'next/link'
+import { Spell } from '@/types/spell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import Link from 'next/link';
 
 interface SpellCardProps {
-  spell: Spell
+  spell: Spell;
 }
 
 export function SpellCard({ spell }: SpellCardProps) {
   const formatPrice = () => {
-    const dollars = spell.priceAmount / 100
+    const dollars = spell.priceAmount / 100;
     if (spell.priceModel === 'one_time') {
-      return `$${dollars.toFixed(2)} one-time`
+      return `$${dollars.toFixed(2)} one-time`;
     } else if (spell.priceModel === 'metered') {
-      return `$${dollars.toFixed(2)}/use`
+      return `$${dollars.toFixed(2)}/use`;
     } else {
-      return `$${dollars.toFixed(2)}/cast`
+      return `$${dollars.toFixed(2)}/cast`;
     }
-  }
+  };
 
   return (
     <Card className="group border-white/10 transition-all hover:border-white/30">
@@ -55,5 +54,5 @@ export function SpellCard({ spell }: SpellCardProps) {
         </Link>
       </CardFooter>
     </Card>
-  )
+  );
 }

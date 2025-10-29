@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Zap } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface CastButtonProps {
   spellId: string;
@@ -18,7 +18,7 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
 
   const handleCast = async () => {
     if (!session) {
-      router.push("/auth/signin");
+      router.push('/auth/signin');
       return;
     }
 
@@ -27,17 +27,17 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
     try {
       // If spell requires payment, redirect to Stripe checkout
       if (priceAmount > 0) {
-        const checkoutResponse = await fetch("/api/create-checkout-session", {
-          method: "POST",
+        const checkoutResponse = await fetch('/api/create-checkout-session', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ spellId }),
         });
 
         if (!checkoutResponse.ok) {
           const error = await checkoutResponse.json();
-          throw new Error(error.error || "Failed to create checkout session");
+          throw new Error(error.error || 'Failed to create checkout session');
         }
 
         const { url } = await checkoutResponse.json();
@@ -46,10 +46,10 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
       }
 
       // For free spells, cast directly
-      const response = await fetch("/api/cast", {
-        method: "POST",
+      const response = await fetch('/api/cast', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           spellId,
@@ -59,16 +59,16 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || "Failed to cast spell");
+        alert(error.error || 'Failed to cast spell');
         return;
       }
 
       const data = await response.json();
       alert(`Cast initiated! Cast ID: ${data.cast.id}`);
-      router.push("/casts");
+      router.push('/casts');
     } catch (error) {
-      console.error("Cast error:", error);
-      alert("Failed to cast spell");
+      console.error('Cast error:', error);
+      alert('Failed to cast spell');
     } finally {
       setLoading(false);
     }
@@ -83,10 +83,10 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
     >
       <Zap className="h-5 w-5" />
       {loading
-        ? "Processing..."
+        ? 'Processing...'
         : priceAmount > 0
           ? `Cast for $${(priceAmount / 100).toFixed(2)}`
-          : "Cast Spell"}
+          : 'Cast Spell'}
     </Button>
   );
 }

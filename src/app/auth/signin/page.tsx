@@ -1,38 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Zap } from "lucide-react";
-import Link from "next/link";
-import { startAuthentication } from "@simplewebauthn/browser";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Zap } from 'lucide-react';
+import Link from 'next/link';
+import { startAuthentication } from '@simplewebauthn/browser';
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const handleSignIn = async () => {
     if (!email) {
-      setError("Email is required");
+      setError('Email is required');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       // Get authentication options
-      const optionsResponse = await fetch("/api/webauthn/auth-options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const optionsResponse = await fetch('/api/webauthn/auth-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
 
       if (!optionsResponse.ok) {
         const error = await optionsResponse.json();
-        throw new Error(error.error || "Failed to get authentication options");
+        throw new Error(error.error || 'Failed to get authentication options');
       }
 
       const { options } = await optionsResponse.json();
@@ -41,9 +41,9 @@ export default function SignInPage() {
       const authResponse = await startAuthentication(options);
 
       // Verify authentication
-      const verifyResponse = await fetch("/api/webauthn/auth-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const verifyResponse = await fetch('/api/webauthn/auth-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           response: authResponse,
@@ -53,16 +53,14 @@ export default function SignInPage() {
 
       if (!verifyResponse.ok) {
         const error = await verifyResponse.json();
-        throw new Error(error.error || "Authentication failed");
+        throw new Error(error.error || 'Authentication failed');
       }
 
       // Redirect to home page
-      window.location.href = "/";
+      window.location.href = '/';
     } catch (err) {
-      console.error("Authentication error:", err);
-      setError(
-        err instanceof Error ? err.message : "Authentication failed"
-      );
+      console.error('Authentication error:', err);
+      setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -78,9 +76,7 @@ export default function SignInPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold">Welcome back</h1>
-            <p className="text-sm text-white/60">
-              Sign in with your passkey
-            </p>
+            <p className="text-sm text-white/60">Sign in with your passkey</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -110,15 +106,12 @@ export default function SignInPage() {
             disabled={loading}
             className="w-full bg-white hover:bg-white text-black/90"
           >
-            {loading ? "Signing in..." : "Sign in with Passkey"}
+            {loading ? 'Signing in...' : 'Sign in with Passkey'}
           </Button>
 
           <div className="text-center text-sm">
             <span className="text-white/60">Don't have an account? </span>
-            <Link
-              href="/auth/signup"
-              className="text-white/80 hover:text-white"
-            >
+            <Link href="/auth/signup" className="text-white/80 hover:text-white">
               Sign up
             </Link>
           </div>

@@ -1,20 +1,20 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ApiKeys } from "@/components/api-keys";
-import { auth } from "@/lib/auth/config";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { User, Mail, Calendar, Zap, History, Star, TrendingUp } from "lucide-react";
-import Link from "next/link";
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ApiKeys } from '@/components/api-keys';
+import { auth } from '@/lib/auth/config';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
+import { User, Mail, Calendar, Zap, History, Star } from 'lucide-react';
+import Link from 'next/link';
 
 async function getUserStats(userId: string) {
   const [spellCount, castCount, totalRevenue] = await Promise.all([
     prisma.spell.count({ where: { authorId: userId } }),
     prisma.cast.count({ where: { casterId: userId } }),
     prisma.cast.aggregate({
-      where: { casterId: userId, status: "completed" },
+      where: { casterId: userId, status: 'completed' },
       _sum: { costCents: true },
     }),
   ]);
@@ -29,14 +29,14 @@ async function getUserStats(userId: string) {
 async function getUserAuthenticators(userId: string) {
   return prisma.authenticators.findMany({
     where: { userId },
-    orderBy: { credentialID: "asc" },
+    orderBy: { credentialID: 'asc' },
   });
 }
 
 async function getUserSpells(userId: string) {
   return prisma.spell.findMany({
     where: { authorId: userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: 5,
   });
 }
@@ -53,7 +53,7 @@ async function getUserCasts(userId: string) {
         },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: 5,
   });
 }
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
   const session = await auth();
 
   if (!session) {
-    redirect("/auth/signin");
+    redirect('/auth/signin');
   }
 
   const [stats, authenticators, userSpells, userCasts] = await Promise.all([
@@ -91,7 +91,7 @@ export default async function ProfilePage() {
                 <User className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="font-medium">{session.user.name || "User"}</p>
+                <p className="font-medium">{session.user.name || 'User'}</p>
                 <div className="flex items-center gap-2 text-sm text-white/60">
                   <Mail className="h-4 w-4" />
                   {session.user.email}
@@ -123,9 +123,7 @@ export default async function ProfilePage() {
                   <Calendar className="h-4 w-4" />
                   <span>Total Spent</span>
                 </div>
-                <p className="text-2xl font-bold">
-                  ${(stats.totalRevenue / 100).toFixed(2)}
-                </p>
+                <p className="text-2xl font-bold">${(stats.totalRevenue / 100).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -135,9 +133,7 @@ export default async function ProfilePage() {
         <Card className="border-white/10">
           <CardHeader>
             <h2 className="text-xl font-semibold">Passkeys</h2>
-            <p className="text-sm text-white/60">
-              Manage your authentication passkeys
-            </p>
+            <p className="text-sm text-white/60">Manage your authentication passkeys</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {authenticators.length === 0 ? (
@@ -165,9 +161,7 @@ export default async function ProfilePage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-sm text-white/60">
-                      Used {auth.counter} times
-                    </div>
+                    <div className="text-sm text-white/60">Used {auth.counter} times</div>
                   </div>
                 ))}
               </div>
@@ -180,33 +174,22 @@ export default async function ProfilePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Published Spells</h2>
-              <Link
-                href="/my-spells"
-                className="text-sm text-white/80 hover:text-white"
-              >
+              <Link href="/my-spells" className="text-sm text-white/80 hover:text-white">
                 View all →
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {userSpells.length === 0 ? (
-              <p className="text-white/60 text-center py-8">
-                No spells published yet
-              </p>
+              <p className="text-white/60 text-center py-8">No spells published yet</p>
             ) : (
               <div className="space-y-4">
                 {userSpells.map((spell) => (
-                  <Link
-                    key={spell.id}
-                    href={`/spells/${spell.id}`}
-                    className="block"
-                  >
+                  <Link key={spell.id} href={`/spells/${spell.id}`} className="block">
                     <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
                       <div className="flex-1">
                         <p className="font-semibold">{spell.name}</p>
-                        <p className="text-sm text-white/60 line-clamp-1">
-                          {spell.description}
-                        </p>
+                        <p className="text-sm text-white/60 line-clamp-1">{spell.description}</p>
                         <div className="flex items-center gap-3 mt-2">
                           <div className="flex items-center gap-1 text-sm text-white/60">
                             <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
@@ -224,11 +207,9 @@ export default async function ProfilePage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">
-                          ${(spell.priceAmount / 100).toFixed(2)}
-                        </p>
+                        <p className="font-semibold">${(spell.priceAmount / 100).toFixed(2)}</p>
                         <p className="text-xs text-white/60">
-                          {spell.priceModel === "one_time" ? "one-time" : "per use"}
+                          {spell.priceModel === 'one_time' ? 'one-time' : 'per use'}
                         </p>
                       </div>
                     </div>
@@ -244,27 +225,18 @@ export default async function ProfilePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Recent Casts</h2>
-              <Link
-                href="/casts"
-                className="text-sm text-white/80 hover:text-white"
-              >
+              <Link href="/casts" className="text-sm text-white/80 hover:text-white">
                 View all →
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {userCasts.length === 0 ? (
-              <p className="text-white/60 text-center py-8">
-                No casts yet
-              </p>
+              <p className="text-white/60 text-center py-8">No casts yet</p>
             ) : (
               <div className="space-y-4">
                 {userCasts.map((cast) => (
-                  <Link
-                    key={cast.id}
-                    href={`/casts/${cast.id}`}
-                    className="block"
-                  >
+                  <Link key={cast.id} href={`/casts/${cast.id}`} className="block">
                     <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
                       <div className="flex-1">
                         <p className="font-semibold">{cast.spell.name}</p>
@@ -272,13 +244,13 @@ export default async function ProfilePage() {
                           <Badge
                             variant="outline"
                             className={`text-xs ${
-                              cast.status === "completed"
-                                ? "text-green-500 border-green-500/20"
-                                : cast.status === "failed"
-                                  ? "text-red-500 border-red-500/20"
-                                  : cast.status === "running"
-                                    ? "text-blue-500 border-blue-500/20"
-                                    : "text-yellow-500 border-yellow-500/20"
+                              cast.status === 'completed'
+                                ? 'text-green-500 border-green-500/20'
+                                : cast.status === 'failed'
+                                  ? 'text-red-500 border-red-500/20'
+                                  : cast.status === 'running'
+                                    ? 'text-blue-500 border-blue-500/20'
+                                    : 'text-yellow-500 border-yellow-500/20'
                             }`}
                           >
                             {cast.status}
@@ -294,9 +266,7 @@ export default async function ProfilePage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">
-                          ${(cast.costCents / 100).toFixed(2)}
-                        </p>
+                        <p className="font-semibold">${(cast.costCents / 100).toFixed(2)}</p>
                       </div>
                     </div>
                   </Link>

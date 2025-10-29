@@ -200,14 +200,14 @@ jobs:
 
 ## 12. 必須 Secrets（例）
 
-| 名称                                    | 用途                                |
-| --------------------------------------- | ----------------------------------- |
-| `CF_API_TOKEN`                          | `wrangler deploy`                   |
-| `CF_ACCOUNT_ID` / `CF_R2_*` / `CF_KV_*` | Workers/KV/R2 バインディング        |
-| `NATS_URL` / `NATS_CREDS`               | JetStream 接続                      |
-| `DATABASE_URL` / `POSTGRES_PRISMA_URL`  | Neon PostgreSQL 接続（Serverless）   |
-| `OTLP_ENDPOINT` / `OTLP_API_KEY`        | Tempo/Grafana Cloud 送信            |
-| `COSIGN_KEY` / `COSIGN_PASSWORD`        | cosign 署名鍵                       |
+| 名称                                    | 用途                               |
+| --------------------------------------- | ---------------------------------- |
+| `CF_API_TOKEN`                          | `wrangler deploy`                  |
+| `CF_ACCOUNT_ID` / `CF_R2_*` / `CF_KV_*` | Workers/KV/R2 バインディング       |
+| `NATS_URL` / `NATS_CREDS`               | JetStream 接続                     |
+| `DATABASE_URL` / `POSTGRES_PRISMA_URL`  | Neon PostgreSQL 接続（Serverless） |
+| `OTLP_ENDPOINT` / `OTLP_API_KEY`        | Tempo/Grafana Cloud 送信           |
+| `COSIGN_KEY` / `COSIGN_PASSWORD`        | cosign 署名鍵                      |
 
 ---
 

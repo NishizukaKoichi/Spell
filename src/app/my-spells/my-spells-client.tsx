@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { SpellCard } from "@/components/spell-card";
-import { SearchBar } from "@/components/search-bar";
-import { CategoryFilter } from "@/components/category-filter";
-import { SortSelect } from "@/components/sort-select";
-import { Spell } from "@/types/spell";
+import { useState, useMemo } from 'react';
+import { SpellCard } from '@/components/spell-card';
+import { SearchBar } from '@/components/search-bar';
+import { CategoryFilter } from '@/components/category-filter';
+import { SortSelect } from '@/components/sort-select';
+import { Spell } from '@/types/spell';
 
 interface MySpellsClientProps {
   spells: Spell[];
 }
 
 export function MySpellsClient({ spells }: MySpellsClientProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [category, setCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("createdAt");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
 
   const filteredAndSortedSpells = useMemo(() => {
     let filtered = spells;
@@ -30,24 +30,22 @@ export function MySpellsClient({ spells }: MySpellsClientProps) {
     }
 
     // Category filter
-    if (category !== "all") {
+    if (category !== 'all') {
       filtered = filtered.filter((spell) => spell.category === category);
     }
 
     // Sort
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case "name":
+        case 'name':
           return a.name.localeCompare(b.name);
-        case "rating":
+        case 'rating':
           return (b.rating || 0) - (a.rating || 0);
-        case "casts":
+        case 'casts':
           return (b._count?.casts || 0) - (a._count?.casts || 0);
-        case "createdAt":
+        case 'createdAt':
         default:
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
 
@@ -68,10 +66,10 @@ export function MySpellsClient({ spells }: MySpellsClientProps) {
       </div>
 
       {/* Results count */}
-      {searchQuery || category !== "all" ? (
+      {searchQuery || category !== 'all' ? (
         <div className="text-sm text-white/60">
           Found {filteredAndSortedSpells.length} spell
-          {filteredAndSortedSpells.length !== 1 ? "s" : ""}
+          {filteredAndSortedSpells.length !== 1 ? 's' : ''}
         </div>
       ) : null}
 

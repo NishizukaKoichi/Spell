@@ -1,34 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const search = searchParams.get("search");
-    const category = searchParams.get("category");
-    const tags = searchParams.get("tags")?.split(",").filter(Boolean);
-    const minPrice = searchParams.get("minPrice");
-    const maxPrice = searchParams.get("maxPrice");
-    const priceModel = searchParams.get("priceModel");
-    const sortBy = searchParams.get("sortBy") || "popularity";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const search = searchParams.get('search');
+    const category = searchParams.get('category');
+    const tags = searchParams.get('tags')?.split(',').filter(Boolean);
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const priceModel = searchParams.get('priceModel');
+    const sortBy = searchParams.get('sortBy') || 'popularity';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
 
     const where: any = {
-      status: "active",
+      status: 'active',
     };
 
     // Search filter
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
         { tags: { has: search } },
       ];
     }
 
     // Category filter
-    if (category && category !== "all") {
+    if (category && category !== 'all') {
       where.category = category;
     }
 
@@ -51,31 +51,31 @@ export async function GET(req: NextRequest) {
     }
 
     // Price model filter
-    if (priceModel && priceModel !== "all") {
+    if (priceModel && priceModel !== 'all') {
       where.priceModel = priceModel;
     }
 
     // Sorting
-    let orderBy: any = { totalCasts: "desc" }; // Default: popularity
+    let orderBy: any = { totalCasts: 'desc' }; // Default: popularity
     switch (sortBy) {
-      case "rating":
-        orderBy = { rating: "desc" };
+      case 'rating':
+        orderBy = { rating: 'desc' };
         break;
-      case "newest":
-        orderBy = { createdAt: "desc" };
+      case 'newest':
+        orderBy = { createdAt: 'desc' };
         break;
-      case "price-low":
-        orderBy = { priceAmount: "asc" };
+      case 'price-low':
+        orderBy = { priceAmount: 'asc' };
         break;
-      case "price-high":
-        orderBy = { priceAmount: "desc" };
+      case 'price-high':
+        orderBy = { priceAmount: 'desc' };
         break;
-      case "name":
-        orderBy = { name: "asc" };
+      case 'name':
+        orderBy = { name: 'asc' };
         break;
-      case "popularity":
+      case 'popularity':
       default:
-        orderBy = { totalCasts: "desc" };
+        orderBy = { totalCasts: 'desc' };
         break;
     }
 
@@ -89,20 +89,18 @@ export async function GET(req: NextRequest) {
       prisma.spell.count({ where }),
       // Get all unique categories for filter options
       prisma.spell.findMany({
-        where: { status: "active" },
+        where: { status: 'active' },
         select: { category: true },
-        distinct: ["category"],
+        distinct: ['category'],
       }),
     ]);
 
     // Get all unique tags for filter options
     const allSpells = await prisma.spell.findMany({
-      where: { status: "active" },
+      where: { status: 'active' },
       select: { tags: true },
     });
-    const allTags = Array.from(
-      new Set(allSpells.flatMap((s) => s.tags))
-    ).sort();
+    const allTags = Array.from(new Set(allSpells.flatMap((s) => s.tags))).sort();
 
     return NextResponse.json({
       spells,
@@ -121,10 +119,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to fetch spells:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch spells" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch spells:', error);
+    return NextResponse.json({ error: 'Failed to fetch spells' }, { status: 500 });
   }
 }

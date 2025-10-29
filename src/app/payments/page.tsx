@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DollarSign,
   Receipt,
@@ -14,7 +14,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -45,9 +45,9 @@ interface PaymentData {
 
 function getStatusIcon(status: string) {
   switch (status) {
-    case "completed":
+    case 'completed':
       return <CheckCircle className="h-4 w-4 text-green-500" />;
-    case "failed":
+    case 'failed':
       return <XCircle className="h-4 w-4 text-red-500" />;
     default:
       return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -56,13 +56,13 @@ function getStatusIcon(status: string) {
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case "completed":
+    case 'completed':
       return (
         <Badge variant="outline" className="text-green-500 border-green-500/20">
           Completed
         </Badge>
       );
-    case "failed":
+    case 'failed':
       return (
         <Badge variant="outline" className="text-red-500 border-red-500/20">
           Failed
@@ -85,13 +85,13 @@ export default function PaymentsPage() {
   useEffect(() => {
     async function fetchPayments() {
       try {
-        const response = await fetch("/api/payments");
+        const response = await fetch('/api/payments');
         if (response.ok) {
           const paymentData = await response.json();
           setData(paymentData);
         }
       } catch (error) {
-        console.error("Failed to fetch payments:", error);
+        console.error('Failed to fetch payments:', error);
       } finally {
         setIsLoading(false);
       }
@@ -136,16 +136,16 @@ ${monthData.transactions
     (t) =>
       `${new Date(t.date).toLocaleDateString()} - ${t.spellName} - $${t.amount.toFixed(2)} - ${t.status}`
   )
-  .join("\n")}
+  .join('\n')}
 
 Generated: ${new Date().toLocaleString()}
 `;
 
-    const blob = new Blob([invoiceText], { type: "text/plain" });
+    const blob = new Blob([invoiceText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `invoice-${monthData.month.replace(" ", "-")}.txt`;
+    a.download = `invoice-${monthData.month.replace(' ', '-')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -155,9 +155,7 @@ Generated: ${new Date().toLocaleString()}
       <div className="space-y-8">
         <div>
           <h1 className="text-4xl font-bold mb-2">Payment History</h1>
-          <p className="text-white/60">
-            View your transaction history and download invoices
-          </p>
+          <p className="text-white/60">View your transaction history and download invoices</p>
         </div>
 
         {/* Summary Cards */}
@@ -168,33 +166,25 @@ Generated: ${new Date().toLocaleString()}
               <DollarSign className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ${data.summary.totalSpent.toFixed(2)}
-              </div>
+              <div className="text-2xl font-bold">${data.summary.totalSpent.toFixed(2)}</div>
               <p className="text-xs text-white/60 mt-1">All time</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Transactions
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
               <Receipt className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {data.summary.totalTransactions}
-              </div>
+              <div className="text-2xl font-bold">{data.summary.totalTransactions}</div>
               <p className="text-xs text-white/60 mt-1">Completed casts</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Average Transaction
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
               <TrendingUp className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
@@ -225,12 +215,12 @@ Generated: ${new Date().toLocaleString()}
                         <p className="font-semibold">{transaction.spellName}</p>
                         <div className="flex items-center gap-2 text-sm text-white/60">
                           <Calendar className="h-3 w-3" />
-                          {new Date(transaction.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
+                          {new Date(transaction.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                           <span>•</span>
                           <span>by {transaction.makerName}</span>
@@ -239,17 +229,13 @@ Generated: ${new Date().toLocaleString()}
                     </div>
                     <div className="flex items-center gap-4">
                       {getStatusBadge(transaction.status)}
-                      <p className="text-lg font-semibold">
-                        ${transaction.amount.toFixed(2)}
-                      </p>
+                      <p className="text-lg font-semibold">${transaction.amount.toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-white/60">
-                No transactions yet
-              </div>
+              <div className="text-center py-8 text-white/60">No transactions yet</div>
             )}
           </CardContent>
         </Card>
@@ -267,9 +253,7 @@ Generated: ${new Date().toLocaleString()}
                     <div
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-white text-black/5 transition-colors"
                       onClick={() =>
-                        setExpandedMonth(
-                          expandedMonth === monthData.month ? null : monthData.month
-                        )
+                        setExpandedMonth(expandedMonth === monthData.month ? null : monthData.month)
                       }
                     >
                       <div className="flex items-center gap-4">
@@ -282,9 +266,7 @@ Generated: ${new Date().toLocaleString()}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <p className="text-xl font-semibold">
-                          ${monthData.totalAmount.toFixed(2)}
-                        </p>
+                        <p className="text-xl font-semibold">${monthData.totalAmount.toFixed(2)}</p>
                         <Button
                           variant="outline"
                           size="sm"
@@ -314,9 +296,7 @@ Generated: ${new Date().toLocaleString()}
                                 </span>
                                 <span>{transaction.spellName}</span>
                               </div>
-                              <span className="font-mono">
-                                ${transaction.amount.toFixed(2)}
-                              </span>
+                              <span className="font-mono">${transaction.amount.toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
@@ -326,9 +306,7 @@ Generated: ${new Date().toLocaleString()}
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-white/60">
-                No invoices available
-              </div>
+              <div className="text-center py-8 text-white/60">No invoices available</div>
             )}
           </CardContent>
         </Card>

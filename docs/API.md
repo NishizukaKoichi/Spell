@@ -5,12 +5,15 @@ Base URL: `https://your-domain.com/api`
 ## Authentication
 
 ### API Key Authentication
+
 Include your API key in the `Authorization` header:
+
 ```
 Authorization: Bearer sk_live_your_api_key_here
 ```
 
 ### Session Authentication
+
 For web interface endpoints, authentication is handled via NextAuth sessions (cookies).
 
 ---
@@ -31,11 +34,13 @@ For web interface endpoints, authentication is handled via NextAuth sessions (co
 ### Spells
 
 #### List Spells
+
 ```http
 GET /api/spells
 ```
 
 **Query Parameters:**
+
 - `search` (string, optional): Search spells by name/description
 - `category` (string, optional): Filter by category
 - `tags` (string, optional): Comma-separated tags
@@ -45,6 +50,7 @@ GET /api/spells
 - `sortBy` (string, optional): Sort field (`popularity`, `rating`, `newest`, `price-low`, `price-high`, `name`)
 
 **Response:** `200 OK`
+
 ```json
 {
   "spells": [
@@ -70,11 +76,13 @@ GET /api/spells
 ```
 
 #### Get Spell Details
+
 ```http
 GET /api/spells/{id}
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "id": "spell_123",
@@ -106,6 +114,7 @@ GET /api/spells/{id}
 ```
 
 #### Create Spell
+
 ```http
 POST /api/spells/create
 ```
@@ -113,6 +122,7 @@ POST /api/spells/create
 **Authentication:** Required (Session)
 
 **Request Body:**
+
 ```json
 {
   "name": "My New Spell",
@@ -131,6 +141,7 @@ POST /api/spells/create
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "id": "spell_789",
@@ -141,6 +152,7 @@ POST /api/spells/create
 ```
 
 #### Update Spell
+
 ```http
 PATCH /api/spells/{id}
 ```
@@ -148,6 +160,7 @@ PATCH /api/spells/{id}
 **Authentication:** Required (Session, must be author)
 
 **Request Body:** (all fields optional)
+
 ```json
 {
   "name": "Updated Name",
@@ -161,6 +174,7 @@ PATCH /api/spells/{id}
 **Response:** `200 OK`
 
 #### Delete Spell
+
 ```http
 DELETE /api/spells/{id}
 ```
@@ -168,6 +182,7 @@ DELETE /api/spells/{id}
 **Authentication:** Required (Session, must be author)
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Spell deleted"
@@ -181,6 +196,7 @@ DELETE /api/spells/{id}
 ### Casts
 
 #### Cast a Spell (API)
+
 ```http
 POST /api/v1/cast
 ```
@@ -188,12 +204,14 @@ POST /api/v1/cast
 **Authentication:** Required (API Key)
 
 **Headers:**
+
 ```
 Authorization: Bearer sk_live_your_api_key
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "spell_key": "pdf-converter",
@@ -205,6 +223,7 @@ Content-Type: application/json
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "cast_id": "cast_abc123",
@@ -218,11 +237,13 @@ Content-Type: application/json
 ```
 
 #### Get Cast Status
+
 ```http
 GET /api/casts/{id}
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "id": "cast_abc123",
@@ -245,6 +266,7 @@ GET /api/casts/{id}
 ```
 
 #### List User Casts
+
 ```http
 GET /api/casts
 ```
@@ -252,10 +274,12 @@ GET /api/casts
 **Authentication:** Required (Session)
 
 **Query Parameters:**
+
 - `page` (number, optional): Page number (default: 1)
 - `limit` (number, optional): Results per page (default: 20, max: 100)
 
 **Response:** `200 OK`
+
 ```json
 {
   "casts": [
@@ -280,11 +304,13 @@ GET /api/casts
 ```
 
 #### Stream Cast Status (SSE)
+
 ```http
 GET /api/casts/{id}/stream
 ```
 
 **Response:** Server-Sent Events stream
+
 ```
 event: status
 data: {"status":"running","progress":25}
@@ -301,6 +327,7 @@ data: {"status":"completed","artifactUrl":"https://..."}
 ### Reviews
 
 #### Create Review
+
 ```http
 POST /api/reviews
 ```
@@ -308,6 +335,7 @@ POST /api/reviews
 **Authentication:** Required (Session)
 
 **Request Body:**
+
 ```json
 {
   "castId": "cast_abc123",
@@ -317,6 +345,7 @@ POST /api/reviews
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "id": "review_xyz",
@@ -330,11 +359,13 @@ POST /api/reviews
 ```
 
 #### List Reviews for Spell
+
 ```http
 GET /api/reviews?spellId={spellId}
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "reviews": [
@@ -357,6 +388,7 @@ GET /api/reviews?spellId={spellId}
 ### Budget
 
 #### Get Budget
+
 ```http
 GET /api/budget
 ```
@@ -364,17 +396,19 @@ GET /api/budget
 **Authentication:** Required (Session)
 
 **Response:** `200 OK`
+
 ```json
 {
   "monthlyCap": 100.0,
-  "currentSpend": 45.50,
-  "remaining": 54.50,
+  "currentSpend": 45.5,
+  "remaining": 54.5,
   "lastResetAt": "2024-01-01T00:00:00Z",
   "percentUsed": 45.5
 }
 ```
 
 #### Update Budget Cap
+
 ```http
 PATCH /api/budget
 ```
@@ -382,6 +416,7 @@ PATCH /api/budget
 **Authentication:** Required (Session)
 
 **Request Body:**
+
 ```json
 {
   "monthlyCap": 200.0
@@ -389,11 +424,12 @@ PATCH /api/budget
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "monthlyCap": 200.0,
-  "currentSpend": 45.50,
-  "remaining": 154.50
+  "currentSpend": 45.5,
+  "remaining": 154.5
 }
 ```
 
@@ -402,6 +438,7 @@ PATCH /api/budget
 ### API Keys
 
 #### List API Keys
+
 ```http
 GET /api/keys
 ```
@@ -409,6 +446,7 @@ GET /api/keys
 **Authentication:** Required (Session)
 
 **Response:** `200 OK`
+
 ```json
 {
   "keys": [
@@ -425,6 +463,7 @@ GET /api/keys
 ```
 
 #### Create API Key
+
 ```http
 POST /api/keys
 ```
@@ -432,6 +471,7 @@ POST /api/keys
 **Authentication:** Required (Session)
 
 **Request Body:**
+
 ```json
 {
   "name": "My New Key"
@@ -439,6 +479,7 @@ POST /api/keys
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "id": "key_xyz",
@@ -452,6 +493,7 @@ POST /api/keys
 **⚠️ Important:** Save this key securely. It will only be shown once.
 
 #### Revoke API Key
+
 ```http
 DELETE /api/keys/{id}
 ```
@@ -459,6 +501,7 @@ DELETE /api/keys/{id}
 **Authentication:** Required (Session)
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "API key revoked"
@@ -470,6 +513,7 @@ DELETE /api/keys/{id}
 ### Stats
 
 #### Get User Statistics
+
 ```http
 GET /api/stats
 ```
@@ -477,10 +521,11 @@ GET /api/stats
 **Authentication:** Required (Session)
 
 **Response:** `200 OK`
+
 ```json
 {
   "totalCasts": 150,
-  "totalSpent": 45.50,
+  "totalSpent": 45.5,
   "spellsCreated": 5,
   "averageRating": 4.7,
   "thisMonth": {
@@ -569,7 +614,7 @@ async function castSpell(spellKey, input) {
   const response = await fetch(`${BASE_URL}/v1/cast`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${SPELL_API_KEY}`,
+      Authorization: `Bearer ${SPELL_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -587,7 +632,7 @@ async function castSpell(spellKey, input) {
 
 // Usage
 const result = await castSpell('pdf-converter', {
-  file_url: 'https://example.com/doc.docx'
+  file_url: 'https://example.com/doc.docx',
 });
 
 console.log(`Cast ID: ${result.cast_id}`);

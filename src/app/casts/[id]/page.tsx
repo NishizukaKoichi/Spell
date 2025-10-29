@@ -1,14 +1,14 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { CastDetailClient } from "@/components/cast-detail-client";
-import { auth } from "@/lib/auth/config";
-import { redirect, notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { CastDetailClient } from '@/components/cast-detail-client';
+import { auth } from '@/lib/auth/config';
+import { redirect, notFound } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 async function getCast(id: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const res = await fetch(`${baseUrl}/api/casts/${id}`, {
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -18,15 +18,11 @@ async function getCast(id: string) {
   return res.json();
 }
 
-export default async function CastDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CastDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
 
   if (!session) {
-    redirect("/auth/signin");
+    redirect('/auth/signin');
   }
 
   const { id } = await params;

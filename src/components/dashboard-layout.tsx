@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Navigation } from "@/components/navigation";
-import { ReactNode } from "react";
+import { Navigation } from '@/components/navigation';
+import { ReactNode } from 'react';
 
 interface DashboardLayoutProps {
   children: ReactNode;

@@ -1,102 +1,98 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, X, Eye, Code2, Check, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Plus, X, Eye, Code2, Check, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const CATEGORIES = [
-  "Image Processing",
-  "Video Processing",
-  "Audio Processing",
-  "Document Processing",
-  "AI & Machine Learning",
-  "Data Analysis",
-  "Automation",
-  "API Integration",
-  "Web Scraping",
-  "Other",
+  'Image Processing',
+  'Video Processing',
+  'Audio Processing',
+  'Document Processing',
+  'AI & Machine Learning',
+  'Data Analysis',
+  'Automation',
+  'API Integration',
+  'Web Scraping',
+  'Other',
 ];
 
 const EXAMPLE_INPUT_SCHEMA = {
-  type: "object",
+  type: 'object',
   properties: {
     width: {
-      type: "number",
-      description: "Target width in pixels",
+      type: 'number',
+      description: 'Target width in pixels',
       minimum: 1,
     },
     height: {
-      type: "number",
-      description: "Target height in pixels",
+      type: 'number',
+      description: 'Target height in pixels',
       minimum: 1,
     },
     format: {
-      type: "string",
-      description: "Output format",
-      enum: ["jpg", "png", "webp"],
+      type: 'string',
+      description: 'Output format',
+      enum: ['jpg', 'png', 'webp'],
     },
   },
-  required: ["width", "height"],
+  required: ['width', 'height'],
 };
 
 const EXAMPLE_OUTPUT_SCHEMA = {
-  type: "object",
+  type: 'object',
   properties: {
     url: {
-      type: "string",
-      description: "URL to the processed image",
+      type: 'string',
+      description: 'URL to the processed image',
     },
     size: {
-      type: "number",
-      description: "File size in bytes",
+      type: 'number',
+      description: 'File size in bytes',
     },
   },
-  required: ["url"],
+  required: ['url'],
 };
 
 export default function NewSpellPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: "",
-    key: "",
-    description: "",
-    longDescription: "",
-    category: "",
-    priceModel: "metered",
-    priceAmount: "",
-    executionMode: "workflow",
-    webhookUrl: "",
+    name: '',
+    key: '',
+    description: '',
+    longDescription: '',
+    category: '',
+    priceModel: 'metered',
+    priceAmount: '',
+    executionMode: 'workflow',
+    webhookUrl: '',
   });
 
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
 
-  const [inputSchema, setInputSchema] = useState(
-    JSON.stringify(EXAMPLE_INPUT_SCHEMA, null, 2)
-  );
-  const [outputSchema, setOutputSchema] = useState(
-    JSON.stringify(EXAMPLE_OUTPUT_SCHEMA, null, 2)
-  );
+  const [inputSchema, setInputSchema] = useState(JSON.stringify(EXAMPLE_INPUT_SCHEMA, null, 2));
+  const [outputSchema, setOutputSchema] = useState(JSON.stringify(EXAMPLE_OUTPUT_SCHEMA, null, 2));
 
-  const [inputSchemaError, setInputSchemaError] = useState("");
-  const [outputSchemaError, setOutputSchemaError] = useState("");
+  const [inputSchemaError, setInputSchemaError] = useState('');
+  const [outputSchemaError, setOutputSchemaError] = useState('');
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
-      setTagInput("");
+      setTagInput('');
     }
   };
 
@@ -107,30 +103,30 @@ export default function NewSpellPage() {
   const handleKeyChange = (name: string) => {
     const key = name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     setFormData({ ...formData, key });
   };
 
-  const validateJsonSchema = (schema: string, type: "input" | "output"): boolean => {
+  const validateJsonSchema = (schema: string, type: 'input' | 'output'): boolean => {
     try {
       const parsed = JSON.parse(schema);
 
       // Basic JSON Schema validation
-      if (typeof parsed !== "object" || parsed === null) {
-        throw new Error("Schema must be an object");
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Schema must be an object');
       }
 
-      if (type === "input") {
-        setInputSchemaError("");
+      if (type === 'input') {
+        setInputSchemaError('');
       } else {
-        setOutputSchemaError("");
+        setOutputSchemaError('');
       }
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Invalid JSON";
-      if (type === "input") {
+      const errorMessage = err instanceof Error ? err.message : 'Invalid JSON';
+      if (type === 'input') {
         setInputSchemaError(errorMessage);
       } else {
         setOutputSchemaError(errorMessage);
@@ -141,38 +137,38 @@ export default function NewSpellPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     if (!formData.name || !formData.description || !formData.priceAmount) {
-      setError("Please fill in all required fields");
+      setError('Please fill in all required fields');
       return;
     }
 
     if (tags.length === 0) {
-      setError("Please add at least one tag");
+      setError('Please add at least one tag');
       return;
     }
 
     if (!formData.category) {
-      setError("Please select a category");
+      setError('Please select a category');
       return;
     }
 
     // Validate schemas
-    const inputValid = validateJsonSchema(inputSchema, "input");
-    const outputValid = validateJsonSchema(outputSchema, "output");
+    const inputValid = validateJsonSchema(inputSchema, 'input');
+    const outputValid = validateJsonSchema(outputSchema, 'output');
 
     if (!inputValid || !outputValid) {
-      setError("Please fix JSON schema errors before submitting");
+      setError('Please fix JSON schema errors before submitting');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/spells/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/spells/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           priceAmount: parseFloat(formData.priceAmount) * 100,
@@ -184,13 +180,13 @@ export default function NewSpellPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create spell");
+        throw new Error(error.error || 'Failed to create spell');
       }
 
       const { spell } = await response.json();
       router.push(`/spells/${spell.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create spell");
+      setError(err instanceof Error ? err.message : 'Failed to create spell');
     } finally {
       setLoading(false);
     }
@@ -210,9 +206,7 @@ export default function NewSpellPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold mb-2">Create New Spell</h1>
-              <p className="text-white/60">
-                Publish your workflow to the marketplace
-              </p>
+              <p className="text-white/60">Publish your workflow to the marketplace</p>
             </div>
             <Button
               variant="outline"
@@ -220,7 +214,7 @@ export default function NewSpellPage() {
               className="gap-2"
             >
               <Eye className="h-4 w-4" />
-              {showPreview ? "Hide" : "Show"} Preview
+              {showPreview ? 'Hide' : 'Show'} Preview
             </Button>
           </div>
         </div>
@@ -259,16 +253,12 @@ export default function NewSpellPage() {
                   <label className="text-sm font-medium">Spell Key</label>
                   <Input
                     value={formData.key}
-                    onChange={(e) =>
-                      setFormData({ ...formData, key: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, key: e.target.value })}
                     placeholder="image-resizer"
                     className="bg-white text-black/5 border-white/10 font-mono"
                     readOnly
                   />
-                  <p className="text-xs text-white/40">
-                    Auto-generated from spell name
-                  </p>
+                  <p className="text-xs text-white/40">Auto-generated from spell name</p>
                 </div>
 
                 <div className="space-y-2">
@@ -277,9 +267,7 @@ export default function NewSpellPage() {
                   </label>
                   <Input
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Brief description of what your spell does"
                     className="bg-white text-black/5 border-white/10"
                     required
@@ -307,9 +295,7 @@ export default function NewSpellPage() {
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                     required
                   >
@@ -331,7 +317,7 @@ export default function NewSpellPage() {
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (e.key === 'Enter') {
                           e.preventDefault();
                           handleAddTag();
                         }
@@ -380,9 +366,7 @@ export default function NewSpellPage() {
                   </label>
                   <select
                     value={formData.priceModel}
-                    onChange={(e) =>
-                      setFormData({ ...formData, priceModel: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, priceModel: e.target.value })}
                     className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                   >
                     <option value="metered">Metered (per use)</option>
@@ -400,9 +384,7 @@ export default function NewSpellPage() {
                     step="0.01"
                     min="0"
                     value={formData.priceAmount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, priceAmount: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, priceAmount: e.target.value })}
                     placeholder="9.99"
                     className="bg-white text-black/5 border-white/10"
                     required
@@ -421,9 +403,7 @@ export default function NewSpellPage() {
                   <label className="text-sm font-medium">Execution Mode</label>
                   <select
                     value={formData.executionMode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, executionMode: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, executionMode: e.target.value })}
                     className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                   >
                     <option value="workflow">Workflow (GitHub Actions)</option>
@@ -437,15 +417,11 @@ export default function NewSpellPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Webhook URL (Optional)
-                  </label>
+                  <label className="text-sm font-medium">Webhook URL (Optional)</label>
                   <Input
                     type="url"
                     value={formData.webhookUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, webhookUrl: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
                     placeholder="https://your-api.com/webhook"
                     className="bg-white text-black/5 border-white/10"
                   />
@@ -469,21 +445,13 @@ export default function NewSpellPage() {
                   <TabsList>
                     <TabsTrigger value="input">
                       Input Schema
-                      {!inputSchemaError && (
-                        <Check className="h-3 w-3 ml-2 text-green-500" />
-                      )}
-                      {inputSchemaError && (
-                        <AlertCircle className="h-3 w-3 ml-2 text-red-500" />
-                      )}
+                      {!inputSchemaError && <Check className="h-3 w-3 ml-2 text-green-500" />}
+                      {inputSchemaError && <AlertCircle className="h-3 w-3 ml-2 text-red-500" />}
                     </TabsTrigger>
                     <TabsTrigger value="output">
                       Output Schema
-                      {!outputSchemaError && (
-                        <Check className="h-3 w-3 ml-2 text-green-500" />
-                      )}
-                      {outputSchemaError && (
-                        <AlertCircle className="h-3 w-3 ml-2 text-red-500" />
-                      )}
+                      {!outputSchemaError && <Check className="h-3 w-3 ml-2 text-green-500" />}
+                      {outputSchemaError && <AlertCircle className="h-3 w-3 ml-2 text-red-500" />}
                     </TabsTrigger>
                   </TabsList>
 
@@ -492,13 +460,11 @@ export default function NewSpellPage() {
                       value={inputSchema}
                       onChange={(e) => {
                         setInputSchema(e.target.value);
-                        validateJsonSchema(e.target.value, "input");
+                        validateJsonSchema(e.target.value, 'input');
                       }}
                       className="w-full min-h-[300px] rounded-md bg-black/50 border border-white/10 px-3 py-2 text-xs font-mono"
                     />
-                    {inputSchemaError && (
-                      <p className="text-xs text-red-400">{inputSchemaError}</p>
-                    )}
+                    {inputSchemaError && <p className="text-xs text-red-400">{inputSchemaError}</p>}
                     <p className="text-xs text-white/40">
                       Define the expected input format using JSON Schema
                     </p>
@@ -509,7 +475,7 @@ export default function NewSpellPage() {
                       value={outputSchema}
                       onChange={(e) => {
                         setOutputSchema(e.target.value);
-                        validateJsonSchema(e.target.value, "output");
+                        validateJsonSchema(e.target.value, 'output');
                       }}
                       className="w-full min-h-[300px] rounded-md bg-black/50 border border-white/10 px-3 py-2 text-xs font-mono"
                     />
@@ -530,15 +496,10 @@ export default function NewSpellPage() {
                 disabled={loading}
                 className="flex-1 bg-white hover:bg-white text-black/90"
               >
-                {loading ? "Creating..." : "Create Spell"}
+                {loading ? 'Creating...' : 'Create Spell'}
               </Button>
               <Link href="/my-spells" className="flex-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={loading}
-                >
+                <Button type="button" variant="outline" className="w-full" disabled={loading}>
                   Cancel
                 </Button>
               </Link>
@@ -585,11 +546,8 @@ export default function NewSpellPage() {
                       <p className="text-sm text-white/60">Price</p>
                       <p className="text-2xl font-bold">
                         ${formData.priceAmount}
-                        {formData.priceModel === "metered" && (
-                          <span className="text-sm font-normal text-white/60">
-                            {" "}
-                            per use
-                          </span>
+                        {formData.priceModel === 'metered' && (
+                          <span className="text-sm font-normal text-white/60"> per use</span>
                         )}
                       </p>
                     </div>

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Key, Trash2, Copy, Plus, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Key, Trash2, Copy, Plus } from 'lucide-react';
 
 interface ApiKey {
   id: string;
@@ -18,7 +18,7 @@ export function ApiKeys() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyName, setNewKeyName] = useState('');
   const [newKeyVisible, setNewKeyVisible] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -28,13 +28,13 @@ export function ApiKeys() {
 
   const fetchApiKeys = async () => {
     try {
-      const response = await fetch("/api/keys");
+      const response = await fetch('/api/keys');
       if (response.ok) {
         const data = await response.json();
         setApiKeys(data.apiKeys);
       }
     } catch (error) {
-      console.error("Failed to fetch API keys:", error);
+      console.error('Failed to fetch API keys:', error);
     } finally {
       setIsLoading(false);
     }
@@ -42,15 +42,15 @@ export function ApiKeys() {
 
   const handleCreateKey = async () => {
     if (!newKeyName.trim()) {
-      alert("Please enter a name for the API key");
+      alert('Please enter a name for the API key');
       return;
     }
 
     setIsCreating(true);
     try {
-      const response = await fetch("/api/keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newKeyName.trim() }),
       });
 
@@ -58,40 +58,40 @@ export function ApiKeys() {
         const data = await response.json();
         // Show the full key to the user (only shown once)
         setNewKeyVisible(data.apiKey.key);
-        setNewKeyName("");
+        setNewKeyName('');
         // Refresh the list
         fetchApiKeys();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to create API key");
+        alert(error.error || 'Failed to create API key');
       }
     } catch (error) {
-      console.error("Failed to create API key:", error);
-      alert("Failed to create API key");
+      console.error('Failed to create API key:', error);
+      alert('Failed to create API key');
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleDeleteKey = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this API key?")) {
+    if (!confirm('Are you sure you want to delete this API key?')) {
       return;
     }
 
     try {
       const response = await fetch(`/api/keys/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (response.ok) {
         fetchApiKeys();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete API key");
+        alert(error.error || 'Failed to delete API key');
       }
     } catch (error) {
-      console.error("Failed to delete API key:", error);
-      alert("Failed to delete API key");
+      console.error('Failed to delete API key:', error);
+      alert('Failed to delete API key');
     }
   };
 
@@ -118,27 +118,18 @@ export function ApiKeys() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-white/60">
-              Make sure to copy your API key now. You won&apos;t be able to see
-              it again!
+              Make sure to copy your API key now. You won&apos;t be able to see it again!
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-black/50 px-4 py-2 rounded text-sm font-mono">
                 {newKeyVisible}
               </code>
-              <Button
-                size="sm"
-                onClick={() => handleCopyKey(newKeyVisible)}
-                className="shrink-0"
-              >
+              <Button size="sm" onClick={() => handleCopyKey(newKeyVisible)} className="shrink-0">
                 <Copy className="h-4 w-4" />
-                {copiedKey === newKeyVisible ? "Copied!" : "Copy"}
+                {copiedKey === newKeyVisible ? 'Copied!' : 'Copy'}
               </Button>
             </div>
-            <Button
-              onClick={() => setNewKeyVisible(null)}
-              variant="outline"
-              className="w-full"
-            >
+            <Button onClick={() => setNewKeyVisible(null)} variant="outline" className="w-full">
               I&apos;ve saved my key
             </Button>
           </CardContent>
@@ -160,17 +151,12 @@ export function ApiKeys() {
               className="flex-1 bg-white text-black/5 border border-white/10 rounded px-4 py-2 text-white placeholder:text-white/40"
               disabled={isCreating}
             />
-            <Button
-              onClick={handleCreateKey}
-              disabled={isCreating || !newKeyName.trim()}
-            >
+            <Button onClick={handleCreateKey} disabled={isCreating || !newKeyName.trim()}>
               <Plus className="h-4 w-4 mr-2" />
               Create Key
             </Button>
           </div>
-          <p className="text-sm text-white/60">
-            Maximum of 5 active API keys allowed per account.
-          </p>
+          <p className="text-sm text-white/60">Maximum of 5 active API keys allowed per account.</p>
         </CardContent>
       </Card>
 
@@ -194,18 +180,14 @@ export function ApiKeys() {
                         <Key className="h-4 w-4 text-white" />
                         <div>
                           <h4 className="font-semibold">{key.name}</h4>
-                          <code className="text-xs text-white/60 font-mono">
-                            {key.key}
-                          </code>
+                          <code className="text-xs text-white/60 font-mono">{key.key}</code>
                         </div>
                       </div>
                       <div className="mt-2 text-xs text-white/40">
-                        Created:{" "}
-                        {new Date(key.createdAt).toLocaleDateString()}
+                        Created: {new Date(key.createdAt).toLocaleDateString()}
                         {key.lastUsedAt && (
                           <span className="ml-4">
-                            Last used:{" "}
-                            {new Date(key.lastUsedAt).toLocaleDateString()}
+                            Last used: {new Date(key.lastUsedAt).toLocaleDateString()}
                           </span>
                         )}
                       </div>

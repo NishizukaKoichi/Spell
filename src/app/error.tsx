@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { AlertCircle } from 'lucide-react';
 
 export default function Error({
   error,
@@ -14,7 +14,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Application error:", error);
+    console.error('Application error:', error);
   }, [error]);
 
   return (
@@ -27,33 +27,24 @@ export default function Error({
             </div>
             <div>
               <h1 className="text-2xl font-bold">Something went wrong!</h1>
-              <p className="text-sm text-white/60">
-                An unexpected error occurred
-              </p>
+              <p className="text-sm text-white/60">An unexpected error occurred</p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
             <p className="text-sm text-red-400 font-mono break-words">
-              {error.message || "Unknown error"}
+              {error.message || 'Unknown error'}
             </p>
-            {error.digest && (
-              <p className="text-xs text-white/40 mt-2">
-                Error ID: {error.digest}
-              </p>
-            )}
+            {error.digest && <p className="text-xs text-white/40 mt-2">Error ID: {error.digest}</p>}
           </div>
 
           <div className="flex gap-3">
-            <Button
-              onClick={reset}
-              className="flex-1 bg-white hover:bg-white text-black/90"
-            >
+            <Button onClick={reset} className="flex-1 bg-white hover:bg-white text-black/90">
               Try again
             </Button>
             <Button
-              onClick={() => (window.location.href = "/")}
+              onClick={() => (window.location.href = '/')}
               variant="outline"
               className="flex-1"
             >

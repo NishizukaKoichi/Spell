@@ -1,7 +1,9 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SearchX, Home, ArrowLeft } from "lucide-react";
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { SearchX, Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -14,16 +16,13 @@ export default function NotFound() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">404 - Page Not Found</h1>
-              <p className="text-sm text-white/60">
-                The page you're looking for doesn't exist
-              </p>
+              <p className="text-sm text-white/60">The page you're looking for doesn't exist</p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-white/80">
-            The spell you're trying to cast might have been removed, or the URL
-            might be incorrect.
+            The spell you're trying to cast might have been removed, or the URL might be incorrect.
           </p>
 
           <div className="flex gap-3">
@@ -33,11 +32,7 @@ export default function NotFound() {
                 Go to Marketplace
               </Button>
             </Link>
-            <Button
-              onClick={() => window.history.back()}
-              variant="outline"
-              className="flex-1"
-            >
+            <Button onClick={() => window.history.back()} variant="outline" className="flex-1">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go back
             </Button>
@@ -46,22 +41,13 @@ export default function NotFound() {
           <div className="pt-4 border-t border-white/10">
             <p className="text-sm font-medium mb-2">Quick links:</p>
             <div className="space-y-2">
-              <Link
-                href="/my-spells"
-                className="block text-sm text-white/80 hover:text-white"
-              >
+              <Link href="/my-spells" className="block text-sm text-white/80 hover:text-white">
                 → My Spells
               </Link>
-              <Link
-                href="/casts"
-                className="block text-sm text-white/80 hover:text-white"
-              >
+              <Link href="/casts" className="block text-sm text-white/80 hover:text-white">
                 → My Casts
               </Link>
-              <Link
-                href="/dashboard"
-                className="block text-sm text-white/80 hover:text-white"
-              >
+              <Link href="/dashboard" className="block text-sm text-white/80 hover:text-white">
                 → Dashboard
               </Link>
             </div>

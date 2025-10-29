@@ -1,5 +1,5 @@
 interface WebhookPayload {
-  event: "cast.completed" | "cast.failed";
+  event: 'cast.completed' | 'cast.failed';
   cast: {
     id: string;
     status: string;
@@ -25,20 +25,19 @@ export async function deliverWebhook(
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await fetch(webhookUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Spell-Platform-Webhook/1.0",
-          "X-Spell-Event": payload.event,
-          "X-Spell-Cast-ID": payload.cast.id,
-          "X-Spell-Delivery-Attempt": attempt.toString(),
+          'Content-Type': 'application/json',
+          'User-Agent': 'Spell-Platform-Webhook/1.0',
+          'X-Spell-Event': payload.event,
+          'X-Spell-Cast-ID': payload.cast.id,
+          'X-Spell-Delivery-Attempt': attempt.toString(),
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10000), // 10 second timeout
       });
 
       if (response.ok) {
-        console.log(`Webhook delivered successfully to ${webhookUrl}`);
         return true;
       }
 
@@ -48,16 +47,11 @@ export async function deliverWebhook(
 
       // Don't retry on 4xx errors (client errors)
       if (response.status >= 400 && response.status < 500) {
-        console.error(
-          `Webhook delivery failed with client error: ${response.status}`
-        );
+        console.error(`Webhook delivery failed with client error: ${response.status}`);
         return false;
       }
     } catch (error) {
-      console.error(
-        `Webhook delivery error (attempt ${attempt}/${retries}):`,
-        error
-      );
+      console.error(`Webhook delivery error (attempt ${attempt}/${retries}):`, error);
     }
 
     // Wait before retrying (exponential backoff)
@@ -92,8 +86,7 @@ export async function sendCastCompletedWebhook(cast: {
     return;
   }
 
-  const event =
-    cast.status === "completed" ? "cast.completed" : "cast.failed";
+  const event = cast.status === 'completed' ? 'cast.completed' : 'cast.failed';
 
   const payload: WebhookPayload = {
     event,
@@ -116,6 +109,6 @@ export async function sendCastCompletedWebhook(cast: {
 
   // Fire and forget - don't block the main flow
   deliverWebhook(cast.spell.webhookUrl, payload).catch((error) => {
-    console.error("Failed to deliver webhook:", error);
+    console.error('Failed to deliver webhook:', error);
   });
 }

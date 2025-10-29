@@ -1,32 +1,21 @@
-import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import type { NextAuthConfig } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import {
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
-  verifyAuthenticationResponse,
-  verifyRegistrationResponse,
-} from "@simplewebauthn/server";
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/types";
-
-// WebAuthn Configuration
-const rpName = "Spell Platform";
-const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, "") ?? "localhost";
-const origin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+import NextAuth from 'next-auth';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { prisma } from '@/lib/prisma';
+import type { NextAuthConfig } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { verifyAuthenticationResponse } from '@simplewebauthn/server';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
+const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
+const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      id: "webauthn",
-      name: "Passkey",
+      id: 'webauthn',
+      name: 'Passkey',
       credentials: {
-        response: { type: "text" },
+        response: { type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.response) {
@@ -49,12 +38,12 @@ export const authConfig: NextAuthConfig = {
           // Verify the authentication response
           const verification = await verifyAuthenticationResponse({
             response,
-            expectedChallenge: "", // TODO: Get from session storage
+            expectedChallenge: '', // TODO: Get from session storage
             expectedOrigin: origin,
             expectedRPID: rpID,
             authenticator: {
-              credentialID: Buffer.from(authenticator.credentialID, "base64url"),
-              credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, "base64"),
+              credentialID: Buffer.from(authenticator.credentialID, 'base64url'),
+              credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, 'base64'),
               counter: authenticator.counter,
             },
           });
@@ -75,19 +64,19 @@ export const authConfig: NextAuthConfig = {
             name: authenticator.users.name,
           };
         } catch (error) {
-          console.error("WebAuthn authentication error:", error);
+          console.error('WebAuthn authentication error:', error);
           return null;
         }
       },
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   pages: {
-    signIn: "/auth/signin",
-    signOut: "/auth/signout",
-    error: "/auth/error",
+    signIn: '/auth/signin',
+    signOut: '/auth/signout',
+    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user }) {

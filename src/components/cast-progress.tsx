@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Loader2 } from "lucide-react";
+import { Loader2 } from 'lucide-react';
 
 interface CastProgressProps {
   status: string;
@@ -8,13 +8,11 @@ interface CastProgressProps {
 }
 
 export function CastProgress({ status, startedAt }: CastProgressProps) {
-  if (status !== "running" && status !== "queued") {
+  if (status !== 'running' && status !== 'queued') {
     return null;
   }
 
-  const elapsed = startedAt
-    ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-    : 0;
+  const elapsed = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
 
   const formatElapsed = (seconds: number): string => {
     if (seconds < 60) return `${seconds}s`;
@@ -28,23 +26,21 @@ export function CastProgress({ status, startedAt }: CastProgressProps) {
       <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
       <div className="flex-1">
         <p className="text-sm font-semibold text-blue-500">
-          {status === "running" ? "Execution in progress..." : "Queued..."}
+          {status === 'running' ? 'Execution in progress...' : 'Queued...'}
         </p>
-        {startedAt && status === "running" && (
-          <p className="text-xs text-white/60 mt-1">
-            Running for {formatElapsed(elapsed)}
-          </p>
+        {startedAt && status === 'running' && (
+          <p className="text-xs text-white/60 mt-1">Running for {formatElapsed(elapsed)}</p>
         )}
       </div>
       <div className="flex gap-1">
         <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
         <div
           className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"
-          style={{ animationDelay: "0.2s" }}
+          style={{ animationDelay: '0.2s' }}
         />
         <div
           className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"
-          style={{ animationDelay: "0.4s" }}
+          style={{ animationDelay: '0.4s' }}
         />
       </div>
     </div>

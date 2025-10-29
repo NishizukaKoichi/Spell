@@ -19,12 +19,14 @@ Execute a spell using your API key.
 **Endpoint:** `POST /api/v1/cast`
 
 **Headers:**
+
 ```
 Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "spell_key": "image-resize",
@@ -36,6 +38,7 @@ Content-Type: application/json
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "cast_id": "clxxxxx",
@@ -78,7 +81,7 @@ curl -X POST https://magicspell.io/api/v1/cast \
 const response = await fetch('https://magicspell.io/api/v1/cast', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer sk_live_YOUR_API_KEY',
+    Authorization: 'Bearer sk_live_YOUR_API_KEY',
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({

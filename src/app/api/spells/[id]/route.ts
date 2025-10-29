@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth/config";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth/config';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const spell = await prisma.spell.findUnique({
@@ -22,27 +19,21 @@ export async function GET(
     });
 
     if (!spell) {
-      return NextResponse.json({ error: "Spell not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
     }
 
     return NextResponse.json(spell);
   } catch (error) {
-    console.error("Failed to fetch spell:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch spell" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch spell:', error);
+    return NextResponse.json({ error: 'Failed to fetch spell' }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
@@ -51,11 +42,11 @@ export async function PATCH(
     });
 
     if (!spell) {
-      return NextResponse.json({ error: "Spell not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
     }
 
     if (spell.authorId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -93,22 +84,16 @@ export async function PATCH(
 
     return NextResponse.json(updatedSpell);
   } catch (error) {
-    console.error("Failed to update spell:", error);
-    return NextResponse.json(
-      { error: "Failed to update spell" },
-      { status: 500 }
-    );
+    console.error('Failed to update spell:', error);
+    return NextResponse.json({ error: 'Failed to update spell' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
@@ -124,11 +109,11 @@ export async function DELETE(
     });
 
     if (!spell) {
-      return NextResponse.json({ error: "Spell not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
     }
 
     if (spell.authorId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Soft delete by setting status to inactive if there are casts
@@ -136,13 +121,13 @@ export async function DELETE(
       await prisma.spell.update({
         where: { id },
         data: {
-          status: "inactive",
+          status: 'inactive',
           updatedAt: new Date(),
         },
       });
 
       return NextResponse.json({
-        message: "Spell archived (soft deleted due to existing casts)",
+        message: 'Spell archived (soft deleted due to existing casts)',
       });
     }
 
@@ -151,12 +136,9 @@ export async function DELETE(
       where: { id },
     });
 
-    return NextResponse.json({ message: "Spell deleted" });
+    return NextResponse.json({ message: 'Spell deleted' });
   } catch (error) {
-    console.error("Failed to delete spell:", error);
-    return NextResponse.json(
-      { error: "Failed to delete spell" },
-      { status: 500 }
-    );
+    console.error('Failed to delete spell:', error);
+    return NextResponse.json({ error: 'Failed to delete spell' }, { status: 500 });
   }
 }
