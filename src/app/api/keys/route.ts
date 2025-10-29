@@ -36,11 +36,20 @@ export async function GET(_req: NextRequest) {
     });
 
     // Mask the keys for security (show only last 4 characters)
-    const maskedKeys = apiKeys.map((key) => ({
-      ...key,
-      key: `${key.key.substring(0, 8)}...${key.key.slice(-4)}`,
-      fullKey: undefined, // Don't send full key
-    }));
+    const maskedKeys = apiKeys.map(
+      (key: {
+        id: string;
+        name: string;
+        key: string;
+        status: string;
+        lastUsedAt: Date | null;
+        createdAt: Date;
+      }) => ({
+        ...key,
+        key: `${key.key.substring(0, 8)}...${key.key.slice(-4)}`,
+        fullKey: undefined, // Don't send full key
+      })
+    );
 
     return NextResponse.json({ apiKeys: maskedKeys });
   } catch (error) {

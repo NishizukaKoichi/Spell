@@ -31,11 +31,12 @@ export async function GET() {
 
     // Calculate maker stats
     const makerTotalRevenue = makerSpells.reduce(
-      (sum, spell) => sum + spell.casts.reduce((castSum, cast) => castSum + cast.costCents, 0),
+      (sum: number, spell) =>
+        sum + spell.casts.reduce((castSum: number, cast) => castSum + cast.costCents, 0),
       0
     );
 
-    const makerTotalCasts = makerSpells.reduce((sum, spell) => sum + spell._count.casts, 0);
+    const makerTotalCasts = makerSpells.reduce((sum: number, spell) => sum + spell._count.casts, 0);
 
     const makerTopSpells = makerSpells
       .map((spell) => ({
@@ -88,7 +89,7 @@ export async function GET() {
     });
 
     // Calculate caster stats
-    const casterTotalSpending = casterCasts.reduce((sum, cast) => sum + cast.costCents, 0);
+    const casterTotalSpending = casterCasts.reduce((sum: number, cast) => sum + cast.costCents, 0);
 
     const casterTotalCasts = casterCasts.length;
 

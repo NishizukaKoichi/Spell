@@ -100,7 +100,9 @@ export async function GET(req: NextRequest) {
       where: { status: 'active' },
       select: { tags: true },
     });
-    const allTags = Array.from(new Set(allSpells.flatMap((s) => s.tags))).sort();
+    const allTags = Array.from(
+      new Set(allSpells.flatMap((s: { tags: string[] }) => s.tags))
+    ).sort();
 
     return NextResponse.json({
       spells,
@@ -112,7 +114,7 @@ export async function GET(req: NextRequest) {
       },
       filters: {
         categories: categories
-          .map((c) => c.category)
+          .map((c: { category: string | null }) => c.category)
           .filter(Boolean)
           .sort(),
         tags: allTags,

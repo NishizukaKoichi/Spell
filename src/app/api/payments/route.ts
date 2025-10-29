@@ -34,7 +34,26 @@ export async function GET() {
 
     // Group by month for summary
     const paymentsByMonth = payments.reduce(
-      (acc, payment) => {
+      (
+        acc: Record<
+          string,
+          {
+            month: string;
+            totalAmount: number;
+            transactionCount: number;
+            transactions: Array<{
+              id: string;
+              date: Date;
+              spellName: string;
+              spellCategory: string | null;
+              makerName: string;
+              amount: number;
+              status: string;
+            }>;
+          }
+        >,
+        payment
+      ) => {
         const monthKey = new Date(payment.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
@@ -63,30 +82,71 @@ export async function GET() {
 
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<
+        string,
+        {
+          month: string;
+          totalAmount: number;
+          transactionCount: number;
+          transactions: Array<{
+            id: string;
+            date: Date;
+            spellName: string;
+            spellCategory: string | null;
+            makerName: string;
+            amount: number;
+            status: string;
+          }>;
+        }
+      >
     );
 
     // Convert to array and calculate totals
-    const monthlyData = Object.values(paymentsByMonth).map((month: any) => ({
-      ...month,
-      totalAmount: month.totalAmount / 100,
-    }));
+    const monthlyData = Object.values(paymentsByMonth).map(
+      (month: {
+        month: string;
+        totalAmount: number;
+        transactionCount: number;
+        transactions: Array<{
+          id: string;
+          date: Date;
+          spellName: string;
+          spellCategory: string | null;
+          makerName: string;
+          amount: number;
+          status: string;
+        }>;
+      }) => ({
+        ...month,
+        totalAmount: month.totalAmount / 100,
+      })
+    );
 
     // Calculate overall statistics
-    const totalSpent = payments.reduce((sum, p) => sum + p.costCents, 0) / 100;
+    const totalSpent = payments.reduce((sum: number, p) => sum + p.costCents, 0) / 100;
     const totalTransactions = payments.length;
     const averageTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0;
 
     // Get recent transactions (last 10)
-    const recentTransactions = payments.slice(0, 10).map((payment) => ({
-      id: payment.id,
-      date: payment.createdAt,
-      spellName: payment.spell.name,
-      spellCategory: payment.spell.category,
-      makerName: payment.spell.author.name || 'Unknown',
-      amount: payment.costCents / 100,
-      status: payment.status,
-    }));
+    const recentTransactions = payments
+      .slice(0, 10)
+      .map(
+        (payment: {
+          id: string;
+          createdAt: Date;
+          spell: { name: string; category: string | null; author: { name: string | null } };
+          costCents: number;
+          status: string;
+        }) => ({
+          id: payment.id,
+          date: payment.createdAt,
+          spellName: payment.spell.name,
+          spellCategory: payment.spell.category,
+          makerName: payment.spell.author.name || 'Unknown',
+          amount: payment.costCents / 100,
+          status: payment.status,
+        })
+      );
 
     return NextResponse.json({
       summary: {
