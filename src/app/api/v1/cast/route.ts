@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimitMiddleware } from "@/lib/rate-limit";
 
 // Validate API key and return user ID
 async function validateApiKey(apiKey: string): Promise<string | null> {
@@ -29,6 +30,12 @@ async function validateApiKey(apiKey: string): Promise<string | null> {
 // POST /api/v1/cast - Public endpoint for casting spells with API key
 export async function POST(req: NextRequest) {
   try {
+    // Apply rate limiting: 60 requests per minute per API key/IP
+    const rateLimitError = await rateLimitMiddleware(req, 60, 60000);
+    if (rateLimitError) {
+      return rateLimitError;
+    }
+
     // Get API key from Authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
