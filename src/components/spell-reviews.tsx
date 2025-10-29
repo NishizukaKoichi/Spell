@@ -105,7 +105,7 @@ export function SpellReviews({ spellId }: SpellReviewsProps) {
                       className="h-10 w-10 rounded-full"
                     />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-white text-black/10 flex items-center justify-center">
                       <User className="h-5 w-5 text-white/60" />
                     </div>
                   )}

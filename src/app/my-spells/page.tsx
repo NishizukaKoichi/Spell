@@ -43,7 +43,7 @@ export default async function MySpellsPage() {
             </p>
           </div>
           <Link href="/my-spells/new">
-            <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
+            <Button className="gap-2 bg-white hover:bg-white text-black/90">
               <Plus className="h-5 w-5" />
               Create Spell
             </Button>
@@ -57,7 +57,7 @@ export default async function MySpellsPage() {
                 You haven't created any spells yet
               </p>
               <Link href="/my-spells/new">
-                <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
+                <Button className="gap-2 bg-white hover:bg-white text-black/90">
                   <Plus className="h-5 w-5" />
                   Create Your First Spell
                 </Button>

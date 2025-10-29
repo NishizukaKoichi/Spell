@@ -57,7 +57,7 @@ export default async function SpellDetailPage({
               <span>{spell.rating} / 5</span>
             </div>
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-purple-500" />
+              <Zap className="h-4 w-4 text-white" />
               <span>{spell.totalCasts.toLocaleString()} casts</span>
             </div>
             <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export default async function SpellDetailPage({
           </div>
         </div>
 
-        <Separator className="bg-white/10" />
+        <Separator className="bg-white text-black/10" />
 
         {/* Details */}
         <div className="grid gap-6 md:grid-cols-2">

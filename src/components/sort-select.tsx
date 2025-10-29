@@ -23,7 +23,7 @@ const sortOptions = [
 export function SortSelect({ value, onChange }: SortSelectProps) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[160px] bg-white/5 border-white/10">
+      <SelectTrigger className="w-[160px] bg-white text-black/5 border-white/10">
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
       <SelectContent>

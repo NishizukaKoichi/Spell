@@ -69,11 +69,11 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-950 via-black to-indigo-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-black via-black to-black p-4">
       <Card className="w-full max-w-md border-white/10">
         <CardHeader className="space-y-4 text-center">
           <Link href="/" className="mx-auto flex items-center gap-2">
-            <Zap className="h-8 w-8 text-purple-500" />
+            <Zap className="h-8 w-8 text-white" />
             <span className="text-2xl font-bold">Spell</span>
           </Link>
           <div>
@@ -100,7 +100,7 @@ export default function SignInPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white/5 border-white/10"
+              className="bg-white text-black/5 border-white/10"
               disabled={loading}
             />
           </div>
@@ -108,7 +108,7 @@ export default function SignInPage() {
           <Button
             onClick={handleSignIn}
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-white hover:bg-white text-black/90"
           >
             {loading ? "Signing in..." : "Sign in with Passkey"}
           </Button>
@@ -117,7 +117,7 @@ export default function SignInPage() {
             <span className="text-white/60">Don't have an account? </span>
             <Link
               href="/auth/signup"
-              className="text-purple-400 hover:text-purple-300"
+              className="text-white/80 hover:text-white"
             >
               Sign up
             </Link>

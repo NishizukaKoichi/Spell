@@ -157,7 +157,7 @@ export function ApiKeys() {
               placeholder="API Key Name (e.g., Production, Development)"
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
-              className="flex-1 bg-white/5 border border-white/10 rounded px-4 py-2 text-white placeholder:text-white/40"
+              className="flex-1 bg-white text-black/5 border border-white/10 rounded px-4 py-2 text-white placeholder:text-white/40"
               disabled={isCreating}
             />
             <Button
@@ -191,7 +191,7 @@ export function ApiKeys() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <Key className="h-4 w-4 text-purple-500" />
+                        <Key className="h-4 w-4 text-white" />
                         <div>
                           <h4 className="font-semibold">{key.name}</h4>
                           <code className="text-xs text-white/60 font-mono">

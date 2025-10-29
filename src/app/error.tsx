@@ -48,7 +48,7 @@ export default function Error({
           <div className="flex gap-3">
             <Button
               onClick={reset}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              className="flex-1 bg-white hover:bg-white text-black/90"
             >
               Try again
             </Button>

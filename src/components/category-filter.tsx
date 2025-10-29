@@ -27,7 +27,7 @@ const categories = [
 export function CategoryFilter({ value, onChange }: CategoryFilterProps) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[180px] bg-white/5 border-white/10">
+      <SelectTrigger className="w-[180px] bg-white text-black/5 border-white/10">
         <SelectValue placeholder="Category" />
       </SelectTrigger>
       <SelectContent>

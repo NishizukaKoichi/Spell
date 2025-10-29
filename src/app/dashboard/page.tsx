@@ -297,7 +297,7 @@ export default function DashboardPage() {
                     {stats.caster.topSpells.map((spell, index) => (
                       <div
                         key={spell.id}
-                        className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white text-black/5 rounded-lg"
                       >
                         <div className="flex items-center gap-4">
                           <div className="text-2xl font-bold text-white/40">
@@ -444,7 +444,7 @@ export default function DashboardPage() {
                     {stats.maker.topSpells.map((spell, index) => (
                       <div
                         key={spell.id}
-                        className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white text-black/5 rounded-lg"
                       >
                         <div className="flex items-center gap-4">
                           <div className="text-2xl font-bold text-white/40">

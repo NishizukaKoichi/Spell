@@ -87,8 +87,8 @@ export default async function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
-                <User className="h-6 w-6 text-purple-500" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black/10">
+                <User className="h-6 w-6 text-white" />
               </div>
               <div>
                 <p className="font-medium">{session.user.name || "User"}</p>
@@ -99,7 +99,7 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            <Separator className="bg-white/10" />
+            <Separator className="bg-white text-black/10" />
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1">
@@ -182,7 +182,7 @@ export default async function ProfilePage() {
               <h2 className="text-xl font-semibold">Published Spells</h2>
               <Link
                 href="/my-spells"
-                className="text-sm text-purple-400 hover:text-purple-300"
+                className="text-sm text-white/80 hover:text-white"
               >
                 View all →
               </Link>
@@ -201,7 +201,7 @@ export default async function ProfilePage() {
                     href={`/spells/${spell.id}`}
                     className="block"
                   >
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
                       <div className="flex-1">
                         <p className="font-semibold">{spell.name}</p>
                         <p className="text-sm text-white/60 line-clamp-1">
@@ -246,7 +246,7 @@ export default async function ProfilePage() {
               <h2 className="text-xl font-semibold">Recent Casts</h2>
               <Link
                 href="/casts"
-                className="text-sm text-purple-400 hover:text-purple-300"
+                className="text-sm text-white/80 hover:text-white"
               >
                 View all →
               </Link>
@@ -265,7 +265,7 @@ export default async function ProfilePage() {
                     href={`/casts/${cast.id}`}
                     className="block"
                   >
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
                       <div className="flex-1">
                         <p className="font-semibold">{cast.spell.name}</p>
                         <div className="flex items-center gap-3 mt-2">

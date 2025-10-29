@@ -9,7 +9,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-black to-indigo-950">
+    <div className="min-h-screen bg-gradient-to-br from-black via-black to-black">
       <Navigation />
       <main className="ml-64 min-h-screen p-8">{children}</main>
     </div>

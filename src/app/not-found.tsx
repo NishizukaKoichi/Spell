@@ -9,8 +9,8 @@ export default function NotFound() {
       <Card className="max-w-md w-full border-white/10">
         <CardHeader>
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
-              <SearchX className="h-6 w-6 text-purple-500" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+              <SearchX className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">404 - Page Not Found</h1>
@@ -28,7 +28,7 @@ export default function NotFound() {
 
           <div className="flex gap-3">
             <Link href="/" className="flex-1">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button className="w-full bg-white hover:bg-white text-black/90">
                 <Home className="h-4 w-4 mr-2" />
                 Go to Marketplace
               </Button>
@@ -48,19 +48,19 @@ export default function NotFound() {
             <div className="space-y-2">
               <Link
                 href="/my-spells"
-                className="block text-sm text-purple-400 hover:text-purple-300"
+                className="block text-sm text-white/80 hover:text-white"
               >
                 → My Spells
               </Link>
               <Link
                 href="/casts"
-                className="block text-sm text-purple-400 hover:text-purple-300"
+                className="block text-sm text-white/80 hover:text-white"
               >
                 → My Casts
               </Link>
               <Link
                 href="/dashboard"
-                className="block text-sm text-purple-400 hover:text-purple-300"
+                className="block text-sm text-white/80 hover:text-white"
               >
                 → Dashboard
               </Link>

@@ -217,7 +217,7 @@ Generated: ${new Date().toLocaleString()}
                 {data.recentTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-white text-black/5 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
                       {getStatusIcon(transaction.status)}
@@ -265,7 +265,7 @@ Generated: ${new Date().toLocaleString()}
                 {data.monthlyData.map((monthData) => (
                   <div key={monthData.month} className="border border-white/10 rounded-lg">
                     <div
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-white text-black/5 transition-colors"
                       onClick={() =>
                         setExpandedMonth(
                           expandedMonth === monthData.month ? null : monthData.month
@@ -273,7 +273,7 @@ Generated: ${new Date().toLocaleString()}
                       }
                     >
                       <div className="flex items-center gap-4">
-                        <Calendar className="h-5 w-5 text-purple-500" />
+                        <Calendar className="h-5 w-5 text-white" />
                         <div>
                           <p className="font-semibold">{monthData.month}</p>
                           <p className="text-sm text-white/60">
@@ -300,7 +300,7 @@ Generated: ${new Date().toLocaleString()}
                     </div>
 
                     {expandedMonth === monthData.month && (
-                      <div className="p-4 border-t border-white/10 bg-white/5">
+                      <div className="p-4 border-t border-white/10 bg-white text-black/5">
                         <div className="space-y-3">
                           {monthData.transactions.map((transaction) => (
                             <div

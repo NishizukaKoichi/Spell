@@ -106,7 +106,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
           </p>
           <Link
             href="/"
-            className="text-purple-400 hover:text-purple-300 underline"
+            className="text-white/80 hover:text-white underline"
           >
             Browse Spells
           </Link>
@@ -125,7 +125,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
           placeholder="Search by spell name or cast ID..."
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px] bg-white/5 border-white/10">
+          <SelectTrigger className="w-[180px] bg-white text-black/5 border-white/10">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -162,7 +162,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(cast.status)}
-                    <span className="text-xl font-semibold hover:text-purple-400 transition-colors">
+                    <span className="text-xl font-semibold hover:text-white/80 transition-colors">
                       {cast.spell.name}
                     </span>
                     <Badge variant={getStatusBadgeVariant(cast.status)}>
@@ -200,7 +200,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
                     <span className="text-white/60">Result:</span>
                     <a
                       href={cast.artifactUrl}
-                      className="ml-2 text-purple-400 hover:text-purple-300 underline"
+                      className="ml-2 text-white/80 hover:text-white underline"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}

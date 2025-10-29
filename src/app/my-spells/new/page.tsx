@@ -250,7 +250,7 @@ export default function NewSpellPage() {
                       handleKeyChange(e.target.value);
                     }}
                     placeholder="Image Resizer"
-                    className="bg-white/5 border-white/10"
+                    className="bg-white text-black/5 border-white/10"
                     required
                   />
                 </div>
@@ -263,7 +263,7 @@ export default function NewSpellPage() {
                       setFormData({ ...formData, key: e.target.value })
                     }
                     placeholder="image-resizer"
-                    className="bg-white/5 border-white/10 font-mono"
+                    className="bg-white text-black/5 border-white/10 font-mono"
                     readOnly
                   />
                   <p className="text-xs text-white/40">
@@ -281,7 +281,7 @@ export default function NewSpellPage() {
                       setFormData({ ...formData, description: e.target.value })
                     }
                     placeholder="Brief description of what your spell does"
-                    className="bg-white/5 border-white/10"
+                    className="bg-white text-black/5 border-white/10"
                     required
                   />
                 </div>
@@ -297,7 +297,7 @@ export default function NewSpellPage() {
                       })
                     }
                     placeholder="Detailed description, usage examples, etc."
-                    className="w-full min-h-[120px] rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                    className="w-full min-h-[120px] rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                   />
                 </div>
 
@@ -310,7 +310,7 @@ export default function NewSpellPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value })
                     }
-                    className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                    className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                     required
                   >
                     <option value="">Select a category</option>
@@ -337,7 +337,7 @@ export default function NewSpellPage() {
                         }
                       }}
                       placeholder="Add a tag"
-                      className="bg-white/5 border-white/10"
+                      className="bg-white text-black/5 border-white/10"
                     />
                     <Button
                       type="button"
@@ -383,7 +383,7 @@ export default function NewSpellPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, priceModel: e.target.value })
                     }
-                    className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                    className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                   >
                     <option value="metered">Metered (per use)</option>
                     <option value="one_time">One-time purchase</option>
@@ -404,7 +404,7 @@ export default function NewSpellPage() {
                       setFormData({ ...formData, priceAmount: e.target.value })
                     }
                     placeholder="9.99"
-                    className="bg-white/5 border-white/10"
+                    className="bg-white text-black/5 border-white/10"
                     required
                   />
                 </div>
@@ -424,7 +424,7 @@ export default function NewSpellPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, executionMode: e.target.value })
                     }
-                    className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                    className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
                   >
                     <option value="workflow">Workflow (GitHub Actions)</option>
                     <option value="service" disabled>
@@ -447,7 +447,7 @@ export default function NewSpellPage() {
                       setFormData({ ...formData, webhookUrl: e.target.value })
                     }
                     placeholder="https://your-api.com/webhook"
-                    className="bg-white/5 border-white/10"
+                    className="bg-white text-black/5 border-white/10"
                   />
                   <p className="text-xs text-white/60">
                     Receive POST notifications when spell execution completes
@@ -528,7 +528,7 @@ export default function NewSpellPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                className="flex-1 bg-white hover:bg-white text-black/90"
               >
                 {loading ? "Creating..." : "Create Spell"}
               </Button>
@@ -578,7 +578,7 @@ export default function NewSpellPage() {
                     </div>
                   )}
 
-                  <Separator className="bg-white/10" />
+                  <Separator className="bg-white text-black/10" />
 
                   {formData.priceAmount && (
                     <div>

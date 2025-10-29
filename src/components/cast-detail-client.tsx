@@ -235,7 +235,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
         {/* Progress Indicator */}
         <CastProgress status={cast.status} startedAt={cast.startedAt} />
 
-        <Separator className="bg-white/10" />
+        <Separator className="bg-white text-black/10" />
 
       {/* Status Card */}
       <Card
@@ -297,7 +297,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
             </div>
           </div>
 
-          <Separator className="bg-white/10" />
+          <Separator className="bg-white text-black/10" />
 
           <div className="space-y-2">
             <p className="text-sm text-white/60">Cast ID</p>
@@ -365,7 +365,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
               <p className="text-sm text-white/60">Spell Name</p>
               <Link
                 href={`/spells/${cast.spell.id}`}
-                className="text-purple-400 hover:text-purple-300 transition-colors"
+                className="text-white/80 hover:text-white transition-colors"
               >
                 {cast.spell.name}
               </Link>
@@ -423,8 +423,8 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20">
-                <div className="h-3 w-3 rounded-full bg-purple-500" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black/10">
+                <div className="h-3 w-3 rounded-full bg-white text-black" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold">Cast Created</p>

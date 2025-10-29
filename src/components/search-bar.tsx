@@ -18,7 +18,7 @@ export function SearchBar({ value, onChange, placeholder }: SearchBarProps) {
         placeholder={placeholder || "Search spells..."}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pl-10 bg-white/5 border-white/10 focus:border-purple-500"
+        className="pl-10 bg-white text-black/5 border-white/10 focus:border-white"
       />
     </div>
   );

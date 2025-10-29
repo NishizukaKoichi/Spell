@@ -23,12 +23,12 @@ export function Navigation() {
     <nav className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-white/10 bg-black/50 backdrop-blur-xl">
       <div className="flex h-16 items-center px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-purple-500" />
+          <Zap className="h-6 w-6 text-white" />
           <span className="text-xl font-bold">Spell</span>
         </Link>
       </div>
 
-      <Separator className="bg-white/10" />
+      <Separator className="bg-white text-black/10" />
 
       <div className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
@@ -53,7 +53,7 @@ export function Navigation() {
         })}
       </div>
 
-      <Separator className="bg-white/10" />
+      <Separator className="bg-white text-black/10" />
 
       <div className="p-4">
         {session ? (

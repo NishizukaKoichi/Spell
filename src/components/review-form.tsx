@@ -110,7 +110,7 @@ export function ReviewForm({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Share your experience with this spell..."
-              className="min-h-[100px] bg-white/5 border-white/10"
+              className="min-h-[100px] bg-white text-black/5 border-white/10"
               maxLength={1000}
             />
             <p className="text-xs text-white/40">
@@ -122,7 +122,7 @@ export function ReviewForm({
             <Button
               type="submit"
               disabled={isSubmitting || rating === 0}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-white hover:bg-white text-black/90"
             >
               {isSubmitting ? "Submitting..." : "Submit Review"}
             </Button>

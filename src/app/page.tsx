@@ -157,7 +157,7 @@ export default function Home() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <Input
               placeholder="Search spells..."
-              className="pl-10 bg-white/5 border-white/10"
+              className="pl-10 bg-white text-black/5 border-white/10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -237,7 +237,7 @@ export default function Home() {
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-white/5 rounded-lg border border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-white text-black/5 rounded-lg border border-white/10">
             {/* Category Filter */}
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Category</h3>
@@ -279,14 +279,14 @@ export default function Home() {
                   placeholder="Min ($)"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  className="bg-white/5 border-white/10"
+                  className="bg-white text-black/5 border-white/10"
                 />
                 <Input
                   type="number"
                   placeholder="Max ($)"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  className="bg-white/5 border-white/10"
+                  className="bg-white text-black/5 border-white/10"
                 />
               </div>
               <div className="space-y-2">
@@ -348,7 +348,7 @@ export default function Home() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm"
+                className="w-full bg-white text-black/5 border border-white/10 rounded px-3 py-2 text-sm"
               >
                 <option value="popularity">Most Popular</option>
                 <option value="rating">Highest Rated</option>

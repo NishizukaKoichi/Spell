@@ -79,7 +79,7 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
       size="lg"
       onClick={handleCast}
       disabled={loading}
-      className="gap-2 bg-purple-600 hover:bg-purple-700"
+      className="gap-2 bg-white hover:bg-white text-black/90"
     >
       <Zap className="h-5 w-5" />
       {loading

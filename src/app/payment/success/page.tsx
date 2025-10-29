@@ -31,7 +31,7 @@ export default function PaymentSuccessPage({
             )}
             <div className="flex gap-4 pt-4">
               <Link href="/casts" className="flex-1">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                <Button className="w-full bg-white hover:bg-white text-black/90">
                   View Cast History
                 </Button>
               </Link>
