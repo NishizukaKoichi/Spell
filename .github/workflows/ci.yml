@@ -26,6 +26,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/spell"
         run: pnpm prisma generate
 
       - name: Run ESLint
@@ -57,6 +59,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/spell"
         run: pnpm prisma generate
 
       - name: Build
