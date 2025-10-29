@@ -64,6 +64,11 @@ jobs:
         run: pnpm prisma generate
 
       - name: Build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/spell"
+          STRIPE_SECRET_KEY: "sk_test_dummy_key_for_build"
+          NEXTAUTH_URL: "http://localhost:3000"
+          NEXTAUTH_SECRET: "dummy_secret_for_build_only"
         run: pnpm build
 
       - name: Upload build artifacts
