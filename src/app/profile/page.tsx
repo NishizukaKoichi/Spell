@@ -140,30 +140,40 @@ export default async function ProfilePage() {
               <p className="text-white/60">No passkeys registered</p>
             ) : (
               <div className="space-y-3">
-                {authenticators.map((auth, index) => (
-                  <div
-                    key={auth.credentialID}
-                    className="flex items-center justify-between rounded-lg border border-white/10 p-4"
-                  >
-                    <div className="space-y-1">
-                      <p className="font-medium">Passkey #{index + 1}</p>
-                      <p className="text-xs text-white/40 font-mono">
-                        {auth.credentialID.slice(0, 20)}...
-                      </p>
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {auth.credentialDeviceType}
-                        </Badge>
-                        {auth.credentialBackedUp && (
+                {authenticators.map(
+                  (
+                    auth: {
+                      credentialID: string;
+                      credentialDeviceType: string;
+                      credentialBackedUp: boolean;
+                      counter: number;
+                    },
+                    index: number
+                  ) => (
+                    <div
+                      key={auth.credentialID}
+                      className="flex items-center justify-between rounded-lg border border-white/10 p-4"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium">Passkey #{index + 1}</p>
+                        <p className="text-xs text-white/40 font-mono">
+                          {auth.credentialID.slice(0, 20)}...
+                        </p>
+                        <div className="flex gap-2">
                           <Badge variant="outline" className="text-xs">
-                            Backed Up
+                            {auth.credentialDeviceType}
                           </Badge>
-                        )}
+                          {auth.credentialBackedUp && (
+                            <Badge variant="outline" className="text-xs">
+                              Backed Up
+                            </Badge>
+                          )}
+                        </div>
                       </div>
+                      <div className="text-sm text-white/60">Used {auth.counter} times</div>
                     </div>
-                    <div className="text-sm text-white/60">Used {auth.counter} times</div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             )}
           </CardContent>
@@ -184,37 +194,48 @@ export default async function ProfilePage() {
               <p className="text-white/60 text-center py-8">No spells published yet</p>
             ) : (
               <div className="space-y-4">
-                {userSpells.map((spell) => (
-                  <Link key={spell.id} href={`/spells/${spell.id}`} className="block">
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-semibold">{spell.name}</p>
-                        <p className="text-sm text-white/60 line-clamp-1">{spell.description}</p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center gap-1 text-sm text-white/60">
-                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                            {spell.rating.toFixed(1)}
+                {userSpells.map(
+                  (spell: {
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    rating: number;
+                    totalCasts: number;
+                    category: string | null;
+                    priceAmount: number;
+                    priceModel: string;
+                  }) => (
+                    <Link key={spell.id} href={`/spells/${spell.id}`} className="block">
+                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
+                        <div className="flex-1">
+                          <p className="font-semibold">{spell.name}</p>
+                          <p className="text-sm text-white/60 line-clamp-1">{spell.description}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-1 text-sm text-white/60">
+                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              {spell.rating.toFixed(1)}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-white/60">
+                              <Zap className="h-3 w-3" />
+                              {spell.totalCasts} casts
+                            </div>
+                            {spell.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {spell.category}
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-white/60">
-                            <Zap className="h-3 w-3" />
-                            {spell.totalCasts} casts
-                          </div>
-                          {spell.category && (
-                            <Badge variant="outline" className="text-xs">
-                              {spell.category}
-                            </Badge>
-                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">${(spell.priceAmount / 100).toFixed(2)}</p>
+                          <p className="text-xs text-white/60">
+                            {spell.priceModel === 'one_time' ? 'one-time' : 'per use'}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">${(spell.priceAmount / 100).toFixed(2)}</p>
-                        <p className="text-xs text-white/60">
-                          {spell.priceModel === 'one_time' ? 'one-time' : 'per use'}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                )}
               </div>
             )}
           </CardContent>
@@ -235,42 +256,50 @@ export default async function ProfilePage() {
               <p className="text-white/60 text-center py-8">No casts yet</p>
             ) : (
               <div className="space-y-4">
-                {userCasts.map((cast) => (
-                  <Link key={cast.id} href={`/casts/${cast.id}`} className="block">
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-semibold">{cast.spell.name}</p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${
-                              cast.status === 'completed'
-                                ? 'text-green-500 border-green-500/20'
-                                : cast.status === 'failed'
-                                  ? 'text-red-500 border-red-500/20'
-                                  : cast.status === 'running'
-                                    ? 'text-blue-500 border-blue-500/20'
-                                    : 'text-yellow-500 border-yellow-500/20'
-                            }`}
-                          >
-                            {cast.status}
-                          </Badge>
-                          {cast.spell.category && (
-                            <Badge variant="outline" className="text-xs">
-                              {cast.spell.category}
+                {userCasts.map(
+                  (cast: {
+                    id: string;
+                    status: string;
+                    createdAt: Date;
+                    costCents: number;
+                    spell: { name: string; category: string | null };
+                  }) => (
+                    <Link key={cast.id} href={`/casts/${cast.id}`} className="block">
+                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white text-black/10 transition-colors">
+                        <div className="flex-1">
+                          <p className="font-semibold">{cast.spell.name}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                cast.status === 'completed'
+                                  ? 'text-green-500 border-green-500/20'
+                                  : cast.status === 'failed'
+                                    ? 'text-red-500 border-red-500/20'
+                                    : cast.status === 'running'
+                                      ? 'text-blue-500 border-blue-500/20'
+                                      : 'text-yellow-500 border-yellow-500/20'
+                              }`}
+                            >
+                              {cast.status}
                             </Badge>
-                          )}
-                          <span className="text-xs text-white/60">
-                            {new Date(cast.createdAt).toLocaleDateString()}
-                          </span>
+                            {cast.spell.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {cast.spell.category}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-white/60">
+                              {new Date(cast.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">${(cast.costCents / 100).toFixed(2)}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">${(cast.costCents / 100).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                )}
               </div>
             )}
           </CardContent>

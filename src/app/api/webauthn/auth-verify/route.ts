@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     // Find the authenticator used for this authentication
     const authenticator = user.authenticators.find(
-      (auth) => Buffer.from(auth.credentialID, 'base64url').toString('base64url') === response.id
+      (auth: { credentialID: string }) =>
+        Buffer.from(auth.credentialID, 'base64url').toString('base64url') === response.id
     );
 
     if (!authenticator) {

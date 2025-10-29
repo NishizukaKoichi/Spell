@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
         userVerification: 'preferred',
       },
       excludeCredentials:
-        user?.authenticators.map((auth) => ({
+        user?.authenticators.map((auth: { credentialID: string }) => ({
           id: Buffer.from(auth.credentialID, 'base64url'),
-          type: 'public-key',
+          type: 'public-key' as const,
         })) ?? [],
     });
 

@@ -25,11 +25,13 @@ export async function POST(req: NextRequest) {
     // Generate authentication options
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials: user.authenticators.map((auth) => ({
-        id: Buffer.from(auth.credentialID, 'base64url'),
-        type: 'public-key',
-        transports: auth.transports?.split(',') as AuthenticatorTransport[] | undefined,
-      })),
+      allowCredentials: user.authenticators.map(
+        (auth: { credentialID: string; transports: string | null }) => ({
+          id: Buffer.from(auth.credentialID, 'base64url'),
+          type: 'public-key' as const,
+          transports: auth.transports?.split(',') as AuthenticatorTransport[] | undefined,
+        })
+      ),
       userVerification: 'preferred',
     });
 

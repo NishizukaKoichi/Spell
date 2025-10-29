@@ -52,7 +52,13 @@ export async function GET() {
             }>;
           }
         >,
-        payment
+        payment: {
+          id: string;
+          createdAt: Date;
+          spell: { name: string; category: string | null; author: { name: string | null } };
+          costCents: number;
+          status: string;
+        }
       ) => {
         const monthKey = new Date(payment.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',

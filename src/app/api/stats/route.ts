@@ -31,42 +31,62 @@ export async function GET() {
 
     // Calculate maker stats
     const makerTotalRevenue = makerSpells.reduce(
-      (sum: number, spell) =>
-        sum + spell.casts.reduce((castSum: number, cast) => castSum + cast.costCents, 0),
+      (sum: number, spell: { casts: Array<{ costCents: number }> }) =>
+        sum +
+        spell.casts.reduce(
+          (castSum: number, cast: { costCents: number }) => castSum + cast.costCents,
+          0
+        ),
       0
     );
 
-    const makerTotalCasts = makerSpells.reduce((sum: number, spell) => sum + spell._count.casts, 0);
+    const makerTotalCasts = makerSpells.reduce(
+      (sum: number, spell: { _count: { casts: number } }) => sum + spell._count.casts,
+      0
+    );
 
     const makerTopSpells = makerSpells
-      .map((spell) => ({
-        id: spell.id,
-        name: spell.name,
-        totalCasts: spell._count.casts,
-        revenue: spell.casts.reduce((sum, cast) => sum + cast.costCents, 0) / 100,
-        rating: spell.rating,
-      }))
-      .sort((a, b) => b.totalCasts - a.totalCasts)
+      .map(
+        (spell: {
+          id: string;
+          name: string;
+          _count: { casts: number };
+          casts: Array<{ costCents: number }>;
+          rating: number;
+        }) => ({
+          id: spell.id,
+          name: spell.name,
+          totalCasts: spell._count.casts,
+          revenue:
+            spell.casts.reduce(
+              (sum: number, cast: { costCents: number }) => sum + cast.costCents,
+              0
+            ) / 100,
+          rating: spell.rating,
+        })
+      )
+      .sort((a: { totalCasts: number }, b: { totalCasts: number }) => b.totalCasts - a.totalCasts)
       .slice(0, 5);
 
     // Revenue by month for the last 6 months
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const makerRevenueByMonth = makerSpells.flatMap((spell) =>
-      spell.casts
-        .filter((cast) => cast.createdAt >= sixMonthsAgo)
-        .map((cast) => ({
-          month: new Date(cast.createdAt).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-          }),
-          revenue: cast.costCents / 100,
-        }))
+    const makerRevenueByMonth = makerSpells.flatMap(
+      (spell: { casts: Array<{ createdAt: Date; costCents: number }> }) =>
+        spell.casts
+          .filter((cast: { createdAt: Date }) => cast.createdAt >= sixMonthsAgo)
+          .map((cast: { createdAt: Date; costCents: number }) => ({
+            month: new Date(cast.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+            }),
+            revenue: cast.costCents / 100,
+          }))
     );
 
     const makerMonthlyRevenue = makerRevenueByMonth.reduce(
-      (acc, { month, revenue }) => {
+      (acc: Record<string, number>, { month, revenue }: { month: string; revenue: number }) => {
         acc[month] = (acc[month] || 0) + revenue;
         return acc;
       },
@@ -93,13 +113,23 @@ export async function GET() {
 
     const casterTotalCasts = casterCasts.length;
 
-    const casterCompletedCasts = casterCasts.filter((cast) => cast.status === 'completed').length;
+    const casterCompletedCasts = casterCasts.filter(
+      (cast: { status: string }) => cast.status === 'completed'
+    ).length;
 
-    const casterFailedCasts = casterCasts.filter((cast) => cast.status === 'failed').length;
+    const casterFailedCasts = casterCasts.filter(
+      (cast: { status: string }) => cast.status === 'failed'
+    ).length;
 
     // Most used spells
     const spellUsage = casterCasts.reduce(
-      (acc, cast) => {
+      (
+        acc: Record<
+          string,
+          { id: string; name: string; category: string | null; count: number; spending: number }
+        >,
+        cast: { spell: { id: string; name: string; category: string | null }; costCents: number }
+      ) => {
         const key = cast.spell.id;
         if (!acc[key]) {
           acc[key] = {
@@ -121,13 +151,13 @@ export async function GET() {
     );
 
     const casterTopSpells = Object.values(spellUsage)
-      .sort((a, b) => b.count - a.count)
+      .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
       .slice(0, 5);
 
     // Spending by month for the last 6 months
     const casterSpendingByMonth = casterCasts
-      .filter((cast) => cast.createdAt >= sixMonthsAgo)
-      .map((cast) => ({
+      .filter((cast: { createdAt: Date }) => cast.createdAt >= sixMonthsAgo)
+      .map((cast: { createdAt: Date; costCents: number }) => ({
         month: new Date(cast.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
@@ -136,7 +166,7 @@ export async function GET() {
       }));
 
     const casterMonthlySpending = casterSpendingByMonth.reduce(
-      (acc, { month, spending }) => {
+      (acc: Record<string, number>, { month, spending }: { month: string; spending: number }) => {
         acc[month] = (acc[month] || 0) + spending;
         return acc;
       },
@@ -145,7 +175,10 @@ export async function GET() {
 
     // Spending by category
     const casterSpendingByCategory = casterCasts.reduce(
-      (acc, cast) => {
+      (
+        acc: Record<string, number>,
+        cast: { spell: { category: string | null }; costCents: number }
+      ) => {
         const category = cast.spell.category || 'Uncategorized';
         acc[category] = (acc[category] || 0) + cast.costCents / 100;
         return acc;
