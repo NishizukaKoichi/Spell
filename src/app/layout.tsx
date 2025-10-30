@@ -33,9 +33,9 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/logo.svg',
-        width: 512,
-        height: 512,
+        url: '/logo.png',
+        width: 402,
+        height: 402,
         alt: 'Spell Platform Logo',
       },
     ],
@@ -44,14 +44,15 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'Spell Platform',
     description: 'WASM-first execution platform for creator-to-consumer workflows',
-    images: ['/logo.svg'],
+    images: ['/logo.png'],
   },
   icons: {
     icon: [
-      { url: '/logo.svg', type: 'image/svg+xml' },
-      { url: '/icon', type: 'image/png', sizes: '32x32' },
+      { url: '/icon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
     ],
-    apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   manifest: '/manifest.json',
 };
