@@ -32,9 +32,7 @@ export default function SplashScreen() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black">
-      <div
-        className={`transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-      >
+      <div className={`transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <Image
           src="/logo.png"
           alt="Spell Platform Logo"
