@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 const rpName = 'Spell Platform';
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
@@ -19,11 +20,13 @@ export async function POST(req: NextRequest) {
       include: { authenticators: true },
     });
 
+    const userID = user?.id ?? crypto.randomUUID();
+
     // Generate registration options
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: user?.id ?? crypto.randomUUID(),
+      userID,
       userName: email,
       userDisplayName: email.split('@')[0],
       attestationType: 'none',
@@ -38,9 +41,29 @@ export async function POST(req: NextRequest) {
         })) ?? [],
     });
 
-    // Store challenge in session or database for verification
-    // For now, we'll return it with the options
-    // TODO: Store in Redis or session storage
+    // Store challenge and user info in secure HTTP-only cookies
+    const cookieStore = await cookies();
+    cookieStore.set('webauthn-reg-challenge', options.challenge, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 5, // 5 minutes
+      path: '/',
+    });
+    cookieStore.set('webauthn-reg-email', email, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 5, // 5 minutes
+      path: '/',
+    });
+    cookieStore.set('webauthn-reg-userid', userID, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 5, // 5 minutes
+      path: '/',
+    });
 
     return NextResponse.json({ options });
   } catch (error) {

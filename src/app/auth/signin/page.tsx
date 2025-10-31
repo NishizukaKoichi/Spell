@@ -21,10 +21,11 @@ export default function SignInPage() {
 
       console.log('[SignIn] Starting passkey authentication');
 
-      // Get authentication options
+      // Get authentication options (no email needed for discoverable credentials)
       const optionsResponse = await fetch('/api/webauthn/auth-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}), // Empty body for discoverable credentials
       });
 
       if (!optionsResponse.ok) {
@@ -37,13 +38,12 @@ export default function SignInPage() {
       // Start WebAuthn authentication
       const authResponse = await startAuthentication(options);
 
-      // Verify authentication
+      // Verify authentication and create session
       const verifyResponse = await fetch('/api/webauthn/auth-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           response: authResponse,
-          challenge: options.challenge,
         }),
       });
 
@@ -52,11 +52,28 @@ export default function SignInPage() {
         throw new Error(errorData.error || 'Authentication failed');
       }
 
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
+      const result = await verifyResponse.json();
+      console.log('[SignIn] Authentication successful:', result.email);
+
+      // Redirect to home page (splash screen will redirect to dashboard)
+      window.location.href = '/';
     } catch (err) {
       console.error('[SignIn] Passkey authentication error:', err);
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+
+      // Check if it's a "no passkey found" error and redirect to signup
+      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+      if (
+        errorMessage.includes('not found') ||
+        errorMessage.includes('No passkeys') ||
+        errorMessage.includes('NotAllowedError')
+      ) {
+        setError('No passkey found. Redirecting to signup...');
+        setTimeout(() => {
+          window.location.href = '/auth/signup';
+        }, 2000);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

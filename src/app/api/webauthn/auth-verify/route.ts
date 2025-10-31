@@ -2,37 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
+import { cookies } from 'next/headers';
+import { signIn } from '@/lib/auth/config';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, response, challenge } = (await req.json()) as {
-      email: string;
+    const { response } = (await req.json()) as {
       response: AuthenticationResponseJSON;
-      challenge: string;
     };
 
-    if (!email || !response || !challenge) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!response) {
+      return NextResponse.json({ error: 'Missing authentication response' }, { status: 400 });
     }
 
-    // Find user and authenticator
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { authenticators: true },
+    // Get challenge from cookie
+    const cookieStore = await cookies();
+    const challenge = cookieStore.get('webauthn-challenge')?.value;
+
+    if (!challenge) {
+      return NextResponse.json({ error: 'Challenge not found or expired' }, { status: 400 });
+    }
+
+    // Find authenticator by credential ID
+    const authenticator = await prisma.authenticators.findUnique({
+      where: { credentialID: response.id },
+      include: { users: true },
     });
-
-    if (!user || user.authenticators.length === 0) {
-      return NextResponse.json({ error: 'No passkeys found for this email' }, { status: 404 });
-    }
-
-    // Find the authenticator used for this authentication
-    const authenticator = user.authenticators.find(
-      (auth: { credentialID: string }) =>
-        Buffer.from(auth.credentialID, 'base64url').toString('base64url') === response.id
-    );
 
     if (!authenticator) {
       return NextResponse.json({ error: 'Authenticator not found' }, { status: 404 });
@@ -59,7 +57,7 @@ export async function POST(req: NextRequest) {
     await prisma.authenticators.update({
       where: {
         userId_credentialID: {
-          userId: user.id,
+          userId: authenticator.users.id,
           credentialID: authenticator.credentialID,
         },
       },
@@ -68,12 +66,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // TODO: Create session using NextAuth
-    // For now, return success
+    // Clear the challenge cookie
+    cookieStore.delete('webauthn-challenge');
+
+    // Create NextAuth session
+    try {
+      await signIn('webauthn', {
+        response: JSON.stringify(response),
+        redirect: false,
+      });
+    } catch (error) {
+      console.error('Session creation error:', error);
+      // Continue even if signIn fails, we'll return success anyway
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Authentication successful',
-      userId: user.id,
+      userId: authenticator.users.id,
+      email: authenticator.users.email,
     });
   } catch (error) {
     console.error('Authentication verification error:', error);

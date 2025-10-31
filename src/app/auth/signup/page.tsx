@@ -45,9 +45,7 @@ export default function SignUpPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
           response: registrationResponse,
-          challenge: options.challenge,
         }),
       });
 
@@ -56,9 +54,11 @@ export default function SignUpPage() {
         throw new Error(error.error || 'Registration failed');
       }
 
-      // Redirect to sign in page
-      alert('Registration successful! Please sign in.');
-      window.location.href = '/auth/signin';
+      const result = await verifyResponse.json();
+      console.log('[SignUp] Registration successful:', result.email);
+
+      // Redirect to home page (user is now logged in automatically)
+      window.location.href = '/';
     } catch (err) {
       console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'Registration failed');

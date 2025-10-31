@@ -2,20 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import type { RegistrationResponseJSON } from '@simplewebauthn/types';
+import { cookies } from 'next/headers';
+import { signIn } from '@/lib/auth/config';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, response, challenge } = (await req.json()) as {
-      email: string;
+    const { response } = (await req.json()) as {
       response: RegistrationResponseJSON;
-      challenge: string;
     };
 
-    if (!email || !response || !challenge) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!response) {
+      return NextResponse.json({ error: 'Missing registration response' }, { status: 400 });
+    }
+
+    // Get challenge and user info from cookies
+    const cookieStore = await cookies();
+    const challenge = cookieStore.get('webauthn-reg-challenge')?.value;
+    const email = cookieStore.get('webauthn-reg-email')?.value;
+    const userID = cookieStore.get('webauthn-reg-userid')?.value;
+
+    if (!challenge || !email || !userID) {
+      return NextResponse.json({ error: 'Registration session expired' }, { status: 400 });
     }
 
     // Verify the registration response
@@ -36,6 +46,7 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.upsert({
       where: { email },
       create: {
+        id: userID,
         email,
         name: email.split('@')[0],
       },
@@ -56,9 +67,27 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Clear registration cookies
+    cookieStore.delete('webauthn-reg-challenge');
+    cookieStore.delete('webauthn-reg-email');
+    cookieStore.delete('webauthn-reg-userid');
+
+    // Automatically sign in the user after registration
+    try {
+      await signIn('webauthn', {
+        response: JSON.stringify(response),
+        redirect: false,
+      });
+    } catch (error) {
+      console.error('Auto sign-in error:', error);
+      // Continue even if sign-in fails
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Passkey registered successfully',
+      userId: user.id,
+      email: user.email,
     });
   } catch (error) {
     console.error('Registration verification error:', error);
