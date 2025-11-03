@@ -71,6 +71,8 @@ model Cast {
   duration     Int?
   costCents    Int       @default(0)
   artifactUrl  String?
+  githubRunId  String?
+  githubRunAttempt Int?
   errorMessage String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -160,6 +162,21 @@ model budgets {
   createdAt    DateTime @default(now())
   updatedAt    DateTime
   users        User     @relation(fields: [userId], references: [id])
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  key            String
+  endpoint       String
+  scope          String
+  requestHash    String?
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([key, endpoint, scope])
+  @@map("idempotency_keys")
 }
 
 model sessions {

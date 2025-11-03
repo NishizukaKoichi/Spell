@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiError } from './api-response';
 
 interface RateLimitStore {
   [key: string]: {
@@ -91,22 +92,18 @@ export async function rateLimitMiddleware(
   const result = rateLimiter.check(limit, identifier);
 
   if (!result.success) {
-    return NextResponse.json(
-      {
-        error: 'Rate limit exceeded',
-        limit: result.limit,
-        reset: new Date(result.reset).toISOString(),
-      },
-      {
-        status: 429,
-        headers: {
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': new Date(result.reset).toISOString(),
-          'Retry-After': Math.ceil((result.reset - Date.now()) / 1000).toString(),
-        },
-      }
-    );
+    const resetIso = new Date(result.reset).toISOString();
+    const retryAfterSeconds = Math.ceil((result.reset - Date.now()) / 1000);
+    const response = apiError('RATE_LIMITED', 429, 'Rate limit exceeded', {
+      limit: result.limit,
+      reset: resetIso,
+      retry_after: retryAfterSeconds,
+    });
+    response.headers.set('X-RateLimit-Limit', result.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', resetIso);
+    response.headers.set('Retry-After', retryAfterSeconds.toString());
+    return response;
   }
 
   return null; // No rate limit error, proceed with request

@@ -1,31 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { apiError, apiSuccess } from '@/lib/api-response';
+import { validateApiKey } from '@/lib/api-key';
+import { GitHubAppError, GitHubConfigError, triggerWorkflowDispatch } from '@/lib/github-app';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
-
-// Validate API key and return user ID
-async function validateApiKey(apiKey: string): Promise<string | null> {
-  try {
-    const key = await prisma.api_keys.findUnique({
-      where: { key: apiKey },
-      include: { users: true },
-    });
-
-    if (!key || key.status !== 'active') {
-      return null;
-    }
-
-    // Update last used timestamp
-    await prisma.api_keys.update({
-      where: { id: key.id },
-      data: { lastUsedAt: new Date(), updatedAt: new Date() },
-    });
-
-    return key.userId;
-  } catch (error) {
-    console.error('API key validation error:', error);
-    return null;
-  }
-}
 
 // POST /api/v1/cast - Public endpoint for casting spells with API key
 export async function POST(req: NextRequest) {
@@ -39,29 +17,24 @@ export async function POST(req: NextRequest) {
     // Get API key from Authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Missing or invalid Authorization header' },
-        { status: 401 }
-      );
+      return apiError('UNAUTHORIZED', 401, 'Missing or invalid Authorization header');
     }
 
     const apiKey = authHeader.substring(7); // Remove "Bearer " prefix
 
     // Validate API key
-    const userId = await validateApiKey(apiKey);
-    if (!userId) {
-      return NextResponse.json({ error: 'Invalid or inactive API key' }, { status: 401 });
+    const validation = await validateApiKey(apiKey);
+    if (!validation) {
+      return apiError('UNAUTHORIZED', 401, 'Invalid or inactive API key');
     }
+    const userId = validation.userId;
 
     // Parse request body
     const body = await req.json();
     const { spell_key, input } = body;
 
     if (!spell_key || typeof spell_key !== 'string') {
-      return NextResponse.json(
-        { error: 'spell_key is required and must be a string' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 422, 'spell_key is required and must be a string');
     }
 
     // Find the spell
@@ -70,11 +43,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!spell) {
-      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
+      return apiError('WORKFLOW_NOT_FOUND', 404, 'Spell not found');
     }
 
     if (spell.status !== 'active') {
-      return NextResponse.json({ error: 'Spell is not active' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 422, 'Spell is not active');
     }
 
     // Create a new cast
@@ -91,49 +64,11 @@ export async function POST(req: NextRequest) {
     // If spell execution mode is "workflow", trigger GitHub Actions
     if (spell.executionMode === 'workflow') {
       try {
-        const githubToken = process.env.GITHUB_TOKEN;
-        const githubRepo = process.env.GITHUB_REPOSITORY;
-
-        if (!githubToken || !githubRepo) {
-          throw new Error('GitHub configuration missing');
-        }
-
-        // Trigger GitHub Actions workflow
-        const [owner, repo] = githubRepo.split('/');
-        const workflowResponse = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/actions/workflows/spell-execution.yml/dispatches`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${githubToken}`,
-              'Content-Type': 'application/json',
-              Accept: 'application/vnd.github.v3+json',
-            },
-            body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                cast_id: cast.id,
-                spell_key: spell.key,
-                input_data: input ? JSON.stringify(input) : '{}',
-              },
-            }),
-          }
-        );
-
-        if (!workflowResponse.ok) {
-          console.error('Failed to trigger workflow:', await workflowResponse.text());
-          // Update cast status to failed
-          await prisma.cast.update({
-            where: { id: cast.id },
-            data: {
-              status: 'failed',
-              errorMessage: 'Failed to trigger execution workflow',
-              finishedAt: new Date(),
-            },
-          });
-
-          return NextResponse.json({ error: 'Failed to trigger spell execution' }, { status: 500 });
-        }
+        await triggerWorkflowDispatch({
+          cast_id: cast.id,
+          spell_key: spell.key,
+          input_data: input ? JSON.stringify(input) : '{}',
+        });
 
         // Update cast status to running
         await prisma.cast.update({
@@ -143,7 +78,7 @@ export async function POST(req: NextRequest) {
             startedAt: new Date(),
           },
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Workflow trigger error:', error);
         // Update cast status to failed
         await prisma.cast.update({
@@ -155,24 +90,32 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        return NextResponse.json({ error: 'Failed to trigger spell execution' }, { status: 500 });
+        if (error instanceof GitHubAppError) {
+          return apiError(error.code, error.status, error.message);
+        }
+
+        if (error instanceof GitHubConfigError) {
+          return apiError('INTERNAL', 500, error.message);
+        }
+
+        return apiError('INTERNAL', 500, 'Failed to trigger spell execution');
       }
     }
 
-    return NextResponse.json(
+    return apiSuccess(
       {
         cast_id: cast.id,
         spell_key: spell.key,
         spell_name: spell.name,
         status: cast.status,
         cost_cents: cast.costCents,
-        created_at: cast.createdAt,
+        created_at: cast.createdAt.toISOString(),
         message: 'Cast initiated successfully',
       },
-      { status: 201 }
+      201
     );
   } catch (error) {
     console.error('Cast API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('INTERNAL', 500, 'Internal server error');
   }
 }

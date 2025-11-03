@@ -1,82 +1,84 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import type { TestContext } from 'node:test';
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
 let testApiKey: string;
 let testSpellId: string;
 
 describe('Spells API', () => {
-  beforeAll(async () => {
+  before(async () => {
     // Setup: Create test API key
     // Note: This would require authentication setup in real tests
   });
 
-  afterAll(async () => {
+  after(async () => {
     // Cleanup: Remove test data
   });
 
   describe('GET /api/spells', () => {
     it('should return list of spells', async () => {
       const response = await fetch(`${BASE_URL}/api/spells`);
-      expect(response.status).toBe(200);
+      assert.equal(response.status, 200);
 
       const data = await response.json();
-      expect(data).toHaveProperty('spells');
-      expect(Array.isArray(data.spells)).toBe(true);
+      assert.ok(Object.hasOwn(data, 'spells'));
+      assert.ok(Array.isArray(data.spells));
     });
 
     it('should filter by category', async () => {
       const response = await fetch(`${BASE_URL}/api/spells?category=ai-ml`);
-      expect(response.status).toBe(200);
+      assert.equal(response.status, 200);
 
       const data = await response.json();
       data.spells.forEach((spell: any) => {
-        expect(spell.category).toBe('ai-ml');
+        assert.equal(spell.category, 'ai-ml');
       });
     });
 
     it('should search by query', async () => {
       const response = await fetch(`${BASE_URL}/api/spells?search=pdf`);
-      expect(response.status).toBe(200);
+      assert.equal(response.status, 200);
 
       const data = await response.json();
       data.spells.forEach((spell: any) => {
         const matchesSearch =
           spell.name.toLowerCase().includes('pdf') ||
           spell.description.toLowerCase().includes('pdf');
-        expect(matchesSearch).toBe(true);
+        assert.equal(matchesSearch, true);
       });
     });
   });
 
   describe('GET /api/spells/:id', () => {
-    it('should return spell details', async () => {
+    it('should return spell details', async (t: TestContext) => {
       // First get a spell ID
       const listResponse = await fetch(`${BASE_URL}/api/spells`);
       const listData = await listResponse.json();
       const spellId = listData.spells[0]?.id;
 
       if (!spellId) {
-        console.warn('No spells available for testing');
+        t.skip('No spells available for testing');
         return;
       }
 
       const response = await fetch(`${BASE_URL}/api/spells/${spellId}`);
-      expect(response.status).toBe(200);
+      assert.equal(response.status, 200);
 
       const spell = await response.json();
-      expect(spell).toHaveProperty('id');
-      expect(spell).toHaveProperty('name');
-      expect(spell).toHaveProperty('description');
-      expect(spell).toHaveProperty('priceModel');
-      expect(spell).toHaveProperty('priceAmount');
+      assert.ok(Object.hasOwn(spell, 'id'));
+      assert.ok(Object.hasOwn(spell, 'name'));
+      assert.ok(Object.hasOwn(spell, 'description'));
+      assert.ok(Object.hasOwn(spell, 'priceModel'));
+      assert.ok(Object.hasOwn(spell, 'priceAmount'));
     });
 
     it('should return 404 for non-existent spell', async () => {
       const response = await fetch(`${BASE_URL}/api/spells/nonexistent_id`);
-      expect(response.status).toBe(404);
+      assert.equal(response.status, 404);
 
       const data = await response.json();
-      expect(data).toHaveProperty('error');
+      assert.ok(Object.hasOwn(data, 'error'));
     });
   });
 
@@ -97,7 +99,7 @@ describe('Spells API', () => {
         }),
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
   });
 
@@ -113,7 +115,7 @@ describe('Spells API', () => {
         }),
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
   });
 
@@ -123,7 +125,7 @@ describe('Spells API', () => {
         method: 'DELETE',
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
   });
 });

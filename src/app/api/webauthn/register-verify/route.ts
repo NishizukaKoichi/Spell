@@ -3,7 +3,7 @@ import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import type { RegistrationResponseJSON } from '@simplewebauthn/types';
 import { cookies } from 'next/headers';
-import { signIn } from '@/lib/auth/config';
+import { encode } from 'next-auth/jwt';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
@@ -72,15 +72,37 @@ export async function POST(req: NextRequest) {
     cookieStore.delete('webauthn-reg-email');
     cookieStore.delete('webauthn-reg-userid');
 
-    // Automatically sign in the user after registration
+    // Create NextAuth session manually by setting JWT token cookie
     try {
-      await signIn('webauthn', {
-        response: JSON.stringify(response),
-        redirect: false,
+      const secret = process.env.AUTH_SECRET;
+      if (!secret) {
+        throw new Error('AUTH_SECRET is not configured');
+      }
+
+      const token = await encode({
+        token: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          sub: user.id,
+        },
+        secret,
+        maxAge: 30 * 24 * 60 * 60, // 30 days
       });
+
+      // Set session token cookie (NextAuth uses this name by default)
+      cookieStore.set('authjs.session-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+
+      console.log('[RegisterVerify] Session created for user:', user.email);
     } catch (error) {
-      console.error('Auto sign-in error:', error);
-      // Continue even if sign-in fails
+      console.error('[RegisterVerify] Session creation error:', error);
+      // Continue even if session creation fails
     }
 
     return NextResponse.json({

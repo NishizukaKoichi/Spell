@@ -1,4 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'test_api_key';
@@ -17,9 +18,9 @@ describe('Cast API (v1)', () => {
         }),
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
       const data = await response.json();
-      expect(data.error).toContain('Authorization');
+      assert.ok(typeof data.error === 'string' && data.error.includes('Authorization'));
     });
 
     it('should require Bearer token format', async () => {
@@ -35,7 +36,7 @@ describe('Cast API (v1)', () => {
         }),
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
 
     it('should require spell_key', async () => {
@@ -50,9 +51,9 @@ describe('Cast API (v1)', () => {
         }),
       });
 
-      expect(response.status).toBe(400);
+      assert.equal(response.status, 400);
       const data = await response.json();
-      expect(data.error).toContain('spell_key');
+      assert.ok(typeof data.error === 'string' && data.error.includes('spell_key'));
     });
 
     it('should return 404 for non-existent spell', async () => {
@@ -69,7 +70,7 @@ describe('Cast API (v1)', () => {
       });
 
       // Will return 401 if API key is invalid, or 404 if spell not found
-      expect([401, 404]).toContain(response.status);
+      assert.ok([401, 404].includes(response.status));
     });
 
     it('should enforce rate limiting', async () => {
@@ -90,7 +91,7 @@ describe('Cast API (v1)', () => {
       const responses = await Promise.all(requests);
       const rateLimited = responses.filter((r) => r.status === 429);
 
-      expect(rateLimited.length).toBeGreaterThan(0);
+      assert.ok(rateLimited.length > 0);
     });
   });
 
@@ -104,11 +105,11 @@ describe('Cast API (v1)', () => {
       // Will return 404 if cast doesn't exist
       if (response.status === 200) {
         const cast = await response.json();
-        expect(cast).toHaveProperty('id');
-        expect(cast).toHaveProperty('status');
-        expect(cast).toHaveProperty('spell');
+        assert.ok(Object.hasOwn(cast, 'id'));
+        assert.ok(Object.hasOwn(cast, 'status'));
+        assert.ok(Object.hasOwn(cast, 'spell'));
       } else {
-        expect(response.status).toBe(404);
+        assert.equal(response.status, 404);
       }
     });
   });
@@ -120,10 +121,11 @@ describe('Cast API (v1)', () => {
       const response = await fetch(`${BASE_URL}/api/casts/${castId}/stream`);
 
       if (response.status === 200) {
-        expect(response.headers.get('content-type')).toContain('text/event-stream');
+        const contentType = response.headers.get('content-type');
+        assert.ok(contentType && contentType.includes('text/event-stream'));
       } else {
         // Cast might not exist, which is ok for this test
-        expect([404, 500]).toContain(response.status);
+        assert.ok([404, 500].includes(response.status));
       }
     });
   });

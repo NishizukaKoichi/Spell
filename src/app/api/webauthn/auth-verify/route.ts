@@ -3,7 +3,7 @@ import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
 import { cookies } from 'next/headers';
-import { signIn } from '@/lib/auth/config';
+import { encode } from 'next-auth/jwt';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
@@ -69,15 +69,37 @@ export async function POST(req: NextRequest) {
     // Clear the challenge cookie
     cookieStore.delete('webauthn-challenge');
 
-    // Create NextAuth session
+    // Create NextAuth session manually by setting JWT token cookie
     try {
-      await signIn('webauthn', {
-        response: JSON.stringify(response),
-        redirect: false,
+      const secret = process.env.AUTH_SECRET;
+      if (!secret) {
+        throw new Error('AUTH_SECRET is not configured');
+      }
+
+      const token = await encode({
+        token: {
+          id: authenticator.users.id,
+          email: authenticator.users.email,
+          name: authenticator.users.name,
+          sub: authenticator.users.id,
+        },
+        secret,
+        maxAge: 30 * 24 * 60 * 60, // 30 days
       });
+
+      // Set session token cookie (NextAuth uses this name by default)
+      cookieStore.set('authjs.session-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+
+      console.log('[AuthVerify] Session created for user:', authenticator.users.email);
     } catch (error) {
-      console.error('Session creation error:', error);
-      // Continue even if signIn fails, we'll return success anyway
+      console.error('[AuthVerify] Session creation error:', error);
+      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
     }
 
     return NextResponse.json({

@@ -123,7 +123,7 @@ export default function Home() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <Input
               placeholder="Search spells..."
-              className="pl-10 bg-white text-black/5 border-white/10"
+              className="pl-10 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-white/40 focus:ring-0"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -195,7 +195,7 @@ export default function Home() {
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-white text-black/5 rounded-lg border border-white/10">
+          <div className="grid grid-cols-1 gap-6 rounded-xl border border-white/10 bg-white/5 p-6 text-white shadow-lg shadow-purple-500/5 md:grid-cols-2 lg:grid-cols-4">
             {/* Category Filter */}
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Category</h3>
@@ -208,7 +208,7 @@ export default function Home() {
                     onChange={() => setSelectedCategory('all')}
                     className="accent-purple-500"
                   />
-                  <span className="text-sm">All Categories</span>
+                  <span className="text-sm text-white/80">All Categories</span>
                 </label>
                 {filters.categories.map((cat) => (
                   <label key={cat} className="flex items-center gap-2 cursor-pointer">
@@ -219,7 +219,7 @@ export default function Home() {
                       onChange={() => setSelectedCategory(cat)}
                       className="accent-purple-500"
                     />
-                    <span className="text-sm">{cat}</span>
+                    <span className="text-sm text-white/80">{cat}</span>
                   </label>
                 ))}
               </div>
@@ -234,14 +234,14 @@ export default function Home() {
                   placeholder="Min ($)"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  className="bg-white text-black/5 border-white/10"
+                  className="border-white/10 bg-black/40 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-0"
                 />
                 <Input
                   type="number"
                   placeholder="Max ($)"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  className="bg-white text-black/5 border-white/10"
+                  className="border-white/10 bg-black/40 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-0"
                 />
               </div>
               <div className="space-y-2">
@@ -253,7 +253,7 @@ export default function Home() {
                     onChange={() => setPriceModel('all')}
                     className="accent-purple-500"
                   />
-                  <span className="text-sm">All Models</span>
+                  <span className="text-sm text-white/80">All Models</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -263,7 +263,7 @@ export default function Home() {
                     onChange={() => setPriceModel('one_time')}
                     className="accent-purple-500"
                   />
-                  <span className="text-sm">One-time</span>
+                  <span className="text-sm text-white/80">One-time</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -273,7 +273,7 @@ export default function Home() {
                     onChange={() => setPriceModel('metered')}
                     className="accent-purple-500"
                   />
-                  <span className="text-sm">Metered</span>
+                  <span className="text-sm text-white/80">Metered</span>
                 </label>
               </div>
             </div>
@@ -301,7 +301,7 @@ export default function Home() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-white text-black/5 border border-white/10 rounded px-3 py-2 text-sm"
+                className="w-full rounded border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
               >
                 <option value="popularity">Most Popular</option>
                 <option value="rating">Highest Rated</option>

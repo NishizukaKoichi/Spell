@@ -49,4 +49,8 @@ next-env.d.ts
 *.temp
 .cache/
 
+# KAMUI 4D
+.worktrees/
+.kamui/
+
 /src/generated/prisma

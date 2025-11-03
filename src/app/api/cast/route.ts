@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
+import { apiError, apiSuccess } from '@/lib/api-response';
+import { GitHubAppError, GitHubConfigError, triggerWorkflowDispatch } from '@/lib/github-app';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
@@ -8,13 +10,13 @@ export async function POST(req: NextRequest) {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 401, 'Unauthorized');
     }
 
     const { spellId, input } = await req.json();
 
     if (!spellId) {
-      return NextResponse.json({ error: 'spellId is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 422, 'spellId is required');
     }
 
     // Find the spell
@@ -23,11 +25,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!spell) {
-      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
+      return apiError('WORKFLOW_NOT_FOUND', 404, 'Spell not found');
     }
 
     if (spell.status !== 'active') {
-      return NextResponse.json({ error: 'Spell is not active' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 422, 'Spell is not active');
     }
 
     // Create input hash for caching
@@ -49,63 +51,40 @@ export async function POST(req: NextRequest) {
 
     // Trigger GitHub Actions workflow
     // TODO: Implement GitHub Actions trigger
-    const githubToken = process.env.GITHUB_TOKEN;
-    const repoOwner = process.env.GITHUB_REPO_OWNER;
-    const repoName = process.env.GITHUB_REPO_NAME;
+    try {
+      await triggerWorkflowDispatch({
+        cast_id: cast.id,
+        spell_key: spell.key,
+        input_data: JSON.stringify(input || {}),
+      });
 
-    if (githubToken && repoOwner && repoName) {
-      try {
-        const workflowResponse = await fetch(
-          `https://api.github.com/repos/${repoOwner}/${repoName}/actions/workflows/spell-execution.yml/dispatches`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${githubToken}`,
-              'Content-Type': 'application/json',
-              Accept: 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
-            body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                cast_id: cast.id,
-                spell_key: spell.key,
-                input_data: JSON.stringify(input || {}),
-              },
-            }),
-          }
-        );
+      // Update cast status to running
+      await prisma.cast.update({
+        where: { id: cast.id },
+        data: {
+          status: 'running',
+          startedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error('Error triggering workflow:', error);
+      await prisma.cast.update({
+        where: { id: cast.id },
+        data: {
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
 
-        if (!workflowResponse.ok) {
-          console.error('Failed to trigger workflow:', await workflowResponse.text());
-          // Update cast status to failed
-          await prisma.cast.update({
-            where: { id: cast.id },
-            data: {
-              status: 'failed',
-              errorMessage: 'Failed to trigger execution workflow',
-            },
-          });
-        } else {
-          // Update cast status to running
-          await prisma.cast.update({
-            where: { id: cast.id },
-            data: {
-              status: 'running',
-              startedAt: new Date(),
-            },
-          });
-        }
-      } catch (error) {
-        console.error('Error triggering workflow:', error);
-        await prisma.cast.update({
-          where: { id: cast.id },
-          data: {
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          },
-        });
+      if (error instanceof GitHubAppError) {
+        return apiError(error.code, error.status, error.message);
       }
+
+      if (error instanceof GitHubConfigError) {
+        return apiError('INTERNAL', 500, error.message);
+      }
+
+      return apiError('INTERNAL', 500, 'Failed to trigger execution workflow');
     }
 
     // Update spell cast count
@@ -116,12 +95,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       cast,
       message: 'Cast initiated successfully',
     });
   } catch (error) {
     console.error('Cast error:', error);
-    return NextResponse.json({ error: 'Failed to initiate cast' }, { status: 500 });
+    return apiError('INTERNAL', 500, 'Failed to initiate cast');
   }
 }

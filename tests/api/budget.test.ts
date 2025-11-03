@@ -1,4 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
 
@@ -6,7 +7,7 @@ describe('Budget API', () => {
   describe('GET /api/budget', () => {
     it('should require authentication', async () => {
       const response = await fetch(`${BASE_URL}/api/budget`);
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
   });
 
@@ -22,7 +23,7 @@ describe('Budget API', () => {
         }),
       });
 
-      expect(response.status).toBe(401);
+      assert.equal(response.status, 401);
     });
 
     it('should validate monthlyCap is a number', async () => {
