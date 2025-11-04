@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       description,
       longDescription,
       priceModel,
-      priceAmount,
+      priceAmountCents,
       category,
       tags,
       status,
@@ -64,6 +64,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       outputSchema,
     } = body;
 
+    // Validate priceAmountCents if provided
+    if (priceAmountCents !== undefined && (!Number.isInteger(priceAmountCents) || priceAmountCents < 0)) {
+      return NextResponse.json({ error: 'priceAmountCents must be a non-negative integer' }, { status: 400 });
+    }
+
     const updatedSpell = await prisma.spell.update({
       where: { id },
       data: {
@@ -71,7 +76,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(description && { description }),
         ...(longDescription !== undefined && { longDescription }),
         ...(priceModel && { priceModel }),
-        ...(priceAmount !== undefined && { priceAmount }),
+        ...(priceAmountCents !== undefined && { priceAmountCents }),
         ...(category !== undefined && { category }),
         ...(tags && { tags }),
         ...(status && { status }),

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         casterId: session.user.id,
         status: 'queued',
         inputHash,
-        costCents: spell.priceAmount,
+        costCents: spell.priceAmountCents,
       },
     });
 

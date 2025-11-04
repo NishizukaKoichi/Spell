@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
               name: spell.name,
               description: spell.description,
             },
-            unit_amount: spell.priceAmount,
+            unit_amount: spell.priceAmountCents, // Stripe expects cents
           },
           quantity: 1,
         },

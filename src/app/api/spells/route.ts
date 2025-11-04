@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
 
     // Price range filter
     if (minPrice || maxPrice) {
-      where.priceAmount = {};
+      where.priceAmountCents = {};
       if (minPrice) {
-        where.priceAmount.gte = parseFloat(minPrice) * 100; // Convert to cents
+        where.priceAmountCents.gte = Math.round(parseFloat(minPrice) * 100); // Convert dollars to cents
       }
       if (maxPrice) {
-        where.priceAmount.lte = parseFloat(maxPrice) * 100; // Convert to cents
+        where.priceAmountCents.lte = Math.round(parseFloat(maxPrice) * 100); // Convert dollars to cents
       }
     }
 
@@ -65,10 +65,10 @@ export async function GET(req: NextRequest) {
         orderBy = { createdAt: 'desc' };
         break;
       case 'price-low':
-        orderBy = { priceAmount: 'asc' };
+        orderBy = { priceAmountCents: 'asc' };
         break;
       case 'price-high':
-        orderBy = { priceAmount: 'desc' };
+        orderBy = { priceAmountCents: 'desc' };
         break;
       case 'name':
         orderBy = { name: 'asc' };

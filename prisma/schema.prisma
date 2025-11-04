@@ -29,30 +29,30 @@ model User {
 }
 
 model Spell {
-  id              String   @id @default(cuid())
-  key             String   @unique
-  name            String
-  description     String
-  longDescription String?
-  version         String   @default("1.0.0")
-  priceModel      String
-  priceAmount     Float
-  priceCurrency   String   @default("USD")
-  executionMode   String
-  tags            String[]
-  category        String?
-  rating          Float    @default(0)
-  totalCasts      Int      @default(0)
-  inputSchema     Json?
-  outputSchema    Json?
-  webhookUrl      String?
-  authorId        String
-  status          String   @default("active")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  casts           Cast[]
-  author          User     @relation(fields: [authorId], references: [id])
-  reviews         Review[]
+  id               String   @id @default(cuid())
+  key              String   @unique
+  name             String
+  description      String
+  longDescription  String?
+  version          String   @default("1.0.0")
+  priceModel       String
+  priceAmountCents Int      @default(0)
+  priceCurrency    String   @default("USD")
+  executionMode    String
+  tags             String[]
+  category         String?
+  rating           Float    @default(0)
+  totalCasts       Int      @default(0)
+  inputSchema      Json?
+  outputSchema     Json?
+  webhookUrl       String?
+  authorId         String
+  status           String   @default("active")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  casts            Cast[]
+  author           User     @relation(fields: [authorId], references: [id])
+  reviews          Review[]
 
   @@index([authorId])
   @@index([executionMode])
@@ -154,14 +154,14 @@ model authenticators {
 }
 
 model budgets {
-  id           String   @id
-  userId       String   @unique
-  monthlyCap   Float    @default(100.00)
-  currentSpend Float    @default(0)
-  lastResetAt  DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-  users        User     @relation(fields: [userId], references: [id])
+  id                String   @id
+  userId            String   @unique
+  monthlyCapCents   Int      @default(10000)
+  currentSpendCents Int      @default(0)
+  lastResetAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  users             User     @relation(fields: [userId], references: [id])
 }
 
 model IdempotencyKey {

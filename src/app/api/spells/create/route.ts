@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       longDescription,
       category,
       priceModel,
-      priceAmount,
+      priceAmountCents,
       executionMode,
       tags,
       webhookUrl,
@@ -27,8 +27,12 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Validation
-    if (!name || !key || !description || !priceAmount || !tags) {
+    if (!name || !key || !description || priceAmountCents === undefined || !tags) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!Number.isInteger(priceAmountCents) || priceAmountCents < 0) {
+      return NextResponse.json({ error: 'priceAmountCents must be a non-negative integer' }, { status: 400 });
     }
 
     if (tags.length === 0) {
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
         longDescription: longDescription || null,
         category: category || null,
         priceModel,
-        priceAmount: Math.round(priceAmount), // Ensure it's in cents
+        priceAmountCents,
         priceCurrency: 'USD',
         executionMode: executionMode || 'workflow',
         tags,
