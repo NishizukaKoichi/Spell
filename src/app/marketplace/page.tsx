@@ -1,3 +1,5 @@
+'use client';
+
 import { BazaarMarketplace } from '@/components/bazaar-marketplace';
 
 export default function MarketplacePage() {
