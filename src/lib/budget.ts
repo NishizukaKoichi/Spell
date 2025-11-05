@@ -1,4 +1,8 @@
+import type { Prisma, PrismaClient } from '@prisma/client';
+
 import { prisma } from './prisma';
+
+type PrismaClientOrTransaction = PrismaClient | Prisma.TransactionClient;
 
 export interface BudgetCheck {
   allowed: boolean;
@@ -22,16 +26,18 @@ export interface BudgetCheck {
  */
 export async function checkBudget(
   userId: string,
-  estimatedCostCents: number
+  estimatedCostCents: number,
+  client: PrismaClientOrTransaction = prisma
 ): Promise<BudgetCheck> {
+  const db = client;
   // Get or create budget
-  let budget = await prisma.budgets.findUnique({
+  let budget = await db.budgets.findUnique({
     where: { userId },
   });
 
   if (!budget) {
     // Create default budget (10000 cents = $100 per month)
-    budget = await prisma.budgets.create({
+    budget = await db.budgets.create({
       data: {
         id: `budget_${userId}`,
         userId,
@@ -51,7 +57,7 @@ export async function checkBudget(
 
   if (monthsDiff >= 1) {
     // Reset budget
-    budget = await prisma.budgets.update({
+    budget = await db.budgets.update({
       where: { userId },
       data: {
         currentSpendCents: 0,
@@ -100,9 +106,10 @@ export async function checkBudget(
  */
 export async function updateBudgetSpend(
   userId: string,
-  actualCostCents: number
+  actualCostCents: number,
+  client: PrismaClientOrTransaction = prisma
 ): Promise<void> {
-  await prisma.budgets.update({
+  await client.budgets.update({
     where: { userId },
     data: {
       currentSpendCents: {

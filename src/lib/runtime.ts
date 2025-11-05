@@ -9,12 +9,12 @@
  * @returns Promise resolving to execution result
  */
 export async function runWasmTemplate(
-  templateId: string,
-  inputs: Record<string, any>
+  _templateId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _inputs: Record<string, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ success: boolean; output?: any; error?: string }> {
   // TODO: Implement actual Wasm execution
-  console.log(`[Wasm] Executing template ${templateId} with inputs:`, inputs);
-
   // Stub implementation - returns success immediately
   return {
     success: true,
@@ -31,8 +31,8 @@ export const NATS = {
    * @param subject - NATS subject/topic
    * @param data - Message payload
    */
-  async publish(subject: string, data: any): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async publish(_subject: string, _data: any): Promise<void> {
     // TODO: Implement actual NATS connection
-    console.log(`[NATS] Publishing to ${subject}:`, data);
   },
 };

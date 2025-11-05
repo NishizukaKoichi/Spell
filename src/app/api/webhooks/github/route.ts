@@ -69,7 +69,7 @@ function verifySignature(payload: string, signature: string, secret: string): bo
  * 2. Repository dispatch client_payload (client_payload.cast_id)
  * 3. Workflow run name (if it contains cast_id)
  */
-async function extractCastId(runId: number, owner: string, repo: string): Promise<string | null> {
+async function extractCastId(runId: number, _owner: string, _repo: string): Promise<string | null> {
   // For now, we search the database for a Cast with this githubRunId
   // In the future, we should extract cast_id from workflow inputs/client_payload
   const cast = await prisma.cast.findFirst({
@@ -112,8 +112,6 @@ export async function POST(req: NextRequest) {
     const payload = JSON.parse(rawBody) as WorkflowRunPayload;
     const { action, workflow_run, repository } = payload;
 
-    console.log(`[GitHub Webhook] ${eventType}.${action} for run ${workflow_run.id}`);
-
     // Extract cast_id
     const castId = await extractCastId(
       workflow_run.id,
@@ -138,10 +136,9 @@ export async function POST(req: NextRequest) {
             githubRunAttempt: workflow_run.run_attempt,
           },
         });
-        console.log(`[GitHub Webhook] Cast ${castId} marked as running`);
         break;
 
-      case 'completed':
+      case 'completed': {
         const isSuccess = workflow_run.conclusion === 'success';
         const status = isSuccess ? 'succeeded' : 'failed';
         const finishedAt = new Date(workflow_run.updated_at);
@@ -188,22 +185,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        console.log(`[GitHub Webhook] Cast ${castId} marked as ${status}`);
-
         // Update budget spend if execution succeeded
         // Note: We charge even for failed executions (user consumed resources)
         if (updatedCast.costCents > 0) {
           try {
             await updateBudgetSpend(updatedCast.casterId, updatedCast.costCents);
-            console.log(
-              `[GitHub Webhook] Updated budget for user ${updatedCast.casterId}: +${updatedCast.costCents} cents`
-            );
           } catch (error) {
             console.error(`[GitHub Webhook] Failed to update budget:`, error);
             // Don't fail the webhook if budget update fails
           }
         }
         break;
+      }
 
       default:
         // Ignore other actions (requested, etc.)

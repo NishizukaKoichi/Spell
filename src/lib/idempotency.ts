@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -60,16 +60,22 @@ export function hashRequestPayload(payload: unknown): string {
   return crypto.createHash('sha256').update(normalized).digest('hex');
 }
 
-export async function initIdempotencyKey(params: {
-  key: string;
-  endpoint: string;
-  scope: IdempotencyScope;
-  requestPayload: unknown;
-}): Promise<InitResult> {
+type PrismaClientOrTransaction = PrismaClient | Prisma.TransactionClient;
+
+export async function initIdempotencyKey(
+  params: {
+    key: string;
+    endpoint: string;
+    scope: IdempotencyScope;
+    requestPayload: unknown;
+  },
+  client: PrismaClientOrTransaction = prisma
+): Promise<InitResult> {
   const requestHash = hashRequestPayload(params.requestPayload);
+  const db = client;
 
   try {
-    await prisma.idempotencyKey.create({
+    await db.idempotencyKey.create({
       data: {
         key: params.key,
         endpoint: params.endpoint,
@@ -81,7 +87,7 @@ export async function initIdempotencyKey(params: {
     return { state: 'proceed', requestHash };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === IDEMPOTENCY_UNIQUE_CONSTRAINT) {
-      const existing = await prisma.idempotencyKey.findUnique({
+      const existing = await db.idempotencyKey.findUnique({
         where: {
           key_endpoint_scope: {
             key: params.key,
@@ -116,14 +122,17 @@ export async function initIdempotencyKey(params: {
   }
 }
 
-export async function persistIdempotencyResult(params: {
-  key: string;
-  endpoint: string;
-  scope: IdempotencyScope;
-  responseStatus: number;
-  responseBody: unknown;
-}): Promise<void> {
-  await prisma.idempotencyKey.update({
+export async function persistIdempotencyResult(
+  params: {
+    key: string;
+    endpoint: string;
+    scope: IdempotencyScope;
+    responseStatus: number;
+    responseBody: unknown;
+  },
+  client: PrismaClientOrTransaction = prisma
+): Promise<void> {
+  await client.idempotencyKey.update({
     where: {
       key_endpoint_scope: {
         key: params.key,

@@ -96,8 +96,6 @@ export async function POST(req: NextRequest) {
         maxAge: 30 * 24 * 60 * 60, // 30 days
         path: '/',
       });
-
-      console.log('[AuthVerify] Session created for user:', authenticator.users.email);
     } catch (error) {
       console.error('[AuthVerify] Session creation error:', error);
       return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });

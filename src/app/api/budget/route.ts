@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
-import { getBudgetStatus, resetBudget } from '@/lib/budget';
+import { getBudgetStatus } from '@/lib/budget';
 
 // GET /api/budget - Get user's budget
 export async function GET(_req: NextRequest) {

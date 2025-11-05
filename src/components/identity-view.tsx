@@ -212,7 +212,7 @@ export function IdentityView() {
 
       setShowAddDialog(false)
       setNewPasskeyName("")
-    } catch (error) {
+    } catch {
       toast({
         title: t.identity.error,
         description: t.identity.failedToAddPasskey,

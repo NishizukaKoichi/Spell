@@ -29,6 +29,7 @@ import { useLanguage } from "@/lib/i18n/language-provider"
 interface ChatSidebarProps {
   isOpen: boolean
   onClose: () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onItemSelect?: (item: { type: string; name: string; data?: any }) => void
 }
 

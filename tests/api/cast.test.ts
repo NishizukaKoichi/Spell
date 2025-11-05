@@ -20,7 +20,8 @@ describe('Cast API (v1)', () => {
 
       assert.equal(response.status, 401);
       const data = await response.json();
-      assert.ok(typeof data.error === 'string' && data.error.includes('Authorization'));
+      assert.equal(data.error.code, 'UNAUTHORIZED');
+      assert.ok(typeof data.error.message === 'string' && data.error.message.includes('Authorization'));
     });
 
     it('should require Bearer token format', async () => {
@@ -37,6 +38,8 @@ describe('Cast API (v1)', () => {
       });
 
       assert.equal(response.status, 401);
+      const data = await response.json();
+      assert.equal(data.error.code, 'UNAUTHORIZED');
     });
 
     it('should require spell_key', async () => {
@@ -45,15 +48,17 @@ describe('Cast API (v1)', () => {
         headers: {
           Authorization: `Bearer ${TEST_API_KEY}`,
           'Content-Type': 'application/json',
+          'Idempotency-Key': 'test-require-spell-key',
         },
         body: JSON.stringify({
           input: {},
         }),
       });
 
-      assert.equal(response.status, 400);
+      assert.equal(response.status, 422);
       const data = await response.json();
-      assert.ok(typeof data.error === 'string' && data.error.includes('spell_key'));
+      assert.equal(data.error.code, 'VALIDATION_ERROR');
+      assert.ok(typeof data.error.message === 'string' && data.error.message.includes('spell_key'));
     });
 
     it('should return 404 for non-existent spell', async () => {
@@ -62,6 +67,7 @@ describe('Cast API (v1)', () => {
         headers: {
           Authorization: `Bearer ${TEST_API_KEY}`,
           'Content-Type': 'application/json',
+          'Idempotency-Key': 'test-missing-spell',
         },
         body: JSON.stringify({
           spell_key: 'nonexistent-spell-key',
@@ -74,12 +80,13 @@ describe('Cast API (v1)', () => {
     });
 
     it('should enforce rate limiting', async () => {
-      const requests = Array.from({ length: 65 }, () =>
+      const requests = Array.from({ length: 65 }, (_, index) =>
         fetch(`${BASE_URL}/api/v1/cast`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${TEST_API_KEY}`,
             'Content-Type': 'application/json',
+            'Idempotency-Key': `rate-limit-test-${Date.now()}-${index}-${Math.random()}`,
           },
           body: JSON.stringify({
             spell_key: 'test-spell',

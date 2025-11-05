@@ -81,7 +81,7 @@ export async function getPaymentMethods() {
   return { paymentMethods: [] }
 }
 
-export async function deletePaymentMethod(paymentMethodId: string) {
+export async function deletePaymentMethod(_paymentMethodId: string) {
   const session = await auth()
 
   if (!session?.user) {

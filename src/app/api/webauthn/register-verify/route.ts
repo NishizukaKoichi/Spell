@@ -99,8 +99,6 @@ export async function POST(req: NextRequest) {
         maxAge: 30 * 24 * 60 * 60, // 30 days
         path: '/',
       });
-
-      console.log('[RegisterVerify] Session created for user:', user.email);
     } catch (error) {
       console.error('[RegisterVerify] Session creation error:', error);
       // Continue even if session creation fails

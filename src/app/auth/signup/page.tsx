@@ -54,8 +54,7 @@ export default function SignUpPage() {
         throw new Error(error.error || 'Registration failed');
       }
 
-      const result = await verifyResponse.json();
-      console.log('[SignUp] Registration successful:', result.email);
+      await verifyResponse.json();
 
       // Redirect to home page (user is now logged in automatically)
       window.location.href = '/';

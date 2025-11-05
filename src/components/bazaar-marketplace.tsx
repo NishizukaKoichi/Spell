@@ -90,8 +90,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
   const [showRemoveFromFolderConfirm, setShowRemoveFromFolderConfirm] = useState(false)
   const [spellToRemoveFromFolder, setSpellToRemoveFromFolder] = useState<string | null>(null)
 
-  const SPELLS_PER_PAGE = 12
-
+  
   useEffect(() => {
     const storedGrimoire = localStorage.getItem("spell-grimoire")
     if (storedGrimoire) {

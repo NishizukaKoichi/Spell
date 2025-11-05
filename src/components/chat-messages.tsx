@@ -1,12 +1,6 @@
 "use client"
 import { Sparkles, BookOpen, Store, Key, Settings, User, WandSparkles } from "lucide-react"
 
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-}
-
 interface SpellMetadata {
   name: string
   author: string
@@ -18,6 +12,7 @@ interface SpellMetadata {
 interface SelectedItem {
   type: string
   name: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
 }
 

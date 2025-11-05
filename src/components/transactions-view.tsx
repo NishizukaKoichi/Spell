@@ -105,7 +105,7 @@ export function TransactionsView() {
       ? sampleExecutions
       : sampleExecutions.filter((execution) => execution.category === filterCategory)
 
-  const getCategoryColor = (category: SpellExecution["category"]) => {
+  const getCategoryColor = (_category: SpellExecution["category"]) => {
     return "text-muted-foreground"
   }
 
@@ -145,19 +145,6 @@ export function TransactionsView() {
   const successCount = sampleExecutions.filter((exec) => exec.status === "success").length
   const processingCount = sampleExecutions.filter((exec) => exec.status === "processing").length
   const failedCount = sampleExecutions.filter((exec) => exec.status === "failed").length
-
-  const getCategoryIcon = (category: SpellExecution["category"]) => {
-    switch (category) {
-      case "Productivity":
-        return <Scroll className="h-5 w-5 text-primary" />
-      case "Creative":
-        return <Scroll className="h-5 w-5 text-orange-500" />
-      case "Analytics":
-        return <Scroll className="h-5 w-5 text-blue-500" />
-      case "Collaboration":
-        return <Scroll className="h-5 w-5 text-purple-500" />
-    }
-  }
 
   const getStatusIcon = (status: SpellExecution["status"]) => {
     switch (status) {

@@ -19,8 +19,6 @@ export default function SignInPage() {
         throw new Error('Passkeys are not supported in this browser');
       }
 
-      console.log('[SignIn] Starting passkey authentication');
-
       // Get authentication options (no email needed for discoverable credentials)
       const optionsResponse = await fetch('/api/webauthn/auth-options', {
         method: 'POST',
@@ -52,8 +50,7 @@ export default function SignInPage() {
         throw new Error(errorData.error || 'Authentication failed');
       }
 
-      const result = await verifyResponse.json();
-      console.log('[SignIn] Authentication successful:', result.email);
+      await verifyResponse.json();
 
       // Redirect to home page (splash screen will redirect to dashboard)
       window.location.href = '/';

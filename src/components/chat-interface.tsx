@@ -49,6 +49,7 @@ interface ExecutionResult {
 interface SelectedItem {
   type: string
   name: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
 }
 
@@ -72,7 +73,6 @@ export function ChatInterface() {
   }
 
   const executeSpell = (content: string) => {
-    console.log("[v0] Executing spell:", content)
     const result: ExecutionResult = {
       spellName: selectedSpell?.name || content,
       timestamp: new Date().toISOString(),
@@ -119,7 +119,6 @@ export function ChatInterface() {
   }
 
   const handleItemSelect = (item: SelectedItem) => {
-    console.log("[v0] Item selected:", item)
     setSelectedItem(item)
     // モバイルでサイドバーを閉じる
     if (window.innerWidth < 768) {
