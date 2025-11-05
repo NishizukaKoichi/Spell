@@ -62,3 +62,7 @@ next-env.d.ts
 ops/
 kamui-4d-start.sh
 KAMUI-4D.md
+.codex.yaml
+tasks/
+.tmp/
+.pnpm-store/
