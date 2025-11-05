@@ -104,13 +104,13 @@ See [deployment guide](docs/deployment.md) for details.
 
 ### Technology Stack
 
-- **Frontend**: Next.js 15 + React 19 + Tailwind CSS
+- **Frontend**: Next.js 16 + React 19 + Tailwind CSS
 - **API**: Rust (Actix-web) + Cloudflare Workers
 - **Runtime**: wasmer/wasmtime for WASM execution
-- **Database**: PlanetScale (MySQL)
+- **Database**: PostgreSQL (Neon)
 - **Storage**: Cloudflare R2
 - **Messaging**: NATS JetStream
-- **Auth**: GitHub OAuth + WebAuthn
+- **Auth**: GitHub OAuth + WebAuthn (Passkeys)
 - **Payments**: Stripe
 
 ## Security
