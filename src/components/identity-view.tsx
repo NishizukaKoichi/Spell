@@ -93,7 +93,7 @@ export function IdentityView() {
     {
       id: "ak-001",
       name: "Production API",
-      key: "sk_live_51234567890abcdefghijklmnopqrstuvwxyz",
+      key: "spell_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       createdAt: "2024-01-01T00:00:00Z",
       lastUsed: "2024-01-14T12:00:00Z",
       permissions: ["read", "write", "execute"],
@@ -101,7 +101,7 @@ export function IdentityView() {
     {
       id: "ak-002",
       name: "Development API",
-      key: "sk_test_98765432109876543210987654321098765432",
+      key: "spell_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       createdAt: "2023-12-15T10:30:00Z",
       lastUsed: "2024-01-13T16:45:00Z",
       permissions: ["read", "execute"],
