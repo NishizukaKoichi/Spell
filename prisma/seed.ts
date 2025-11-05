@@ -38,7 +38,7 @@ async function main() {
         'This spell allows you to resize images to any dimension while maintaining high quality. Perfect for batch processing, thumbnail generation, and responsive image workflows.',
       version: '1.0.0',
       priceModel: 'metered',
-      priceAmount: 50, // $0.50
+      priceAmountCents: 50, // $0.50
       priceCurrency: 'USD',
       executionMode: 'workflow',
       tags: ['image', 'resize', 'utility'],
@@ -61,7 +61,7 @@ async function main() {
         'Convert various document formats (DOCX, XLSX, PPTX, HTML) to PDF with high fidelity. Supports batch conversion and custom page settings.',
       version: '1.0.0',
       priceModel: 'one_time',
-      priceAmount: 299, // $2.99
+      priceAmountCents: 299, // $2.99
       priceCurrency: 'USD',
       executionMode: 'workflow',
       tags: ['pdf', 'converter', 'document'],
@@ -84,7 +84,7 @@ async function main() {
         'Professional video transcoding with support for all major formats (MP4, WebM, MOV, AVI). Includes resolution scaling, bitrate control, and codec selection.',
       version: '1.0.0',
       priceModel: 'metered',
-      priceAmount: 150, // $1.50
+      priceAmountCents: 150, // $1.50
       priceCurrency: 'USD',
       executionMode: 'workflow',
       tags: ['video', 'transcode', 'media'],
@@ -107,7 +107,7 @@ async function main() {
         'Using advanced AI models, this spell generates accurate and concise summaries of long documents, articles, and texts. Supports multiple languages and custom summary lengths.',
       version: '1.0.0',
       priceModel: 'metered',
-      priceAmount: 25, // $0.25
+      priceAmountCents: 25, // $0.25
       priceCurrency: 'USD',
       executionMode: 'workflow',
       tags: ['ai', 'text', 'nlp', 'summary'],
@@ -130,7 +130,7 @@ async function main() {
         'Validate your data files against custom schemas. Supports JSON Schema, CSV headers, and XML DTD/XSD. Returns detailed validation reports.',
       version: '1.0.0',
       priceModel: 'one_time',
-      priceAmount: 99, // $0.99
+      priceAmountCents: 99, // $0.99
       priceCurrency: 'USD',
       executionMode: 'workflow',
       tags: ['validation', 'data', 'schema'],

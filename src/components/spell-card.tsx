@@ -10,7 +10,7 @@ interface SpellCardProps {
 
 export function SpellCard({ spell }: SpellCardProps) {
   const formatPrice = () => {
-    const dollars = spell.priceAmount / 100;
+    const dollars = spell.priceAmountCents / 100;
     if (spell.priceModel === 'one_time') {
       return `$${dollars.toFixed(2)} one-time`;
     } else if (spell.priceModel === 'metered') {

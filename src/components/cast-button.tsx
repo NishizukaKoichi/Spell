@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation';
 
 interface CastButtonProps {
   spellId: string;
-  priceAmount?: number;
+  priceAmountCents?: number;
 }
 
-export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
+export function CastButton({ spellId, priceAmountCents = 0 }: CastButtonProps) {
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
@@ -26,7 +26,7 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
 
     try {
       // If spell requires payment, redirect to Stripe checkout
-      if (priceAmount > 0) {
+      if (priceAmountCents > 0) {
         const checkoutResponse = await fetch('/api/create-checkout-session', {
           method: 'POST',
           headers: {
@@ -84,8 +84,8 @@ export function CastButton({ spellId, priceAmount = 0 }: CastButtonProps) {
       <Zap className="h-5 w-5" />
       {loading
         ? 'Processing...'
-        : priceAmount > 0
-          ? `Cast for $${(priceAmount / 100).toFixed(2)}`
+        : priceAmountCents > 0
+          ? `Cast for $${(priceAmountCents / 100).toFixed(2)}`
           : 'Cast Spell'}
     </Button>
   );
