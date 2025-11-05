@@ -54,3 +54,11 @@ next-env.d.ts
 .kamui/
 
 /src/generated/prisma
+
+# CI/CD artifacts
+.artifacts/
+
+# Development tools
+ops/
+kamui-4d-start.sh
+KAMUI-4D.md
