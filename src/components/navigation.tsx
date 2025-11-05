@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Zap, BookOpen, History, User, LogOut, Menu, X } from 'lucide-react';
+import { Zap, BookOpen, History, User, LogOut, Menu, X, MessageSquare } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/', label: 'Marketplace', icon: BookOpen },
+  { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/my-spells', label: 'My Spells', icon: Zap },
   { href: '/casts', label: 'Cast History', icon: History },
   { href: '/profile', label: 'Profile', icon: User },
