@@ -44,11 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<RouteP
     if (repoOverride) {
       const [o, r] = repoOverride.split('/');
       if (!o || !r) {
-        return apiError(
-          'VALIDATION_ERROR',
-          422,
-          'repo query param must be in the form owner/repo'
-        );
+        return apiError('VALIDATION_ERROR', 422, 'repo query param must be in the form owner/repo');
       }
       owner = o;
       repo = r;
@@ -92,11 +88,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<RouteP
           throw error;
         } else {
           console.error('Failed to resolve artifact download URL:', error);
-          throw new GitHubAppError(
-            'Failed to resolve artifact download URL',
-            'INTERNAL',
-            500
-          );
+          throw new GitHubAppError('Failed to resolve artifact download URL', 'INTERNAL', 500);
         }
       }
 

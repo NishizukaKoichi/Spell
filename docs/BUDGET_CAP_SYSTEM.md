@@ -41,6 +41,7 @@ User → POST /api/v1/cast
 **認証**: Session required
 
 **Response (200 OK)**:
+
 ```json
 {
   "monthlyCap": 100.0,
@@ -59,6 +60,7 @@ User → POST /api/v1/cast
 **認証**: Session required
 
 **Request Body**:
+
 ```json
 {
   "monthlyCap": 200.0
@@ -66,6 +68,7 @@ User → POST /api/v1/cast
 ```
 
 **Response (200 OK)**:
+
 ```json
 {
   "monthlyCap": 200.0,
@@ -81,6 +84,7 @@ User → POST /api/v1/cast
 **認証**: Session required
 
 **Response (200 OK)**:
+
 ```json
 {
   "message": "Budget reset successfully",
@@ -100,6 +104,7 @@ User → POST /api/v1/cast
 Spell実行時に自動的に予算チェック
 
 **Error Response (402 Payment Required)**:
+
 ```json
 {
   "error": {
@@ -118,6 +123,7 @@ Spell実行時に自動的に予算チェック
 ```
 
 **Headers**:
+
 ```
 Retry-After: 1382400  # seconds until budget resets
 ```
@@ -174,8 +180,8 @@ export async function checkBudget(
   // Check if monthly reset is needed
   const now = new Date();
   const lastReset = new Date(budget.lastResetAt);
-  const monthsDiff = (now.getFullYear() - lastReset.getFullYear()) * 12
-                     + now.getMonth() - lastReset.getMonth();
+  const monthsDiff =
+    (now.getFullYear() - lastReset.getFullYear()) * 12 + now.getMonth() - lastReset.getMonth();
 
   if (monthsDiff >= 1) {
     budget = await prisma.budgets.update({
@@ -195,10 +201,7 @@ export async function checkBudget(
 
 ```typescript
 // src/lib/budget.ts
-export async function updateBudgetSpend(
-  userId: string,
-  actualCostCents: number
-): Promise<void> {
+export async function updateBudgetSpend(userId: string, actualCostCents: number): Promise<void> {
   const actualCost = actualCostCents / 100;
 
   await prisma.budgets.update({
@@ -224,7 +227,11 @@ export async function POST(req: NextRequest) {
 
   if (!budgetCheck.allowed) {
     return new Response(
-      JSON.stringify({ error: { /* budget error */ } }),
+      JSON.stringify({
+        error: {
+          /* budget error */
+        },
+      }),
       {
         status: 402,
         headers: {
@@ -323,8 +330,7 @@ case 'completed':
 
 ```typescript
 const monthsDiff =
-  (now.getFullYear() - lastReset.getFullYear()) * 12
-  + now.getMonth() - lastReset.getMonth();
+  (now.getFullYear() - lastReset.getFullYear()) * 12 + now.getMonth() - lastReset.getMonth();
 
 if (monthsDiff >= 1) {
   await prisma.budgets.update({
@@ -364,17 +370,19 @@ curl -X POST http://localhost:3000/api/budget/reset \
 // Check budget before execution
 async function castSpellWithBudgetCheck(spellKey: string, input: any) {
   // Get current budget
-  const budget = await fetch('/api/budget').then(r => r.json());
+  const budget = await fetch('/api/budget').then((r) => r.json());
 
   console.log(`Budget: $${budget.currentSpend.toFixed(2)} / $${budget.monthlyCap.toFixed(2)}`);
-  console.log(`Remaining: $${budget.remaining.toFixed(2)} (${(100 - budget.percentUsed).toFixed(1)}%)`);
+  console.log(
+    `Remaining: $${budget.remaining.toFixed(2)} (${(100 - budget.percentUsed).toFixed(1)}%)`
+  );
 
   // Execute spell
   try {
     const response = await fetch('/api/v1/cast', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        Authorization: 'Bearer YOUR_API_KEY',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ spell_key: spellKey, input }),
@@ -458,13 +466,16 @@ curl -X GET http://localhost:3000/api/budget
 - ⚠️ 現状: Last-write-wins（リスク低）
 
 **将来的な改善案**:
+
 ```typescript
 await prisma.$transaction(async (tx) => {
   const budget = await tx.budgets.findUnique({ where: { userId } });
   if (budget.currentSpend + cost > budget.monthlyCap) {
     throw new Error('BUDGET_CAP_EXCEEDED');
   }
-  await tx.cast.create({ /* ... */ });
+  await tx.cast.create({
+    /* ... */
+  });
   await tx.budgets.update({
     where: { userId },
     data: { currentSpend: { increment: cost } },
@@ -532,17 +543,17 @@ if (updatedCast.costCents > 0) {
 
 ## 実装状況
 
-| 機能 | 状態 |
-|------|------|
-| Pre-execution budget check | ✅ 完成 |
-| 402 Payment Required error | ✅ 完成 |
-| Post-execution budget update | ✅ 完成 |
-| Auto monthly reset | ✅ 完成 |
-| GET /api/budget | ✅ 完成 |
-| PATCH /api/budget | ✅ 完成 |
-| POST /api/budget/reset | ✅ 完成 |
-| Transaction safety | ⚠️ 検討中 |
-| UI components | ⚠️ 未実装 |
+| 機能                         | 状態      |
+| ---------------------------- | --------- |
+| Pre-execution budget check   | ✅ 完成   |
+| 402 Payment Required error   | ✅ 完成   |
+| Post-execution budget update | ✅ 完成   |
+| Auto monthly reset           | ✅ 完成   |
+| GET /api/budget              | ✅ 完成   |
+| PATCH /api/budget            | ✅ 完成   |
+| POST /api/budget/reset       | ✅ 完成   |
+| Transaction safety           | ⚠️ 検討中 |
+| UI components                | ⚠️ 未実装 |
 
 **Budget Cap システムの完成度: 95%** 🎉
 

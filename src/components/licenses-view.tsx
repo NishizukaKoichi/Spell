@@ -1,131 +1,131 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { ScrollArea } from "./ui/scroll-area"
-import { FileCheck, CheckCircle2, Clock, XCircle, Download } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog"
-import { Badge } from "./ui/badge"
-import { Button } from "./ui/button"
-import { useLanguage } from "@/lib/i18n/language-provider"
+import { useState } from 'react';
+import { ScrollArea } from './ui/scroll-area';
+import { FileCheck, CheckCircle2, Clock, XCircle, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { useLanguage } from '@/lib/i18n/language-provider';
 
 interface License {
-  id: string
-  spellName: string
-  author: string
-  category: string
-  purchasedAt: string
-  expiresAt: string | null
-  status: "active" | "expired" | "pending"
-  licenseKey: string
-  licenseFee: number
-  type: "one-time" | "subscription"
+  id: string;
+  spellName: string;
+  author: string;
+  category: string;
+  purchasedAt: string;
+  expiresAt: string | null;
+  status: 'active' | 'expired' | 'pending';
+  licenseKey: string;
+  licenseFee: number;
+  type: 'one-time' | 'subscription';
 }
 
 export function LicensesView() {
-  const { t } = useLanguage()
-  const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
+  const { t } = useLanguage();
+  const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
 
   const licenses: License[] = [
     {
-      id: "1",
-      spellName: "Time Acceleration",
-      author: "Chronos Mage",
-      category: "Productivity",
-      purchasedAt: "2024-01-15T10:30:00Z",
+      id: '1',
+      spellName: 'Time Acceleration',
+      author: 'Chronos Mage',
+      category: 'Productivity',
+      purchasedAt: '2024-01-15T10:30:00Z',
       expiresAt: null,
-      status: "active",
-      licenseKey: "TA-XXXX-XXXX-XXXX",
+      status: 'active',
+      licenseKey: 'TA-XXXX-XXXX-XXXX',
       licenseFee: 5000,
-      type: "one-time",
+      type: 'one-time',
     },
     {
-      id: "2",
-      spellName: "Creative Flames",
-      author: "Pyro Artist",
-      category: "Creative",
-      purchasedAt: "2024-02-20T14:15:00Z",
-      expiresAt: "2025-02-20T14:15:00Z",
-      status: "active",
-      licenseKey: "CF-XXXX-XXXX-XXXX",
+      id: '2',
+      spellName: 'Creative Flames',
+      author: 'Pyro Artist',
+      category: 'Creative',
+      purchasedAt: '2024-02-20T14:15:00Z',
+      expiresAt: '2025-02-20T14:15:00Z',
+      status: 'active',
+      licenseKey: 'CF-XXXX-XXXX-XXXX',
       licenseFee: 1200,
-      type: "subscription",
+      type: 'subscription',
     },
     {
-      id: "3",
-      spellName: "Data Insight",
-      author: "Oracle Sage",
-      category: "Analytics",
-      purchasedAt: "2023-12-01T09:00:00Z",
-      expiresAt: "2024-12-01T09:00:00Z",
-      status: "expired",
-      licenseKey: "DI-XXXX-XXXX-XXXX",
+      id: '3',
+      spellName: 'Data Insight',
+      author: 'Oracle Sage',
+      category: 'Analytics',
+      purchasedAt: '2023-12-01T09:00:00Z',
+      expiresAt: '2024-12-01T09:00:00Z',
+      status: 'expired',
+      licenseKey: 'DI-XXXX-XXXX-XXXX',
       licenseFee: 800,
-      type: "subscription",
+      type: 'subscription',
     },
     {
-      id: "4",
-      spellName: "Shield Protocol",
-      author: "Guardian Wizard",
-      category: "Security",
-      purchasedAt: "2024-03-10T16:45:00Z",
+      id: '4',
+      spellName: 'Shield Protocol',
+      author: 'Guardian Wizard',
+      category: 'Security',
+      purchasedAt: '2024-03-10T16:45:00Z',
       expiresAt: null,
-      status: "active",
-      licenseKey: "SP-XXXX-XXXX-XXXX",
+      status: 'active',
+      licenseKey: 'SP-XXXX-XXXX-XXXX',
       licenseFee: 8000,
-      type: "one-time",
+      type: 'one-time',
     },
     {
-      id: "5",
-      spellName: "Memory Enhancement",
-      author: "Mind Master",
-      category: "Productivity",
-      purchasedAt: "2024-03-25T11:20:00Z",
-      expiresAt: "2024-06-25T11:20:00Z",
-      status: "pending",
-      licenseKey: "ME-XXXX-XXXX-XXXX",
+      id: '5',
+      spellName: 'Memory Enhancement',
+      author: 'Mind Master',
+      category: 'Productivity',
+      purchasedAt: '2024-03-25T11:20:00Z',
+      expiresAt: '2024-06-25T11:20:00Z',
+      status: 'pending',
+      licenseKey: 'ME-XXXX-XXXX-XXXX',
       licenseFee: 600,
-      type: "subscription",
+      type: 'subscription',
     },
-  ]
+  ];
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "active":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
-      case "expired":
-        return <XCircle className="h-4 w-4 text-red-500" />
-      case "pending":
-        return <Clock className="h-4 w-4 text-yellow-500" />
+      case 'active':
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case 'expired':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "active":
-        return t("licenses.active")
-      case "expired":
-        return t("licenses.expired")
-      case "pending":
-        return t("licenses.pending")
+      case 'active':
+        return t('licenses.active');
+      case 'expired':
+        return t('licenses.expired');
+      case 'pending':
+        return t('licenses.pending');
       default:
-        return status
+        return status;
     }
-  }
+  };
 
-  const activeLicenses = licenses.filter((l) => l.status === "active").length
-  const totalLicenses = licenses.length
-  const totalLicenseFees = licenses.reduce((sum, license) => sum + license.licenseFee, 0)
+  const activeLicenses = licenses.filter((l) => l.status === 'active').length;
+  const totalLicenses = licenses.length;
+  const totalLicenseFees = licenses.reduce((sum, license) => sum + license.licenseFee, 0);
 
   const downloadLicense = (license: License) => {
     const licenseData = {
@@ -139,20 +139,20 @@ export function LicensesView() {
       purchasedAt: license.purchasedAt,
       expiresAt: license.expiresAt,
       status: license.status,
-      currency: "JPY",
+      currency: 'JPY',
       generatedAt: new Date().toISOString(),
-    }
+    };
 
-    const blob = new Blob([JSON.stringify(licenseData, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `license-${license.id}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+    const blob = new Blob([JSON.stringify(licenseData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `license-${license.id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -182,7 +182,9 @@ export function LicensesView() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">{t.licenses.totalLicenseFees}</p>
-            <p className="text-2xl font-bold text-foreground">¥{totalLicenseFees.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">
+              ¥{totalLicenseFees.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
@@ -193,7 +195,9 @@ export function LicensesView() {
           {licenses.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">{t.licenses.noLicensesYet}</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t.licenses.noLicensesYet}
+              </h3>
               <p className="text-sm text-muted-foreground max-w-md">
                 {t.licenses.noLicensesDescription}
                 <br />
@@ -213,7 +217,9 @@ export function LicensesView() {
                       <h3 className="font-semibold text-foreground">{license.spellName}</h3>
                       <div className="flex items-center gap-1">
                         {getStatusIcon(license.status)}
-                        <span className="text-sm text-muted-foreground">{getStatusText(license.status)}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {getStatusText(license.status)}
+                        </span>
                       </div>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">by {license.author}</p>
@@ -225,7 +231,9 @@ export function LicensesView() {
                       <div>
                         <span className="text-muted-foreground">{t.licenses.typeLabel}: </span>
                         <span className="text-foreground">
-                          {license.type === "one-time" ? t.licenses.oneTime : t.licenses.subscription}
+                          {license.type === 'one-time'
+                            ? t.licenses.oneTime
+                            : t.licenses.subscription}
                         </span>
                       </div>
                       <div>
@@ -240,11 +248,15 @@ export function LicensesView() {
                       )}
                       <div>
                         <span className="text-muted-foreground">{t.licenses.licenseFee}: </span>
-                        <span className="text-foreground font-semibold">¥{license.licenseFee.toLocaleString()}</span>
+                        <span className="text-foreground font-semibold">
+                          ¥{license.licenseFee.toLocaleString()}
+                        </span>
                       </div>
                     </div>
                     <div className="mt-2">
-                      <span className="text-muted-foreground text-sm">{t.licenses.licenseKey}: </span>
+                      <span className="text-muted-foreground text-sm">
+                        {t.licenses.licenseKey}:{' '}
+                      </span>
                       <code className="rounded bg-muted px-2 py-1 text-sm text-foreground font-mono">
                         {license.licenseKey}
                       </code>
@@ -276,7 +288,9 @@ export function LicensesView() {
                   <p className="mt-1 text-muted-foreground">by {selectedLicense.author}</p>
                   <div className="mt-2 flex items-center gap-2">
                     {getStatusIcon(selectedLicense.status)}
-                    <span className="text-sm font-medium text-foreground">{getStatusText(selectedLicense.status)}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {getStatusText(selectedLicense.status)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -289,7 +303,9 @@ export function LicensesView() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t.licenses.licenseFee}</p>
-                    <p className="text-xl font-bold text-foreground">¥{selectedLicense.licenseFee.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-foreground">
+                      ¥{selectedLicense.licenseFee.toLocaleString()}
+                    </p>
                   </div>
                 </div>
 
@@ -304,7 +320,9 @@ export function LicensesView() {
                   <div>
                     <p className="text-sm text-muted-foreground">{t.licenses.licenseType}</p>
                     <Badge variant="outline" className="mt-1">
-                      {selectedLicense.type === "one-time" ? t.licenses.oneTimePurchase : t.licenses.subscription}
+                      {selectedLicense.type === 'one-time'
+                        ? t.licenses.oneTimePurchase
+                        : t.licenses.subscription}
                     </Badge>
                   </div>
                   <div>
@@ -334,8 +352,12 @@ export function LicensesView() {
               </div>
 
               <div className="rounded-lg border border-border bg-card p-4">
-                <h4 className="mb-2 font-semibold text-foreground">{t.licenses.aboutLicenseFees}</h4>
-                <p className="text-sm text-muted-foreground">{t.licenses.aboutLicenseFeesDescription}</p>
+                <h4 className="mb-2 font-semibold text-foreground">
+                  {t.licenses.aboutLicenseFees}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {t.licenses.aboutLicenseFeesDescription}
+                </p>
               </div>
 
               <div className="flex justify-end">
@@ -349,5 +371,5 @@ export function LicensesView() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -25,7 +25,16 @@ interface WorkflowRunPayload {
     head_branch: string;
     head_sha: string;
     status: 'queued' | 'in_progress' | 'completed';
-    conclusion: 'success' | 'failure' | 'cancelled' | 'timed_out' | 'action_required' | 'neutral' | 'skipped' | 'stale' | null;
+    conclusion:
+      | 'success'
+      | 'failure'
+      | 'cancelled'
+      | 'timed_out'
+      | 'action_required'
+      | 'neutral'
+      | 'skipped'
+      | 'stale'
+      | null;
     html_url: string;
     run_attempt: number;
     created_at: string;
@@ -55,10 +64,7 @@ function verifySignature(payload: string, signature: string, secret: string): bo
   const calculatedSignature = hmac.digest('hex');
 
   // Use timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature),
-    Buffer.from(calculatedSignature)
-  );
+  return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(calculatedSignature));
 }
 
 /**
@@ -113,11 +119,7 @@ export async function POST(req: NextRequest) {
     const { action, workflow_run, repository } = payload;
 
     // Extract cast_id
-    const castId = await extractCastId(
-      workflow_run.id,
-      repository.owner.login,
-      repository.name
-    );
+    const castId = await extractCastId(workflow_run.id, repository.owner.login, repository.name);
 
     if (!castId) {
       console.warn(`[GitHub Webhook] No cast found for run ${workflow_run.id}`);

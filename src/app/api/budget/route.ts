@@ -33,8 +33,15 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { monthlyCapCents } = body;
 
-    if (typeof monthlyCapCents !== 'number' || monthlyCapCents < 0 || !Number.isInteger(monthlyCapCents)) {
-      return NextResponse.json({ error: 'Invalid monthly cap value (must be positive integer in cents)' }, { status: 400 });
+    if (
+      typeof monthlyCapCents !== 'number' ||
+      monthlyCapCents < 0 ||
+      !Number.isInteger(monthlyCapCents)
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid monthly cap value (must be positive integer in cents)' },
+        { status: 400 }
+      );
     }
 
     const budget = await prisma.budgets.upsert({

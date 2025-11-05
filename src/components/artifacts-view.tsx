@@ -1,93 +1,93 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { ScrollArea } from "./ui/scroll-area"
-import { Package, Calendar, User, Download, Shield, Scroll } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
-import { Button } from "./ui/button"
-import { useLanguage } from "@/lib/i18n/language-provider"
+import { useState } from 'react';
+import { ScrollArea } from './ui/scroll-area';
+import { Package, Calendar, User, Download, Shield, Scroll } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { useLanguage } from '@/lib/i18n/language-provider';
 
 interface Artifact {
-  id: string
-  name: string
-  type: "App" | "Tool" | "Template"
-  acquiredAt: string
-  author: string
-  version: string
-  description?: string
-  category: "Productivity" | "Creative" | "Analytics" | "Collaboration"
-  signed: boolean
-  redistributable: boolean
-  image?: string // Added image field for consistency with Bazaar
-  isNew?: boolean // Added isNew flag for newly acquired artifacts
+  id: string;
+  name: string;
+  type: 'App' | 'Tool' | 'Template';
+  acquiredAt: string;
+  author: string;
+  version: string;
+  description?: string;
+  category: 'Productivity' | 'Creative' | 'Analytics' | 'Collaboration';
+  signed: boolean;
+  redistributable: boolean;
+  image?: string; // Added image field for consistency with Bazaar
+  isNew?: boolean; // Added isNew flag for newly acquired artifacts
 }
 
 export function ArtifactsView() {
-  const { t } = useLanguage()
-  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null)
-  const [viewedArtifacts, setViewedArtifacts] = useState<Set<string>>(new Set())
+  const { t } = useLanguage();
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+  const [viewedArtifacts, setViewedArtifacts] = useState<Set<string>>(new Set());
 
   const artifacts: Artifact[] = [
     {
-      id: "art-001",
-      name: "Data Analysis Eye",
-      type: "App",
-      acquiredAt: "2024-01-14T15:45:00Z",
-      author: "Analytics Sorcerer",
-      version: "2.3.0",
-      description: "Standalone data visualization app. Deployable and redistributable.",
-      category: "Analytics",
+      id: 'art-001',
+      name: 'Data Analysis Eye',
+      type: 'App',
+      acquiredAt: '2024-01-14T15:45:00Z',
+      author: 'Analytics Sorcerer',
+      version: '2.3.0',
+      description: 'Standalone data visualization app. Deployable and redistributable.',
+      category: 'Analytics',
       signed: true,
       redistributable: true,
-      image: "/data-analytics-eye-visualization.jpg",
+      image: '/data-analytics-eye-visualization.jpg',
       isNew: true, // Mark as newly acquired
     },
     {
-      id: "art-002",
-      name: "Automation Spirit",
-      type: "App",
-      acquiredAt: "2024-01-13T09:20:00Z",
-      author: "Automation Mage",
-      version: "1.0.0",
-      description: "Reusable automation tool. Can be deployed independently.",
-      category: "Productivity",
+      id: 'art-002',
+      name: 'Automation Spirit',
+      type: 'App',
+      acquiredAt: '2024-01-13T09:20:00Z',
+      author: 'Automation Mage',
+      version: '1.0.0',
+      description: 'Reusable automation tool. Can be deployed independently.',
+      category: 'Productivity',
       signed: true,
       redistributable: true,
-      image: "/automation-spirit-robot-assistant.jpg",
+      image: '/automation-spirit-robot-assistant.jpg',
     },
     {
-      id: "art-003",
-      name: "Creative Flames",
-      type: "Tool",
-      acquiredAt: "2024-01-12T14:10:00Z",
-      author: "Creative Wizard",
-      version: "3.0.2",
-      description: "Standalone creative app. Signed and ready for redistribution.",
-      category: "Creative",
+      id: 'art-003',
+      name: 'Creative Flames',
+      type: 'Tool',
+      acquiredAt: '2024-01-12T14:10:00Z',
+      author: 'Creative Wizard',
+      version: '3.0.2',
+      description: 'Standalone creative app. Signed and ready for redistribution.',
+      category: 'Creative',
       signed: true,
       redistributable: true,
-      image: "/creative-flames-fire-art.jpg",
+      image: '/creative-flames-fire-art.jpg',
     },
     {
-      id: "art-004",
-      name: "Communication Bridge",
-      type: "Tool",
-      acquiredAt: "2024-01-11T11:00:00Z",
-      author: "Harmony Enchanter",
-      version: "1.8.0",
-      description: "Deployable collaboration app. Redistributable and signed.",
-      category: "Collaboration",
+      id: 'art-004',
+      name: 'Communication Bridge',
+      type: 'Tool',
+      acquiredAt: '2024-01-11T11:00:00Z',
+      author: 'Harmony Enchanter',
+      version: '1.8.0',
+      description: 'Deployable collaboration app. Redistributable and signed.',
+      category: 'Collaboration',
       signed: true,
       redistributable: true,
     },
-  ]
+  ];
 
   const handleArtifactClick = (artifact: Artifact) => {
-    setSelectedArtifact(artifact)
+    setSelectedArtifact(artifact);
     if (artifact.isNew) {
-      setViewedArtifacts((prev) => new Set(prev).add(artifact.id))
+      setViewedArtifacts((prev) => new Set(prev).add(artifact.id));
     }
-  }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -109,12 +109,16 @@ export function ArtifactsView() {
         <div className="mx-auto max-w-6xl px-2 py-2 sm:px-3 sm:py-3">
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div className="rounded-lg border border-border/50 bg-muted/30 p-2 sm:p-3">
-              <p className="text-xs text-muted-foreground sm:text-sm">{t.artifacts.totalArtifacts}</p>
+              <p className="text-xs text-muted-foreground sm:text-sm">
+                {t.artifacts.totalArtifacts}
+              </p>
               <p className="text-lg font-bold text-foreground sm:text-2xl">{artifacts.length}</p>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/30 p-2 sm:p-3">
               <p className="text-xs text-muted-foreground sm:text-sm">{t.artifacts.signedLabel}</p>
-              <p className="text-lg font-bold text-green-500 sm:text-2xl">{artifacts.filter((a) => a.signed).length}</p>
+              <p className="text-lg font-bold text-green-500 sm:text-2xl">
+                {artifacts.filter((a) => a.signed).length}
+              </p>
             </div>
           </div>
         </div>
@@ -128,8 +132,8 @@ export function ArtifactsView() {
               onClick={() => handleArtifactClick(artifact)}
               className={`group cursor-pointer rounded-lg border p-3 transition-all duration-200 hover:scale-[1.01] hover:border-primary/50 hover:bg-accent/50 sm:p-4 ${
                 artifact.isNew && !viewedArtifacts.has(artifact.id)
-                  ? "border-primary bg-primary/5"
-                  : "border-border/50 bg-card"
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border/50 bg-card'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -137,7 +141,7 @@ export function ArtifactsView() {
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                     {artifact.image ? (
                       <img
-                        src={artifact.image || "/placeholder.svg"}
+                        src={artifact.image || '/placeholder.svg'}
                         alt={artifact.name}
                         className="h-full w-full object-cover"
                       />
@@ -147,7 +151,9 @@ export function ArtifactsView() {
                   </div>
                   <div className="flex-1 space-y-1">
                     <h3 className="font-semibold text-foreground">{artifact.name}</h3>
-                    {artifact.description && <p className="text-sm text-muted-foreground">{artifact.description}</p>}
+                    {artifact.description && (
+                      <p className="text-sm text-muted-foreground">{artifact.description}</p>
+                    )}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground sm:gap-4 sm:text-sm">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
@@ -175,7 +181,7 @@ export function ArtifactsView() {
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                     {selectedArtifact.image ? (
                       <img
-                        src={selectedArtifact.image || "/placeholder.svg"}
+                        src={selectedArtifact.image || '/placeholder.svg'}
                         alt={selectedArtifact.name}
                         className="h-full w-full object-cover"
                       />
@@ -191,7 +197,9 @@ export function ArtifactsView() {
           {selectedArtifact && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">{t.artifacts.descriptionLabel}</h3>
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t.artifacts.descriptionLabel}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   {selectedArtifact.description || t.artifacts.noDescription}
                 </p>
@@ -237,7 +245,9 @@ export function ArtifactsView() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground">{t.artifacts.artifactId}</h3>
-                <code className="block rounded bg-muted p-2 text-xs text-muted-foreground">{selectedArtifact.id}</code>
+                <code className="block rounded bg-muted p-2 text-xs text-muted-foreground">
+                  {selectedArtifact.id}
+                </code>
               </div>
               <div className="flex gap-2">
                 <Button className="flex-1">
@@ -250,5 +260,5 @@ export function ArtifactsView() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

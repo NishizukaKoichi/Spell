@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState, useEffect } from "react"
-import { ScrollArea } from "./ui/scroll-area"
-import { Button } from "./ui/button"
+import { useState, useEffect } from 'react';
+import { ScrollArea } from './ui/scroll-area';
+import { Button } from './ui/button';
 import {
   Search,
   StoreIcon,
@@ -21,9 +21,16 @@ import {
   Trash2,
   Wand2,
   Package,
-} from "lucide-react"
-import { Input } from "./ui/input"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
+} from 'lucide-react';
+import { Input } from './ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,330 +40,347 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog"
-import { Label } from "./ui/label"
-import { useLanguage } from "@/lib/i18n/language-provider"
+} from './ui/alert-dialog';
+import { Label } from './ui/label';
+import { useLanguage } from '@/lib/i18n/language-provider';
 
 interface SpellItem {
-  id: string
-  name: string
-  author: string
-  description: string
-  longDescription: string
-  category: string
-  price: number
-  rating: number
-  downloads: number
-  features: string[]
-  requirements: string[]
-  version: string
-  lastUpdated: string
-  image?: string
-  artifactType?: "App" | "Tool" | "Template" | null // Added artifactType field
+  id: string;
+  name: string;
+  author: string;
+  description: string;
+  longDescription: string;
+  category: string;
+  price: number;
+  rating: number;
+  downloads: number;
+  features: string[];
+  requirements: string[];
+  version: string;
+  lastUpdated: string;
+  image?: string;
+  artifactType?: 'App' | 'Tool' | 'Template' | null; // Added artifactType field
 }
 
 interface FolderData {
-  id: string
-  name: string
-  spellIds: string[]
-  createdAt: string
+  id: string;
+  name: string;
+  spellIds: string[];
+  createdAt: string;
 }
 
 interface BazaarMarketplaceProps {
-  mode?: "bazaar" | "grimoire" | "folders" | "bookmarks"
-  favoritesOnly?: boolean
+  mode?: 'bazaar' | 'grimoire' | 'folders' | 'bookmarks';
+  favoritesOnly?: boolean;
 }
 
-export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: BazaarMarketplaceProps) {
-  const { t } = useLanguage()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedSpell, setSelectedSpell] = useState<SpellItem | null>(null)
-  const [displayedSpells, setDisplayedSpells] = useState<SpellItem[]>([])
-  const [allSpells, setAllSpells] = useState<SpellItem[]>([])
-  const [grimoire, setGrimoire] = useState<Set<string>>(new Set())
-  const [folders, setFolders] = useState<FolderData[]>([])
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
-  const [showFolderDialog, setShowFolderDialog] = useState(false)
-  const [newFolderName, setNewFolderName] = useState("")
-  const [editingFolder, setEditingFolder] = useState<FolderData | null>(null)
-  const [showAddToFolderDialog, setShowAddToFolderDialog] = useState(false)
-  const [spellToAddToFolder, setSpellToAddToFolder] = useState<string | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [spellToDelete, setSpellToDelete] = useState<string | null>(null)
-  const [showDeleteFolderConfirm, setShowDeleteFolderConfirm] = useState(false)
-  const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
-  const [showRemoveFromFolderConfirm, setShowRemoveFromFolderConfirm] = useState(false)
-  const [spellToRemoveFromFolder, setSpellToRemoveFromFolder] = useState<string | null>(null)
+export function BazaarMarketplace({
+  mode = 'bazaar',
+  favoritesOnly = false,
+}: BazaarMarketplaceProps) {
+  const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSpell, setSelectedSpell] = useState<SpellItem | null>(null);
+  const [displayedSpells, setDisplayedSpells] = useState<SpellItem[]>([]);
+  const [allSpells, setAllSpells] = useState<SpellItem[]>([]);
+  const [grimoire, setGrimoire] = useState<Set<string>>(new Set());
+  const [folders, setFolders] = useState<FolderData[]>([]);
+  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [editingFolder, setEditingFolder] = useState<FolderData | null>(null);
+  const [showAddToFolderDialog, setShowAddToFolderDialog] = useState(false);
+  const [spellToAddToFolder, setSpellToAddToFolder] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [spellToDelete, setSpellToDelete] = useState<string | null>(null);
+  const [showDeleteFolderConfirm, setShowDeleteFolderConfirm] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+  const [showRemoveFromFolderConfirm, setShowRemoveFromFolderConfirm] = useState(false);
+  const [spellToRemoveFromFolder, setSpellToRemoveFromFolder] = useState<string | null>(null);
 
-  
   useEffect(() => {
-    const storedGrimoire = localStorage.getItem("spell-grimoire")
+    const storedGrimoire = localStorage.getItem('spell-grimoire');
     if (storedGrimoire) {
-      setGrimoire(new Set(JSON.parse(storedGrimoire)))
+      setGrimoire(new Set(JSON.parse(storedGrimoire)));
     }
 
-    const storedFolders = localStorage.getItem("spell-folders")
+    const storedFolders = localStorage.getItem('spell-folders');
     if (storedFolders) {
-      setFolders(JSON.parse(storedFolders))
+      setFolders(JSON.parse(storedFolders));
     }
 
-    const storedBookmarks = localStorage.getItem("spell-bookmarks")
+    const storedBookmarks = localStorage.getItem('spell-bookmarks');
     if (storedBookmarks) {
-      setBookmarks(new Set(JSON.parse(storedBookmarks)))
+      setBookmarks(new Set(JSON.parse(storedBookmarks)));
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem("spell-grimoire", JSON.stringify(Array.from(grimoire)))
-  }, [grimoire])
+    localStorage.setItem('spell-grimoire', JSON.stringify(Array.from(grimoire)));
+  }, [grimoire]);
 
   useEffect(() => {
-    localStorage.setItem("spell-folders", JSON.stringify(folders))
-  }, [folders])
+    localStorage.setItem('spell-folders', JSON.stringify(folders));
+  }, [folders]);
 
   useEffect(() => {
-    localStorage.setItem("spell-bookmarks", JSON.stringify(Array.from(bookmarks)))
-  }, [bookmarks])
+    localStorage.setItem('spell-bookmarks', JSON.stringify(Array.from(bookmarks)));
+  }, [bookmarks]);
 
   useEffect(() => {
-    const initialSpells = [...SAMPLE_SPELLS, ...generateMoreSpells(7, 50)]
-    setAllSpells(initialSpells)
-  }, [])
+    const initialSpells = [...SAMPLE_SPELLS, ...generateMoreSpells(7, 50)];
+    setAllSpells(initialSpells);
+  }, []);
 
-  const categories = Array.from(new Set(allSpells.map((spell) => spell.category)))
+  const categories = Array.from(new Set(allSpells.map((spell) => spell.category)));
 
   const getCategoryTranslation = (category: string) => {
     switch (category) {
-      case "Productivity":
-        return t.bazaar.categoryProductivity
-      case "Creative":
-        return t.bazaar.categoryCreative
-      case "Analytics":
-        return t.bazaar.categoryAnalytics
-      case "Collaboration":
-        return t.bazaar.categoryCollaboration
+      case 'Productivity':
+        return t.bazaar.categoryProductivity;
+      case 'Creative':
+        return t.bazaar.categoryCreative;
+      case 'Analytics':
+        return t.bazaar.categoryAnalytics;
+      case 'Collaboration':
+        return t.bazaar.categoryCollaboration;
       default:
-        return category
+        return category;
     }
-  }
+  };
 
   const toggleGrimoire = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
     setGrimoire((prev) => {
-      const newGrimoire = new Set(prev)
+      const newGrimoire = new Set(prev);
       if (newGrimoire.has(spellId)) {
-        newGrimoire.delete(spellId)
+        newGrimoire.delete(spellId);
       } else {
-        newGrimoire.add(spellId)
+        newGrimoire.add(spellId);
       }
-      return newGrimoire
-    })
-  }
+      return newGrimoire;
+    });
+  };
 
   const confirmRemoveFromGrimoire = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
-    setSpellToDelete(spellId)
-    setShowDeleteConfirm(true)
-  }
+    setSpellToDelete(spellId);
+    setShowDeleteConfirm(true);
+  };
 
   const removeFromGrimoire = () => {
     if (spellToDelete) {
       setGrimoire((prev) => {
-        const newGrimoire = new Set(prev)
-        newGrimoire.delete(spellToDelete)
-        return newGrimoire
-      })
+        const newGrimoire = new Set(prev);
+        newGrimoire.delete(spellToDelete);
+        return newGrimoire;
+      });
       // ブックマークからも削除
       setBookmarks((prev) => {
-        const newBookmarks = new Set(prev)
-        newBookmarks.delete(spellToDelete)
-        return newBookmarks
-      })
+        const newBookmarks = new Set(prev);
+        newBookmarks.delete(spellToDelete);
+        return newBookmarks;
+      });
       // すべてのフォルダから削除
       setFolders((prev) =>
         prev.map((folder) => ({
           ...folder,
           spellIds: folder.spellIds.filter((id) => id !== spellToDelete),
-        })),
-      )
+        }))
+      );
     }
-    setShowDeleteConfirm(false)
-    setSpellToDelete(null)
-  }
+    setShowDeleteConfirm(false);
+    setSpellToDelete(null);
+  };
 
   const toggleBookmark = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
     setBookmarks((prev) => {
-      const newBookmarks = new Set(prev)
+      const newBookmarks = new Set(prev);
       if (newBookmarks.has(spellId)) {
-        newBookmarks.delete(spellId)
+        newBookmarks.delete(spellId);
       } else {
-        newBookmarks.add(spellId)
+        newBookmarks.add(spellId);
       }
-      return newBookmarks
-    })
-  }
+      return newBookmarks;
+    });
+  };
 
   const createFolder = () => {
-    if (!newFolderName.trim()) return
+    if (!newFolderName.trim()) return;
 
     if (editingFolder) {
-      setFolders((prev) => prev.map((f) => (f.id === editingFolder.id ? { ...f, name: newFolderName.trim() } : f)))
-      setEditingFolder(null)
+      setFolders((prev) =>
+        prev.map((f) => (f.id === editingFolder.id ? { ...f, name: newFolderName.trim() } : f))
+      );
+      setEditingFolder(null);
     } else {
       const newFolder: FolderData = {
         id: Date.now().toString(),
         name: newFolderName.trim(),
         spellIds: spellToAddToFolder ? [spellToAddToFolder] : [],
         createdAt: new Date().toISOString(),
-      }
-      setFolders((prev) => [...prev, newFolder])
+      };
+      setFolders((prev) => [...prev, newFolder]);
 
       if (spellToAddToFolder) {
-        setSpellToAddToFolder(null)
-        setShowAddToFolderDialog(false)
+        setSpellToAddToFolder(null);
+        setShowAddToFolderDialog(false);
       }
     }
 
-    setNewFolderName("")
-    setShowFolderDialog(false)
-  }
+    setNewFolderName('');
+    setShowFolderDialog(false);
+  };
 
   const confirmDeleteFolder = (folderId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
-    setFolderToDelete(folderId)
-    setShowDeleteFolderConfirm(true)
-  }
+    setFolderToDelete(folderId);
+    setShowDeleteFolderConfirm(true);
+  };
 
   const deleteFolderConfirmed = () => {
     if (folderToDelete) {
-      setFolders((prev) => prev.filter((f) => f.id !== folderToDelete))
+      setFolders((prev) => prev.filter((f) => f.id !== folderToDelete));
       if (selectedFolder === folderToDelete) {
-        setSelectedFolder(null)
+        setSelectedFolder(null);
       }
     }
-    setShowDeleteFolderConfirm(false)
-    setFolderToDelete(null)
-  }
+    setShowDeleteFolderConfirm(false);
+    setFolderToDelete(null);
+  };
 
   const addSpellToFolder = (spellId: string, folderId: string) => {
     setFolders((prev) =>
       prev.map((f) =>
-        f.id === folderId && !f.spellIds.includes(spellId) ? { ...f, spellIds: [...f.spellIds, spellId] } : f,
-      ),
-    )
-  }
+        f.id === folderId && !f.spellIds.includes(spellId)
+          ? { ...f, spellIds: [...f.spellIds, spellId] }
+          : f
+      )
+    );
+  };
 
   const removeSpellFromFolder = (spellId: string, folderId: string) => {
     setFolders((prev) =>
-      prev.map((f) => (f.id === folderId ? { ...f, spellIds: f.spellIds.filter((id) => id !== spellId) } : f)),
-    )
-  }
+      prev.map((f) =>
+        f.id === folderId ? { ...f, spellIds: f.spellIds.filter((id) => id !== spellId) } : f
+      )
+    );
+  };
 
   const confirmRemoveFromFolder = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
-    setSpellToRemoveFromFolder(spellId)
-    setShowRemoveFromFolderConfirm(true)
-  }
+    setSpellToRemoveFromFolder(spellId);
+    setShowRemoveFromFolderConfirm(true);
+  };
 
   const removeFromFolderConfirmed = () => {
     if (spellToRemoveFromFolder && selectedFolder) {
-      removeSpellFromFolder(spellToRemoveFromFolder, selectedFolder)
+      removeSpellFromFolder(spellToRemoveFromFolder, selectedFolder);
     }
-    setShowRemoveFromFolderConfirm(false)
-    setSpellToRemoveFromFolder(null)
-  }
+    setShowRemoveFromFolderConfirm(false);
+    setSpellToRemoveFromFolder(null);
+  };
 
   const castSpell = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
-    const spell = allSpells.find((s) => s.id === spellId)
+    const spell = allSpells.find((s) => s.id === spellId);
     if (spell) {
-      alert(`✨ ${spell.name} cast successfully!\n\nEffect: ${spell.description}`)
+      alert(`✨ ${spell.name} cast successfully!\n\nEffect: ${spell.description}`);
     }
-  }
+  };
 
   const openAddToFolderDialog = (spellId: string, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
-    setSpellToAddToFolder(spellId)
-    setShowAddToFolderDialog(true)
-  }
+    setSpellToAddToFolder(spellId);
+    setShowAddToFolderDialog(true);
+  };
 
   const isSpellInAnyFolder = (spellId: string) => {
-    return folders.some((folder) => folder.spellIds.includes(spellId))
-  }
+    return folders.some((folder) => folder.spellIds.includes(spellId));
+  };
 
   const filteredSpells = allSpells.filter((spell) => {
-    if (mode === "grimoire") {
-      if (!grimoire.has(spell.id)) return false
-    } else if (mode === "folders") {
-      if (!grimoire.has(spell.id)) return false
+    if (mode === 'grimoire') {
+      if (!grimoire.has(spell.id)) return false;
+    } else if (mode === 'folders') {
+      if (!grimoire.has(spell.id)) return false;
       if (selectedFolder) {
-        const folder = folders.find((f) => f.id === selectedFolder)
-        if (!folder || !folder.spellIds.includes(spell.id)) return false
+        const folder = folders.find((f) => f.id === selectedFolder);
+        if (!folder || !folder.spellIds.includes(spell.id)) return false;
       }
-    } else if (mode === "bookmarks") {
-      if (!grimoire.has(spell.id) || !bookmarks.has(spell.id)) return false
+    } else if (mode === 'bookmarks') {
+      if (!grimoire.has(spell.id) || !bookmarks.has(spell.id)) return false;
     }
 
     const matchesSearch =
-      searchQuery === "" ||
+      searchQuery === '' ||
       spell.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spell.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spell.author.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = !selectedCategory || spell.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+      spell.author.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || spell.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   useEffect(() => {
-    setDisplayedSpells(filteredSpells)
-  }, [searchQuery, selectedCategory, allSpells, favoritesOnly, grimoire, bookmarks, selectedFolder, mode])
+    setDisplayedSpells(filteredSpells);
+  }, [
+    searchQuery,
+    selectedCategory,
+    allSpells,
+    favoritesOnly,
+    grimoire,
+    bookmarks,
+    selectedFolder,
+    mode,
+  ]);
 
   const getHeaderInfo = () => {
     switch (mode) {
-      case "grimoire":
+      case 'grimoire':
         return {
           icon: <BookOpen className="h-6 w-6 text-primary" />,
           title: t.bazaar.allSpellsTitle,
           description: t.bazaar.allSpellsDescription,
-        }
-      case "folders":
+        };
+      case 'folders':
         return {
           icon: <Folder className="h-6 w-6 text-primary" />,
           title: t.bazaar.foldersTitle,
           description: t.bazaar.foldersDescription,
-        }
-      case "bookmarks":
+        };
+      case 'bookmarks':
         return {
           icon: <Bookmark className="h-6 w-6 text-primary" />,
           title: t.bazaar.bookmarksTitle,
           description: t.bazaar.bookmarksDescription,
-        }
+        };
       default:
         return {
           icon: <StoreIcon className="h-6 w-6 text-primary" />,
           title: t.bazaar.bazaarTitle,
           description: t.bazaar.bazaarDescription,
-        }
+        };
     }
-  }
+  };
 
-  const headerInfo = getHeaderInfo()
+  const headerInfo = getHeaderInfo();
 
   return (
     <div className="flex h-full flex-col">
@@ -373,7 +397,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             </div>
           </div>
 
-          {mode === "folders" && (
+          {mode === 'folders' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground">{t.bazaar.folders}</h3>
@@ -381,9 +405,9 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setEditingFolder(null)
-                    setNewFolderName("")
-                    setShowFolderDialog(true)
+                    setEditingFolder(null);
+                    setNewFolderName('');
+                    setShowFolderDialog(true);
                   }}
                   className="gap-2 shrink-0"
                 >
@@ -395,10 +419,14 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                 {folders.map((folder) => (
                   <div key={folder.id} className="flex gap-1 items-center">
                     <Button
-                      variant={selectedFolder === folder.id ? "default" : "outline"}
+                      variant={selectedFolder === folder.id ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedFolder(folder.id)}
-                      className={selectedFolder === folder.id ? "" : "border-white text-white hover:bg-white/10"}
+                      className={
+                        selectedFolder === folder.id
+                          ? ''
+                          : 'border-white text-white hover:bg-white/10'
+                      }
                     >
                       <Folder className="mr-2 h-4 w-4" />
                       {folder.name} ({folder.spellIds.length})
@@ -408,10 +436,10 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                       variant="ghost"
                       className="h-8 w-8 text-white hover:bg-white/10"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingFolder(folder)
-                        setNewFolderName(folder.name)
-                        setShowFolderDialog(true)
+                        e.stopPropagation();
+                        setEditingFolder(folder);
+                        setNewFolderName(folder.name);
+                        setShowFolderDialog(true);
                       }}
                     >
                       <Edit2 className="h-4 w-4" />
@@ -430,7 +458,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             </div>
           )}
 
-          {!(mode === "folders" && !selectedFolder) && (
+          {!(mode === 'folders' && !selectedFolder) && (
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -444,20 +472,26 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant={selectedCategory === null ? "default" : "outline"}
+                  variant={selectedCategory === null ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedCategory(null)}
-                  className={selectedCategory === null ? "" : "border-white text-white hover:bg-white/10"}
+                  className={
+                    selectedCategory === null ? '' : 'border-white text-white hover:bg-white/10'
+                  }
                 >
                   {t.bazaar.all}
                 </Button>
                 {categories.map((category) => (
                   <Button
                     key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
-                    className={selectedCategory === category ? "" : "border-white text-white hover:bg-white/10"}
+                    className={
+                      selectedCategory === category
+                        ? ''
+                        : 'border-white text-white hover:bg-white/10'
+                    }
                   >
                     {getCategoryTranslation(category)}
                   </Button>
@@ -472,11 +506,13 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
       <ScrollArea className="flex-1 bg-black scroll-smooth">
         <div className="flex min-h-full items-center">
           <div className="mx-auto w-full max-w-6xl px-4 pb-0 pt-4 sm:px-6 sm:pt-6">
-            {mode === "folders" && !selectedFolder ? (
+            {mode === 'folders' && !selectedFolder ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="space-y-2 text-center px-4">
                   <Folder className="mx-auto h-16 w-16 text-muted-foreground" />
-                  <p className="text-lg font-medium text-muted-foreground">{t.bazaar.selectFolder}</p>
+                  <p className="text-lg font-medium text-muted-foreground">
+                    {t.bazaar.selectFolder}
+                  </p>
                   <p className="text-sm text-muted-foreground">{t.bazaar.clickFolderToView}</p>
                 </div>
               </div>
@@ -488,7 +524,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                     onClick={() => setSelectedSpell(spell)}
                     className="group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-black transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:scale-[1.02]"
                   >
-                    {(mode !== "bazaar" || grimoire.has(spell.id)) && (
+                    {(mode !== 'bazaar' || grimoire.has(spell.id)) && (
                       <div className="absolute right-2 top-2 z-10 flex gap-1">
                         <button
                           onClick={(e) => toggleBookmark(spell.id, e)}
@@ -496,7 +532,9 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                         >
                           <Bookmark
                             className={`h-4 w-4 transition-all ${
-                              bookmarks.has(spell.id) ? "fill-primary text-primary" : "text-muted-foreground"
+                              bookmarks.has(spell.id)
+                                ? 'fill-primary text-primary'
+                                : 'text-muted-foreground'
                             }`}
                           />
                         </button>
@@ -508,7 +546,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                           {spell.image ? (
                             <img
-                              src={spell.image || "/placeholder.svg"}
+                              src={spell.image || '/placeholder.svg'}
                               alt={spell.name}
                               className="h-full w-full object-cover"
                             />
@@ -520,11 +558,15 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                           <h3 className="font-semibold text-foreground transition-colors group-hover:text-primary break-words">
                             {spell.name}
                           </h3>
-                          <p className="text-xs text-muted-foreground truncate">by {spell.author}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            by {spell.author}
+                          </p>
                         </div>
                       </div>
 
-                      <p className="line-clamp-2 text-sm text-muted-foreground break-words">{spell.description}</p>
+                      <p className="line-clamp-2 text-sm text-muted-foreground break-words">
+                        {spell.description}
+                      </p>
 
                       <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-0.5">
@@ -533,8 +575,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                           </div>
                           <div className="text-lg font-bold text-foreground">¥{spell.price}</div>
                         </div>
-                        {mode === "bookmarks" ? null : grimoire.has(spell.id) &&
-                          mode === "folders" &&
+                        {mode === 'bookmarks' ? null : grimoire.has(spell.id) &&
+                          mode === 'folders' &&
                           selectedFolder ? (
                           <Button
                             size="sm"
@@ -545,7 +587,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                             <Trash2 className="h-4 w-4" />
                             <span className="sm:inline">{t.bazaar.remove}</span>
                           </Button>
-                        ) : grimoire.has(spell.id) && (mode === "folders" || mode === "grimoire") ? (
+                        ) : grimoire.has(spell.id) &&
+                          (mode === 'folders' || mode === 'grimoire') ? (
                           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                             <Button
                               size="sm"
@@ -590,8 +633,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                             size="sm"
                             className="w-full gap-2 sm:w-auto"
                             onClick={(e) => {
-                              e.stopPropagation()
-                              toggleGrimoire(spell.id)
+                              e.stopPropagation();
+                              toggleGrimoire(spell.id);
                             }}
                           >
                             <Plus className="h-4 w-4" />
@@ -605,22 +648,22 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
               </div>
             )}
 
-            {displayedSpells.length === 0 && !(mode === "folders" && !selectedFolder) && (
+            {displayedSpells.length === 0 && !(mode === 'folders' && !selectedFolder) && (
               <div className="flex h-64 items-center justify-center">
                 <div className="space-y-2 text-center px-4">
                   <p className="text-lg font-medium text-muted-foreground">
-                    {mode === "grimoire"
+                    {mode === 'grimoire'
                       ? t.bazaar.noSpellsInGrimoire
-                      : mode === "folders"
+                      : mode === 'folders'
                         ? selectedFolder
                           ? t.bazaar.noSpellsInFolder
                           : t.bazaar.noSpellsInFolder
-                        : mode === "bookmarks"
+                        : mode === 'bookmarks'
                           ? t.bazaar.noBookmarkedSpells
                           : t.bazaar.noSpellsFound}
                   </p>
                   <p className="text-sm text-muted-foreground break-words">
-                    {mode === "grimoire" || mode === "folders" || mode === "bookmarks"
+                    {mode === 'grimoire' || mode === 'folders' || mode === 'bookmarks'
                       ? t.bazaar.addSpellsFromBazaar
                       : t.bazaar.tryDifferentSearch}
                   </p>
@@ -660,7 +703,9 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
         <AlertDialogContent className="bg-black border border-white">
           <AlertDialogHeader>
             <AlertDialogTitle>{t.bazaar.deleteFolderTitle}</AlertDialogTitle>
-            <AlertDialogDescription className="text-white">{t.bazaar.deleteFolderDescription}</AlertDialogDescription>
+            <AlertDialogDescription className="text-white">
+              {t.bazaar.deleteFolderDescription}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
@@ -707,7 +752,9 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
       <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingFolder ? t.bazaar.editFolderTitle : t.bazaar.createFolderTitle}</DialogTitle>
+            <DialogTitle>
+              {editingFolder ? t.bazaar.editFolderTitle : t.bazaar.createFolderTitle}
+            </DialogTitle>
             <DialogDescription>
               {editingFolder ? t.bazaar.editFolderDescription : t.bazaar.createFolderDescription}
             </DialogDescription>
@@ -721,8 +768,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder={t.bazaar.folderNamePlaceholder}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    createFolder()
+                  if (e.key === 'Enter') {
+                    createFolder();
                   }
                 }}
               />
@@ -749,30 +796,34 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             <div className="space-y-2">
               {folders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <p className="text-center text-sm text-muted-foreground">{t.bazaar.noFoldersYet}</p>
+                  <p className="text-center text-sm text-muted-foreground">
+                    {t.bazaar.noFoldersYet}
+                  </p>
                 </div>
               ) : (
                 folders.map((folder) => {
-                  const isInFolder = spellToAddToFolder && folder.spellIds.includes(spellToAddToFolder)
+                  const isInFolder =
+                    spellToAddToFolder && folder.spellIds.includes(spellToAddToFolder);
                   return (
                     <Button
                       key={folder.id}
-                      variant={isInFolder ? "secondary" : "outline"}
+                      variant={isInFolder ? 'secondary' : 'outline'}
                       className="w-full justify-start gap-2"
                       onClick={() => {
                         if (spellToAddToFolder) {
                           if (isInFolder) {
-                            removeSpellFromFolder(spellToAddToFolder, folder.id)
+                            removeSpellFromFolder(spellToAddToFolder, folder.id);
                           } else {
-                            addSpellToFolder(spellToAddToFolder, folder.id)
+                            addSpellToFolder(spellToAddToFolder, folder.id);
                           }
                         }
                       }}
                     >
                       <Folder className="h-4 w-4" />
-                      {folder.name} ({folder.spellIds.length}){isInFolder && <span className="ml-auto text-xs">✓</span>}
+                      {folder.name} ({folder.spellIds.length})
+                      {isInFolder && <span className="ml-auto text-xs">✓</span>}
                     </Button>
-                  )
+                  );
                 })
               )}
             </div>
@@ -781,10 +832,10 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             <Button
               variant="outline"
               onClick={() => {
-                setShowAddToFolderDialog(false)
-                setEditingFolder(null)
-                setNewFolderName("")
-                setShowFolderDialog(true)
+                setShowAddToFolderDialog(false);
+                setEditingFolder(null);
+                setNewFolderName('');
+                setShowFolderDialog(true);
               }}
               className="gap-2"
             >
@@ -793,8 +844,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             </Button>
             <Button
               onClick={() => {
-                setShowAddToFolderDialog(false)
-                setSpellToAddToFolder(null)
+                setShowAddToFolderDialog(false);
+                setSpellToAddToFolder(null);
               }}
             >
               {t.bazaar.done}
@@ -807,7 +858,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
         open={!!selectedSpell}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedSpell(null)
+            setSelectedSpell(null);
           }
         }}
       >
@@ -816,13 +867,13 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
             <>
               <div className="flex-1 overflow-y-auto">
                 <DialogHeader
-                  className={`border-b border-border p-6 ${!selectedSpell.image ? "items-center text-center" : ""}`}
+                  className={`border-b border-border p-6 ${!selectedSpell.image ? 'items-center text-center' : ''}`}
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                       {selectedSpell.image ? (
                         <img
-                          src={selectedSpell.image || "/placeholder.svg"}
+                          src={selectedSpell.image || '/placeholder.svg'}
                           alt={selectedSpell.name}
                           className="h-full w-full object-cover"
                         />
@@ -840,7 +891,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                         </span>
                       </DialogDescription>
                     </div>
-                    {(mode !== "bazaar" || grimoire.has(selectedSpell.id)) && (
+                    {(mode !== 'bazaar' || grimoire.has(selectedSpell.id)) && (
                       <div className="flex gap-1">
                         <button
                           onClick={() => toggleBookmark(selectedSpell.id)}
@@ -848,7 +899,9 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                         >
                           <Bookmark
                             className={`h-6 w-6 transition-all ${
-                              bookmarks.has(selectedSpell.id) ? "fill-primary text-primary" : "text-muted-foreground"
+                              bookmarks.has(selectedSpell.id)
+                                ? 'fill-primary text-primary'
+                                : 'text-muted-foreground'
                             }`}
                           />
                         </button>
@@ -874,12 +927,16 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                         {selectedSpell.artifactType ? (
                           <>
                             <span className="font-medium">{selectedSpell.artifactType}</span>
-                            <span className="ml-2 text-muted-foreground">({t.bazaar.deployableArtifact})</span>
+                            <span className="ml-2 text-muted-foreground">
+                              ({t.bazaar.deployableArtifact})
+                            </span>
                           </>
                         ) : (
                           <>
                             <span className="font-medium">{t.bazaar.workflow}</span>
-                            <span className="ml-2 text-muted-foreground">({t.bazaar.noArtifact})</span>
+                            <span className="ml-2 text-muted-foreground">
+                              ({t.bazaar.noArtifact})
+                            </span>
                           </>
                         )}
                       </span>
@@ -897,7 +954,10 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                     <h3 className="font-semibold text-foreground">{t.bazaar.features}</h3>
                     <ul className="space-y-2">
                       {selectedSpell.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <li
+                          key={index}
+                          className="flex items-start gap-2 text-sm text-muted-foreground"
+                        >
                           <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                           <span>{feature}</span>
                         </li>
@@ -918,10 +978,12 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
 
                   <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-6">
                     <div>
-                      <span className="font-medium">{t.bazaar.version}:</span> {selectedSpell.version}
+                      <span className="font-medium">{t.bazaar.version}:</span>{' '}
+                      {selectedSpell.version}
                     </div>
                     <div>
-                      <span className="font-medium">{t.bazaar.updated}:</span> {selectedSpell.lastUpdated}
+                      <span className="font-medium">{t.bazaar.updated}:</span>{' '}
+                      {selectedSpell.lastUpdated}
                     </div>
                   </div>
                 </div>
@@ -929,8 +991,12 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
 
               <div className="shrink-0 border-t border-border bg-background p-6">
                 <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                  {mode === "bookmarks" ? (
-                    <Button className="w-full gap-2 sm:w-auto" size="lg" onClick={() => castSpell(selectedSpell.id)}>
+                  {mode === 'bookmarks' ? (
+                    <Button
+                      className="w-full gap-2 sm:w-auto"
+                      size="lg"
+                      onClick={() => castSpell(selectedSpell.id)}
+                    >
                       <Wand2 className="h-5 w-5" />
                       {t.bazaar.cast}
                     </Button>
@@ -954,7 +1020,7 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                           </>
                         )}
                       </Button>
-                      {mode === "folders" && selectedFolder ? (
+                      {mode === 'folders' && selectedFolder ? (
                         <Button
                           size="lg"
                           variant="destructive"
@@ -981,8 +1047,8 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
                       className="w-full gap-2 sm:w-auto"
                       size="lg"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        toggleGrimoire(selectedSpell.id)
+                        e.stopPropagation();
+                        toggleGrimoire(selectedSpell.id);
                       }}
                     >
                       <Plus className="h-5 w-5" />
@@ -1001,161 +1067,163 @@ export function BazaarMarketplace({ mode = "bazaar", favoritesOnly = false }: Ba
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
 
 const SAMPLE_SPELLS: SpellItem[] = [
   {
-    id: "1",
-    name: "Time Acceleration Spell",
-    author: "Chronos Master",
-    description: "A powerful spell that doubles your task processing speed. Perfect for tight project deadlines.",
+    id: '1',
+    name: 'Time Acceleration Spell',
+    author: 'Chronos Master',
+    description:
+      'A powerful spell that doubles your task processing speed. Perfect for tight project deadlines.',
     longDescription:
       "The Time Acceleration Spell is an innovative magic that dramatically improves your work efficiency. When you use this spell, you can process tasks at twice the normal speed. It's ideal when project deadlines are approaching or when you need to complete a large amount of work in a short time.\n\nThis spell works not by manipulating the flow of time, but by maximizing your concentration and processing abilities. As a side effect, you may feel slight fatigue after use, but proper rest will help you recover.",
-    category: "Productivity",
+    category: 'Productivity',
     price: 299,
     rating: 4.8,
     downloads: 1234,
     features: [
-      "Double task processing speed",
-      "Significant concentration boost",
-      "Multi-tasking support",
-      "Fatigue reduction feature",
-      "Customizable acceleration levels",
+      'Double task processing speed',
+      'Significant concentration boost',
+      'Multi-tasking support',
+      'Fatigue reduction feature',
+      'Customizable acceleration levels',
     ],
-    requirements: ["Level 5 or higher", "Magic power 100+", "Concentration skill"],
-    version: "2.1.0",
-    lastUpdated: "2024-01-15",
-    image: "/time-acceleration-magic-clock.jpg",
+    requirements: ['Level 5 or higher', 'Magic power 100+', 'Concentration skill'],
+    version: '2.1.0',
+    lastUpdated: '2024-01-15',
+    image: '/time-acceleration-magic-clock.jpg',
     artifactType: null, // Workflow - no artifact
   },
   {
-    id: "2",
-    name: "Creative Flames",
-    author: "Creative Wizard",
-    description: "Magic that materializes ideas. Revolutionizes brainstorming and design work.",
+    id: '2',
+    name: 'Creative Flames',
+    author: 'Creative Wizard',
+    description: 'Magic that materializes ideas. Revolutionizes brainstorming and design work.',
     longDescription:
       "Creative Flames is a powerful spell that unleashes your creativity. When you use this magic, ideas in your head are visualized and appear in concrete form. It will become an essential tool for designers, artists, and creators.\n\nIn brainstorming sessions, it visualizes all participants' ideas in real-time, enabling more effective collaboration. When used individually, it helps draw out ideas sleeping in your subconscious.",
-    category: "Creative",
+    category: 'Creative',
     price: 499,
     rating: 4.9,
     downloads: 2341,
     features: [
-      "Instant idea visualization",
-      "Real-time collaboration",
-      "3D modeling support",
-      "Auto color palette generation",
-      "Inspiration boost",
+      'Instant idea visualization',
+      'Real-time collaboration',
+      '3D modeling support',
+      'Auto color palette generation',
+      'Inspiration boost',
     ],
-    requirements: ["Level 7 or higher", "Creativity skill", "Imagination 150+"],
-    version: "3.0.2",
-    lastUpdated: "2024-01-20",
-    image: "/creative-flames-fire-art.jpg",
-    artifactType: "Tool", // Generates a Tool artifact
+    requirements: ['Level 7 or higher', 'Creativity skill', 'Imagination 150+'],
+    version: '3.0.2',
+    lastUpdated: '2024-01-20',
+    image: '/creative-flames-fire-art.jpg',
+    artifactType: 'Tool', // Generates a Tool artifact
   },
   {
-    id: "3",
-    name: "Focus Barrier",
-    author: "Focus Sage",
-    description: "Completely shuts out external noise and distractions, creating a deep state of concentration.",
+    id: '3',
+    name: 'Focus Barrier',
+    author: 'Focus Sage',
+    description:
+      'Completely shuts out external noise and distractions, creating a deep state of concentration.',
     longDescription:
-      "The Focus Barrier creates an invisible barrier around you, completely blocking external interference. When you use this spell, you can enter a deep state of concentration even in the noisiest environment.\n\nInside the barrier, your sense of time changes, and hours feel like minutes. This effect makes you less likely to feel tired even during long work sessions. The barrier also protects you from not only physical sounds but also digital notifications and distracting thoughts.",
-    category: "Productivity",
+      'The Focus Barrier creates an invisible barrier around you, completely blocking external interference. When you use this spell, you can enter a deep state of concentration even in the noisiest environment.\n\nInside the barrier, your sense of time changes, and hours feel like minutes. This effect makes you less likely to feel tired even during long work sessions. The barrier also protects you from not only physical sounds but also digital notifications and distracting thoughts.',
+    category: 'Productivity',
     price: 199,
     rating: 4.7,
     downloads: 3456,
     features: [
-      "Complete silent environment",
-      "Digital notification blocking",
-      "Time perception optimization",
-      "Fatigue reduction effect",
-      "Customizable barrier range",
+      'Complete silent environment',
+      'Digital notification blocking',
+      'Time perception optimization',
+      'Fatigue reduction effect',
+      'Customizable barrier range',
     ],
-    requirements: ["Level 3 or higher", "Mental power 50+"],
-    version: "1.5.1",
-    lastUpdated: "2024-01-10",
+    requirements: ['Level 3 or higher', 'Mental power 50+'],
+    version: '1.5.1',
+    lastUpdated: '2024-01-10',
     artifactType: null, // Workflow - no artifact
   },
   {
-    id: "4",
-    name: "Data Analysis Eye",
-    author: "Analytics Sorcerer",
-    description: "Instantly visualizes complex data patterns and reveals hidden insights.",
+    id: '4',
+    name: 'Data Analysis Eye',
+    author: 'Analytics Sorcerer',
+    description: 'Instantly visualizes complex data patterns and reveals hidden insights.',
     longDescription:
-      "The Data Analysis Eye gives you the ability to instantly spot important patterns and trends in vast amounts of data. When you use this spell, numbers and graphs float up three-dimensionally, and relationships between data become understandable at a glance.\n\nIt becomes a powerful tool for business analysts, data scientists, and researchers. Complex statistical analysis becomes intuitively understandable, greatly improving the speed and accuracy of decision-making.",
-    category: "Analytics",
+      'The Data Analysis Eye gives you the ability to instantly spot important patterns and trends in vast amounts of data. When you use this spell, numbers and graphs float up three-dimensionally, and relationships between data become understandable at a glance.\n\nIt becomes a powerful tool for business analysts, data scientists, and researchers. Complex statistical analysis becomes intuitively understandable, greatly improving the speed and accuracy of decision-making.',
+    category: 'Analytics',
     price: 599,
     rating: 4.6,
     downloads: 987,
     features: [
-      "3D data visualization",
-      "Automatic pattern detection",
-      "Predictive analytics",
-      "Real-time dashboard",
-      "Instant outlier identification",
+      '3D data visualization',
+      'Automatic pattern detection',
+      'Predictive analytics',
+      'Real-time dashboard',
+      'Instant outlier identification',
     ],
-    requirements: ["Level 8 or higher", "Analysis skill", "Logical thinking 100+"],
-    version: "2.3.0",
-    lastUpdated: "2024-01-18",
-    image: "/data-analytics-eye-visualization.jpg",
-    artifactType: "App", // Generates an App artifact
+    requirements: ['Level 8 or higher', 'Analysis skill', 'Logical thinking 100+'],
+    version: '2.3.0',
+    lastUpdated: '2024-01-18',
+    image: '/data-analytics-eye-visualization.jpg',
+    artifactType: 'App', // Generates an App artifact
   },
   {
-    id: "5",
-    name: "Communication Bridge",
-    author: "Harmony Enchanter",
-    description: "A magical spell that smooths team communication and prevents misunderstandings.",
+    id: '5',
+    name: 'Communication Bridge',
+    author: 'Harmony Enchanter',
+    description: 'A magical spell that smooths team communication and prevents misunderstandings.',
     longDescription:
       "The Communication Bridge gives you the power to convey true intentions beyond language barriers and cultural differences. When you use this spell, your words reach directly to the other person's heart, making misunderstandings and discrepancies less likely.\n\nIt is particularly effective in team meetings, presentations, and negotiations. It also enhances non-verbal communication, allowing you to understand the emotions and intentions of others more deeply.",
-    category: "Collaboration",
+    category: 'Collaboration',
     price: 399,
     rating: 4.8,
     downloads: 1567,
     features: [
-      "Communication beyond language barriers",
-      "Emotion visualization",
-      "Auto-detection and correction of misunderstandings",
-      "Enhanced non-verbal communication",
-      "Group harmony promotion",
+      'Communication beyond language barriers',
+      'Emotion visualization',
+      'Auto-detection and correction of misunderstandings',
+      'Enhanced non-verbal communication',
+      'Group harmony promotion',
     ],
-    requirements: ["Level 5 or higher", "Empathy skill", "Sociability 70+"],
-    version: "1.8.0",
-    lastUpdated: "2024-01-12",
-    artifactType: "Tool", // Generates a Tool artifact
+    requirements: ['Level 5 or higher', 'Empathy skill', 'Sociability 70+'],
+    version: '1.8.0',
+    lastUpdated: '2024-01-12',
+    artifactType: 'Tool', // Generates a Tool artifact
   },
   {
-    id: "6",
-    name: "Automation Spirit",
-    author: "Automation Mage",
-    description: "Automates repetitive tasks and saves valuable time.",
+    id: '6',
+    name: 'Automation Spirit',
+    author: 'Automation Mage',
+    description: 'Automates repetitive tasks and saves valuable time.',
     longDescription:
-      "The Automation Spirit is an intelligent being that learns your daily tasks and executes them automatically. When you cast this spell, a small spirit observes your work patterns and identifies repetitive tasks.\n\nOnce it learns the patterns, the spirit autonomously executes tasks, allowing you to focus on more creative and valuable work. It handles various tasks such as email organization, data entry, and report creation.",
-    category: "Productivity",
+      'The Automation Spirit is an intelligent being that learns your daily tasks and executes them automatically. When you cast this spell, a small spirit observes your work patterns and identifies repetitive tasks.\n\nOnce it learns the patterns, the spirit autonomously executes tasks, allowing you to focus on more creative and valuable work. It handles various tasks such as email organization, data entry, and report creation.',
+    category: 'Productivity',
     price: 699,
     rating: 4.9,
     downloads: 2890,
     features: [
-      "Advanced feature 1",
-      "Innovative feature 2",
-      "Convenient feature 3",
-      "Powerful feature 4",
-      "Customizable",
+      'Advanced feature 1',
+      'Innovative feature 2',
+      'Convenient feature 3',
+      'Powerful feature 4',
+      'Customizable',
     ],
-    requirements: [`Level ${Math.floor(Math.random() * 10) + 1} or higher`, "Basic skills"],
-    version: "1.0.0",
-    lastUpdated: "2024-01-01",
-    image: "/automation-spirit-robot-assistant.jpg",
-    artifactType: "App", // Generates an App artifact
+    requirements: [`Level ${Math.floor(Math.random() * 10) + 1} or higher`, 'Basic skills'],
+    version: '1.0.0',
+    lastUpdated: '2024-01-01',
+    image: '/automation-spirit-robot-assistant.jpg',
+    artifactType: 'App', // Generates an App artifact
   },
-]
+];
 
 const generateMoreSpells = (startId: number, count: number): SpellItem[] => {
-  const categories = ["Productivity", "Creative", "Analytics", "Collaboration"]
-  const artifactTypes: SpellItem["artifactType"][] = ["App", "Tool", "Template", null] // Added artifact types
-  const spells: SpellItem[] = []
+  const categories = ['Productivity', 'Creative', 'Analytics', 'Collaboration'];
+  const artifactTypes: SpellItem['artifactType'][] = ['App', 'Tool', 'Template', null]; // Added artifact types
+  const spells: SpellItem[] = [];
 
   for (let i = 0; i < count; i++) {
-    const id = startId + i
+    const id = startId + i;
     spells.push({
       id: id.toString(),
       name: `Magic Spell ${id}`,
@@ -1167,18 +1235,18 @@ const generateMoreSpells = (startId: number, count: number): SpellItem[] => {
       rating: 4.5 + Math.random() * 0.5,
       downloads: Math.floor(Math.random() * 5000),
       features: [
-        "Advanced feature 1",
-        "Innovative feature 2",
-        "Convenient feature 3",
-        "Powerful feature 4",
-        "Customizable",
+        'Advanced feature 1',
+        'Innovative feature 2',
+        'Convenient feature 3',
+        'Powerful feature 4',
+        'Customizable',
       ],
-      requirements: [`Level ${Math.floor(Math.random() * 10) + 1} or higher`, "Basic skills"],
-      version: "1.0.0",
-      lastUpdated: "2024-01-01",
+      requirements: [`Level ${Math.floor(Math.random() * 10) + 1} or higher`, 'Basic skills'],
+      version: '1.0.0',
+      lastUpdated: '2024-01-01',
       artifactType: artifactTypes[i % artifactTypes.length], // Randomly assign artifact type
-    })
+    });
   }
 
-  return spells
-}
+  return spells;
+};

@@ -68,17 +68,20 @@ pnpm dev
 ## 🔒 セキュリティ機能
 
 ### セキュアなチャレンジ管理
+
 - チャレンジはHTTP-onlyクッキーに保存
 - 5分で自動期限切れ
 - CSRF保護
 
 ### セッション管理
+
 - JWT ベースのセッション
 - 30日間有効
 - HTTP-only クッキー
 - SameSite=Lax 設定
 
 ### ミドルウェア保護
+
 - 未認証ユーザーは自動的にサインインページにリダイレクト
 - 保護されたルート: `/dashboard`, `/my-spells`, `/profile` など
 - 公開ルート: `/`, `/auth/*`, `/api/webauthn/*`
@@ -133,6 +136,7 @@ model authenticators {
 パスキー登録のためのオプションを生成します。
 
 **リクエスト:**
+
 ```json
 {
   "email": "user@example.com"
@@ -140,6 +144,7 @@ model authenticators {
 ```
 
 **レスポンス:**
+
 ```json
 {
   "options": {
@@ -156,13 +161,17 @@ model authenticators {
 パスキー登録を検証し、ユーザーを作成します。
 
 **リクエスト:**
+
 ```json
 {
-  "response": { /* WebAuthn RegistrationResponseJSON */ }
+  "response": {
+    /* WebAuthn RegistrationResponseJSON */
+  }
 }
 ```
 
 **レスポンス:**
+
 ```json
 {
   "success": true,
@@ -177,11 +186,13 @@ model authenticators {
 認証のためのオプションを生成します。
 
 **リクエスト:**
+
 ```json
-{}  // 空のボディ (Discoverable Credentials使用)
+{} // 空のボディ (Discoverable Credentials使用)
 ```
 
 **レスポンス:**
+
 ```json
 {
   "options": {
@@ -197,13 +208,17 @@ model authenticators {
 認証を検証し、セッションを作成します。
 
 **リクエスト:**
+
 ```json
 {
-  "response": { /* WebAuthn AuthenticationResponseJSON */ }
+  "response": {
+    /* WebAuthn AuthenticationResponseJSON */
+  }
 }
 ```
 
 **レスポンス:**
+
 ```json
 {
   "success": true,

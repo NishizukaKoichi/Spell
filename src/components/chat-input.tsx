@@ -1,127 +1,129 @@
-"use client"
-import type { ChatInputProps } from "./chat-input-props" // Declare the ChatInputProps variable
-import type React from "react"
+'use client';
+import type { ChatInputProps } from './chat-input-props'; // Declare the ChatInputProps variable
+import type React from 'react';
 
-import { useState, useMemo } from "react"
-import { Button } from "./ui/button"
-import { Textarea } from "./ui/textarea"
-import { SquareIcon, CircleIcon, ChevronRight, Folder, Bookmark } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { ScrollArea } from "./ui/scroll-area"
+import { useState, useMemo } from 'react';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { SquareIcon, CircleIcon, ChevronRight, Folder, Bookmark } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { ScrollArea } from './ui/scroll-area';
 
 interface BookmarkItem {
-  id: string
-  name: string
-  author: string
-  description?: string
-  category?: string
-  tags?: string[]
-  createdAt?: string
-  cost?: number // Cost in currency units
+  id: string;
+  name: string;
+  author: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  createdAt?: string;
+  cost?: number; // Cost in currency units
 }
 
 interface FolderItem {
-  id: string
-  name: string
-  bookmarks: BookmarkItem[]
+  id: string;
+  name: string;
+  bookmarks: BookmarkItem[];
 }
 
 export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
-  const [input, setInput] = useState("")
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [filteredSpells, setFilteredSpells] = useState<BookmarkItem[]>([])
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [isOpen, setIsOpen] = useState(false)
-  const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
-  const grimoire = useMemo<FolderItem[]>(() => [], []) // Assuming grimoire is defined elsewhere
+  const [input, setInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSpells, setFilteredSpells] = useState<BookmarkItem[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null);
+  const grimoire = useMemo<FolderItem[]>(() => [], []); // Assuming grimoire is defined elsewhere
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value
-    setInput(value)
+    const value = e.target.value;
+    setInput(value);
 
     if (value.trim()) {
       const allSpells = grimoire.flatMap((folder) =>
         folder.bookmarks.map((bookmark) => ({
           ...bookmark,
           folderName: folder.name,
-        })),
-      )
-      const filtered = allSpells.filter((spell) => spell.name.toLowerCase().includes(value.toLowerCase()))
-      setFilteredSpells(filtered)
-      setShowSuggestions(filtered.length > 0)
-      setSelectedIndex(0)
+        }))
+      );
+      const filtered = allSpells.filter((spell) =>
+        spell.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredSpells(filtered);
+      setShowSuggestions(filtered.length > 0);
+      setSelectedIndex(0);
     } else {
-      setFilteredSpells([])
-      setShowSuggestions(false)
-      setSelectedIndex(0)
+      setFilteredSpells([]);
+      setShowSuggestions(false);
+      setSelectedIndex(0);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions && filteredSpells.length > 0) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % filteredSpells.length)
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev - 1 + filteredSpells.length) % filteredSpells.length)
-      } else if (e.key === "Enter") {
-        e.preventDefault()
-        handleSuggestionClick(filteredSpells[selectedIndex])
-      } else if (e.key === "Escape") {
-        e.preventDefault()
-        setShowSuggestions(false)
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % filteredSpells.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + filteredSpells.length) % filteredSpells.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSuggestionClick(filteredSpells[selectedIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowSuggestions(false);
       }
     } else {
-      if (e.key === "Enter") {
-        e.preventDefault()
+      if (e.key === 'Enter') {
+        e.preventDefault();
         if (input.trim()) {
-          handleSubmit(e)
+          handleSubmit(e);
         }
       }
     }
-  }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (input.trim()) {
-      onSendMessage(input)
-      setInput("")
-      setShowSuggestions(false)
-      setSelectedIndex(0)
+      onSendMessage(input);
+      setInput('');
+      setShowSuggestions(false);
+      setSelectedIndex(0);
     }
-  }
+  };
 
   const handleSuggestionClick = (spell: BookmarkItem) => {
-    setInput(spell.name)
-    onSpellSelect?.(spell)
-    setShowSuggestions(false)
-    setSelectedIndex(0)
-  }
+    setInput(spell.name);
+    onSpellSelect?.(spell);
+    setShowSuggestions(false);
+    setSelectedIndex(0);
+  };
 
   const handleFolderClick = (folder: FolderItem) => {
-    setSelectedFolder(folder)
-  }
+    setSelectedFolder(folder);
+  };
 
   const handleBack = () => {
-    setSelectedFolder(null)
-  }
+    setSelectedFolder(null);
+  };
 
   const handleBookmarkClick = (bookmark: BookmarkItem) => {
-    setInput(bookmark.name)
-    onSpellSelect?.(bookmark)
-    setIsOpen(false)
-  }
+    setInput(bookmark.name);
+    onSpellSelect?.(bookmark);
+    setIsOpen(false);
+  };
 
   const getContentHeight = () => {
     if (!selectedFolder) {
-      const folderCount = grimoire.length || 1
-      return Math.min(Math.max(folderCount * 44 + 32, 150), 400)
+      const folderCount = grimoire.length || 1;
+      return Math.min(Math.max(folderCount * 44 + 32, 150), 400);
     } else {
-      const bookmarkCount = selectedFolder.bookmarks.length || 1
-      return Math.min(Math.max(bookmarkCount * 44 + 80, 150), 400)
+      const bookmarkCount = selectedFolder.bookmarks.length || 1;
+      return Math.min(Math.max(bookmarkCount * 44 + 80, 150), 400);
     }
-  }
+  };
 
   return (
     <div className="border-t border-border/50 bg-background p-3 sm:p-4">
@@ -134,8 +136,8 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
                 size="icon"
                 className="h-10 w-10 shrink-0 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 sm:h-12 sm:w-12"
                 onClick={() => {
-                  setIsOpen(!isOpen)
-                  setSelectedFolder(null)
+                  setIsOpen(!isOpen);
+                  setSelectedFolder(null);
                 }}
               >
                 <SquareIcon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -150,7 +152,9 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
                   {!selectedFolder ? (
                     <div className="space-y-1">
                       {grimoire.length === 0 ? (
-                        <div className="px-2 py-4 text-center text-sm text-white">No spells yet</div>
+                        <div className="px-2 py-4 text-center text-sm text-white">
+                          No spells yet
+                        </div>
                       ) : (
                         grimoire.map((folder) => (
                           <button
@@ -178,7 +182,9 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
                       </button>
                       <div className="border-t border-white/20 my-1" />
                       {selectedFolder.bookmarks.length === 0 ? (
-                        <div className="px-2 py-4 text-center text-sm text-white">No spells yet</div>
+                        <div className="px-2 py-4 text-center text-sm text-white">
+                          No spells yet
+                        </div>
                       ) : (
                         selectedFolder.bookmarks.map((bookmark) => (
                           <button
@@ -218,14 +224,16 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
                         type="button"
                         onClick={() => handleSuggestionClick(spell)}
                         className={`flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm text-white hover:bg-white/10 ${
-                          index === selectedIndex ? "bg-white/20" : ""
+                          index === selectedIndex ? 'bg-white/20' : ''
                         }`}
                       >
                         <Bookmark className="h-4 w-4 mt-0.5 shrink-0 text-white/70" />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-white">{spell.name}</div>
                           {spell.description && (
-                            <div className="text-xs text-white/70 truncate">{spell.description}</div>
+                            <div className="text-xs text-white/70 truncate">
+                              {spell.description}
+                            </div>
                           )}
                           <div className="text-xs text-white/70">by {spell.author}</div>
                         </div>
@@ -247,5 +255,5 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
         </div>
       </form>
     </div>
-  )
+  );
 }

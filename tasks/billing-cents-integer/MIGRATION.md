@@ -15,16 +15,19 @@ This migration converts monetary amounts from Float (dollars) to Int (cents) to 
 ## Affected Tables
 
 ### 1. `spells` table
+
 - **Before**: `priceAmount` Float
 - **After**: `priceAmountCents` Int (default 0)
 - **Conversion**: `ROUND(priceAmount * 100)`
 
 ### 2. `budgets` table
+
 - **Before**: `monthlyCap` Float, `currentSpend` Float
 - **After**: `monthlyCapCents` Int (default 10000), `currentSpendCents` Int (default 0)
 - **Conversion**: `ROUND(monthlyCap * 100)`, `ROUND(currentSpend * 100)`
 
 ### 3. `casts` table
+
 - **Status**: Already using `costCents` Int ✅ (no changes needed)
 
 ## Migration SQL (PostgreSQL)
@@ -98,6 +101,7 @@ ALTER TABLE budgets DROP COLUMN IF EXISTS "currentSpend";
 If issues are detected:
 
 ### Before Step 4 (old columns still exist)
+
 ```sql
 -- Revert to old columns
 UPDATE spells SET "priceAmount" = "priceAmountCents" / 100.0;
@@ -112,6 +116,7 @@ ALTER TABLE budgets DROP COLUMN "monthlyCapCents", "currentSpendCents";
 ```
 
 ### After Step 4 (old columns dropped)
+
 ```sql
 -- Restore from backup (full database restore required)
 ```
@@ -119,6 +124,7 @@ ALTER TABLE budgets DROP COLUMN "monthlyCapCents", "currentSpendCents";
 ## Application Code Changes
 
 Deployed in parallel with this migration:
+
 - ✅ `src/lib/budget.ts` - Uses `monthlyCapCents`, `currentSpendCents`
 - ✅ `src/app/api/budget/route.ts` - Accepts/returns cents
 - ✅ `src/app/api/cast/route.ts` - Uses `spell.priceAmountCents`
@@ -131,15 +137,17 @@ Deployed in parallel with this migration:
 ## API Breaking Changes
 
 ### Before (Float, dollars)
+
 ```json
 {
   "priceAmount": 12.34,
-  "monthlyCap": 100.00,
+  "monthlyCap": 100.0,
   "currentSpend": 45.67
 }
 ```
 
 ### After (Int, cents)
+
 ```json
 {
   "priceAmountCents": 1234,
@@ -183,6 +191,7 @@ curl -X POST http://localhost:3000/api/spells/create \
 ## Post-Migration Monitoring
 
 Monitor for:
+
 - API errors related to missing fields
 - Budget enforcement accuracy (no off-by-one errors)
 - Stripe checkout failures

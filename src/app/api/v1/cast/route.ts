@@ -175,9 +175,7 @@ export async function POST(req: NextRequest) {
               estimated_cost_cents: spell.priceAmountCents,
             },
             headers: {
-              'Retry-After': budgetCheck.retryAfter
-                ? budgetCheck.retryAfter.toString()
-                : '86400',
+              'Retry-After': budgetCheck.retryAfter ? budgetCheck.retryAfter.toString() : '86400',
             },
           },
         };

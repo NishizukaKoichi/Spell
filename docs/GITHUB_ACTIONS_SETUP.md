@@ -70,6 +70,7 @@ GITHUB_WEBHOOK_SECRET=your-webhook-secret-here
 ```
 
 **Important:**
+
 - `GITHUB_APP_PRIVATE_KEY`: Use the single-line format from Step 2
 - `GITHUB_REPOSITORY`: Format is `owner/repo-name` (e.g., `microsoft/vscode`)
 - `GITHUB_WEBHOOK_SECRET`: Must match the secret you set in Step 1
@@ -115,13 +116,13 @@ curl -X POST http://localhost:3000/api/v1/cast \
 const castResponse = await fetch('/api/v1/cast', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
+    Authorization: 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     spell_key: 'your-spell-key',
-    input: { message: 'Hello World' }
-  })
+    input: { message: 'Hello World' },
+  }),
 });
 
 const { cast_id } = await castResponse.json();
@@ -220,7 +221,7 @@ import { triggerRepositoryDispatch } from '@/lib/github-app';
 await triggerRepositoryDispatch('spell.cast', {
   cast_id: '...',
   spell_key: '...',
-  input_data: JSON.stringify(input)
+  input_data: JSON.stringify(input),
 });
 ```
 

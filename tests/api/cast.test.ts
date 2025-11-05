@@ -21,7 +21,9 @@ describe('Cast API (v1)', () => {
       assert.equal(response.status, 401);
       const data = await response.json();
       assert.equal(data.error.code, 'UNAUTHORIZED');
-      assert.ok(typeof data.error.message === 'string' && data.error.message.includes('Authorization'));
+      assert.ok(
+        typeof data.error.message === 'string' && data.error.message.includes('Authorization')
+      );
     });
 
     it('should require Bearer token format', async () => {

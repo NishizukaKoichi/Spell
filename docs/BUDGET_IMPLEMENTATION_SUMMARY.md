@@ -65,6 +65,7 @@ if (updatedCast.costCents > 0) {
 ### 4. **Budget API Endpoints**
 
 #### GET /api/budget
+
 現在の予算状況を取得
 
 ```json
@@ -79,6 +80,7 @@ if (updatedCast.costCents > 0) {
 ```
 
 #### PATCH /api/budget
+
 月次上限を更新
 
 ```bash
@@ -87,6 +89,7 @@ curl -X PATCH /api/budget \
 ```
 
 #### POST /api/budget/reset
+
 予算を手動リセット
 
 ```bash
@@ -106,14 +109,14 @@ curl -X POST /api/budget/reset
 
 ## 📊 実装したファイル
 
-| ファイル | 目的 | 状態 |
-|---------|------|------|
-| `src/lib/budget.ts` | Budget チェック・更新ロジック | ✅ 完成 |
-| `src/app/api/v1/cast/route.ts` | 実行前チェック統合 | ✅ 完成 |
-| `src/app/api/webhooks/github/route.ts` | 実行後更新統合 | ✅ 完成 |
-| `src/app/api/budget/route.ts` | Budget API (GET/PATCH) | ✅ 更新 |
-| `src/app/api/budget/reset/route.ts` | リセット API | ✅ 新規 |
-| `docs/BUDGET_CAP_SYSTEM.md` | ドキュメント | ✅ 新規 |
+| ファイル                               | 目的                          | 状態    |
+| -------------------------------------- | ----------------------------- | ------- |
+| `src/lib/budget.ts`                    | Budget チェック・更新ロジック | ✅ 完成 |
+| `src/app/api/v1/cast/route.ts`         | 実行前チェック統合            | ✅ 完成 |
+| `src/app/api/webhooks/github/route.ts` | 実行後更新統合                | ✅ 完成 |
+| `src/app/api/budget/route.ts`          | Budget API (GET/PATCH)        | ✅ 更新 |
+| `src/app/api/budget/reset/route.ts`    | リセット API                  | ✅ 新規 |
+| `docs/BUDGET_CAP_SYSTEM.md`            | ドキュメント                  | ✅ 新規 |
 
 ---
 
@@ -301,6 +304,7 @@ curl -X GET /api/budget
 **判断**: Cast作成前にbudgetをチェック
 
 **理由**:
+
 - ユーザーが予想外の請求を受けない
 - リソース（GitHub Actions分数）を無駄にしない
 - 明確なエラーメッセージを提供できる
@@ -310,6 +314,7 @@ curl -X GET /api/budget
 **判断**: 失敗した実行も課金する
 
 **理由**:
+
 - GitHub Actionsの実行時間を消費した
 - インフラコストが発生した
 - ユーザーに責任があるエラーの可能性
@@ -319,6 +324,7 @@ curl -X GET /api/budget
 **判断**: Cron jobではなく、アクセス時にリセット
 
 **理由**:
+
 - インフラがシンプル
 - スケールしやすい
 - 正確なタイミング（1ヶ月後）
@@ -328,6 +334,7 @@ curl -X GET /api/budget
 **判断**: HTTP 402ステータスコードを使用
 
 **理由**:
+
 - RFC 7231に準拠
 - 予算超過の意図が明確
 - `Retry-After`ヘッダーで次回実行可能時刻を通知
@@ -337,6 +344,7 @@ curl -X GET /api/budget
 ## 📈 今後の改善案
 
 ### 優先度: 中
+
 1. **トランザクション安全性**
    - 複数同時リクエストでの race condition 対策
    - Prisma `$transaction` の活用
@@ -347,6 +355,7 @@ curl -X GET /api/budget
    - リアルタイム更新
 
 ### 優先度: 低
+
 3. **アラート機能**
    - 80%使用時にメール通知
    - 95%使用時に警告
@@ -387,38 +396,38 @@ curl -X GET /api/budget
 
 ## ✅ 完成度チェックリスト
 
-| カテゴリ | 完了 |
-|---------|------|
-| **Core Logic** | |
-| - Budget check function | ✅ |
-| - Budget update function | ✅ |
-| - Auto monthly reset | ✅ |
-| - Get budget status | ✅ |
-| **API Integration** | |
-| - Pre-execution check in Cast API | ✅ |
-| - 402 Payment Required error | ✅ |
-| - Post-execution update in Webhook | ✅ |
-| - Retry-After header | ✅ |
-| **API Endpoints** | |
-| - GET /api/budget | ✅ |
-| - PATCH /api/budget | ✅ |
-| - POST /api/budget/reset | ✅ |
-| **Documentation** | |
-| - Architecture document | ✅ |
-| - API reference | ✅ |
-| - Test scenarios | ✅ |
-| - FAQ | ✅ |
-| **Testing** | |
-| - Type checking passes | ✅ |
-| - No budget-related errors | ✅ |
-| - Manual testing guide | ✅ |
-| **UI** | |
-| - Budget display widget | ⚠️ 未実装 |
-| - Usage graph | ⚠️ 未実装 |
-| **Advanced Features** | |
-| - Transaction safety | ⚠️ 検討中 |
-| - Email alerts | ⚠️ 未実装 |
-| - Usage history | ⚠️ 未実装 |
+| カテゴリ                           | 完了      |
+| ---------------------------------- | --------- |
+| **Core Logic**                     |           |
+| - Budget check function            | ✅        |
+| - Budget update function           | ✅        |
+| - Auto monthly reset               | ✅        |
+| - Get budget status                | ✅        |
+| **API Integration**                |           |
+| - Pre-execution check in Cast API  | ✅        |
+| - 402 Payment Required error       | ✅        |
+| - Post-execution update in Webhook | ✅        |
+| - Retry-After header               | ✅        |
+| **API Endpoints**                  |           |
+| - GET /api/budget                  | ✅        |
+| - PATCH /api/budget                | ✅        |
+| - POST /api/budget/reset           | ✅        |
+| **Documentation**                  |           |
+| - Architecture document            | ✅        |
+| - API reference                    | ✅        |
+| - Test scenarios                   | ✅        |
+| - FAQ                              | ✅        |
+| **Testing**                        |           |
+| - Type checking passes             | ✅        |
+| - No budget-related errors         | ✅        |
+| - Manual testing guide             | ✅        |
+| **UI**                             |           |
+| - Budget display widget            | ⚠️ 未実装 |
+| - Usage graph                      | ⚠️ 未実装 |
+| **Advanced Features**              |           |
+| - Transaction safety               | ⚠️ 検討中 |
+| - Email alerts                     | ⚠️ 未実装 |
+| - Usage history                    | ⚠️ 未実装 |
 
 **Budget Cap システムの完成度: 95%** 🎉
 
@@ -429,6 +438,7 @@ curl -X GET /api/budget
 Budget Cap機能は完成しましたが、以下の機能がまだ必要です：
 
 ### 最優先 (Week 1-2)
+
 1. **従量課金の完全実装** ⭐⭐⭐
    - Stripe PaymentIntent/SetupIntent
    - Usage Records API（メーター型）
@@ -439,6 +449,7 @@ Budget Cap機能は完成しましたが、以下の機能がまだ必要です�
    - 重複実行の完全防止
 
 ### 高優先 (Week 3-4)
+
 3. **WASM Runtime** ⭐⭐
    - service mode 実行
    - サンドボックス環境
@@ -451,15 +462,15 @@ Budget Cap機能は完成しましたが、以下の機能がまだ必要です�
 
 ## 📊 全体進捗
 
-| カテゴリ | 完了度 |
-|---------|--------|
+| カテゴリ               | 完了度  |
+| ---------------------- | ------- |
 | **GitHub Actions統合** | ✅ 100% |
-| **Budget Cap強制** | ✅ 95% |
-| **フロントエンド** | ✅ 60% |
-| **バックエンドAPI** | ✅ 65% |
-| **課金システム** | ⚠️ 50% |
-| **実行エンジン** | ⚠️ 30% |
-| **セキュリティ** | ⚠️ 30% |
+| **Budget Cap強制**     | ✅ 95%  |
+| **フロントエンド**     | ✅ 60%  |
+| **バックエンドAPI**    | ✅ 65%  |
+| **課金システム**       | ⚠️ 50%  |
+| **実行エンジン**       | ⚠️ 30%  |
+| **セキュリティ**       | ⚠️ 30%  |
 
 **総合完成度: 55%** (45% → 55%)
 

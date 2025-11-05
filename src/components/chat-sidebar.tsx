@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import { Button } from "./ui/button"
-import { ScrollArea } from "./ui/scroll-area"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
+import { Button } from './ui/button';
+import { ScrollArea } from './ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import {
   AlignJustifyIcon,
   WandSparklesIcon,
@@ -21,31 +21,33 @@ import {
   Settings,
   CreditCard,
   Archive,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useState } from "react"
-import { useLanguage } from "@/lib/i18n/language-provider"
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { useLanguage } from '@/lib/i18n/language-provider';
 
 interface ChatSidebarProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onItemSelect?: (item: { type: string; name: string; data?: any }) => void
+  onItemSelect?: (item: { type: string; name: string; data?: any }) => void;
 }
 
 export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
-  const { t } = useLanguage()
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const { t } = useLanguage();
 
   const toggleSection = (section: string) => {
-    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
-  }
+    setExpandedSections((prev) =>
+      prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
+    );
+  };
 
   const handleItemClick = (type: string, name: string, data?: any) => {
     if (onItemSelect) {
-      onItemSelect({ type, name, data })
+      onItemSelect({ type, name, data });
     }
-  }
+  };
 
   return (
     <>
@@ -53,8 +55,8 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-[240px] border-r border-sidebar-border bg-sidebar transition-transform duration-200 sm:w-56 md:w-64",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          'fixed left-0 top-0 z-50 h-screen w-[240px] border-r border-sidebar-border bg-sidebar transition-transform duration-200 sm:w-56 md:w-64',
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
@@ -91,7 +93,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleItemClick("execution", "Execution")}
+                onClick={() => handleItemClick('execution', 'Execution')}
                 className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <WandSparklesIcon className="h-4 w-4 shrink-0" />
@@ -101,7 +103,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleItemClick("bazaar", "Bazaar")}
+                onClick={() => handleItemClick('bazaar', 'Bazaar')}
                 className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <Store className="h-4 w-4 shrink-0" />
@@ -112,10 +114,10 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleSection("grimoire")}
+                  onClick={() => toggleSection('grimoire')}
                   className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                 >
-                  {expandedSections.includes("grimoire") ? (
+                  {expandedSections.includes('grimoire') ? (
                     <ChevronDown className="h-4 w-4 shrink-0" />
                   ) : (
                     <ChevronRight className="h-4 w-4 shrink-0" />
@@ -123,12 +125,12 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                   <BookOpen className="h-4 w-4 shrink-0" />
                   <span className="truncate text-sm sm:text-base">{t.sidebar.grimoire}</span>
                 </Button>
-                {expandedSections.includes("grimoire") && (
+                {expandedSections.includes('grimoire') && (
                   <div className="ml-6 mt-1 space-y-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("grimoire", "All Spells")}
+                      onClick={() => handleItemClick('grimoire', 'All Spells')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <FileTextIcon className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -137,7 +139,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("grimoire", "Folders")}
+                      onClick={() => handleItemClick('grimoire', 'Folders')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <Folder className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -146,7 +148,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("grimoire", "Bookmarks")}
+                      onClick={() => handleItemClick('grimoire', 'Bookmarks')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <Bookmark className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -160,10 +162,10 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleSection("vaults")}
+                  onClick={() => toggleSection('vaults')}
                   className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                 >
-                  {expandedSections.includes("vaults") ? (
+                  {expandedSections.includes('vaults') ? (
                     <ChevronDown className="h-4 w-4 shrink-0" />
                   ) : (
                     <ChevronRight className="h-4 w-4 shrink-0" />
@@ -171,21 +173,23 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                   <Archive className="h-4 w-4 shrink-0" />
                   <span className="truncate text-sm sm:text-base">{t.sidebar.vaults}</span>
                 </Button>
-                {expandedSections.includes("vaults") && (
+                {expandedSections.includes('vaults') && (
                   <div className="ml-6 mt-1 space-y-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("vaults", "Transactions")}
+                      onClick={() => handleItemClick('vaults', 'Transactions')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <Activity className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
-                      <span className="truncate text-sm sm:text-base">{t.sidebar.transactions}</span>
+                      <span className="truncate text-sm sm:text-base">
+                        {t.sidebar.transactions}
+                      </span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("vaults", "Licenses")}
+                      onClick={() => handleItemClick('vaults', 'Licenses')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <FileCheck className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -194,7 +198,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleItemClick("vaults", "Artifacts")}
+                      onClick={() => handleItemClick('vaults', 'Artifacts')}
                       className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                     >
                       <Package className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -208,14 +212,14 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
 
           <div className="border-t border-sidebar-border p-2 sm:p-3">
             <div className="relative">
-              {expandedSections.includes("caster") && (
+              {expandedSections.includes('caster') && (
                 <div className="absolute bottom-full left-0 right-0 mb-1 space-y-1 rounded-md border border-sidebar-border bg-sidebar p-1 shadow-lg">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      handleItemClick("caster", "Identity", {
-                        subtitle: "Passkeys / API Keys / Linked Accounts",
+                      handleItemClick('caster', 'Identity', {
+                        subtitle: 'Passkeys / API Keys / Linked Accounts',
                       })
                     }
                     className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
@@ -226,7 +230,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleItemClick("caster", "Settings")}
+                    onClick={() => handleItemClick('caster', 'Settings')}
                     className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                   >
                     <Settings className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -235,7 +239,7 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleItemClick("caster", "Billing")}
+                    onClick={() => handleItemClick('caster', 'Billing')}
                     className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
                   >
                     <CreditCard className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" />
@@ -247,10 +251,10 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => toggleSection("caster")}
+                onClick={() => toggleSection('caster')}
                 className="w-full justify-start gap-2 text-left text-sidebar-foreground hover:bg-sidebar-accent"
               >
-                {expandedSections.includes("caster") ? (
+                {expandedSections.includes('caster') ? (
                   <ChevronDown className="h-4 w-4 shrink-0" />
                 ) : (
                   <ChevronRight className="h-4 w-4 shrink-0" />
@@ -263,5 +267,5 @@ export function ChatSidebar({ isOpen, onClose, onItemSelect }: ChatSidebarProps)
         </div>
       </aside>
     </>
-  )
+  );
 }

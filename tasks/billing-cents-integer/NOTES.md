@@ -1,6 +1,7 @@
 # Notes
 
 ## 2025-11-04
+
 - Created SPEC for migrating Float→Int (cents) for all monetary values.
 - Identified 3 Float fields to migrate: Spell.priceAmount, budgets.monthlyCap, budgets.currentSpend.
 - Cast.costCents is already Int ✅

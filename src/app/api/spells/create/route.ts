@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!Number.isInteger(priceAmountCents) || priceAmountCents < 0) {
-      return NextResponse.json({ error: 'priceAmountCents must be a non-negative integer' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'priceAmountCents must be a non-negative integer' },
+        { status: 400 }
+      );
     }
 
     if (tags.length === 0) {

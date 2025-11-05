@@ -86,7 +86,10 @@ export async function initIdempotencyKey(
 
     return { state: 'proceed', requestHash };
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === IDEMPOTENCY_UNIQUE_CONSTRAINT) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === IDEMPOTENCY_UNIQUE_CONSTRAINT
+    ) {
       const existing = await db.idempotencyKey.findUnique({
         where: {
           key_endpoint_scope: {

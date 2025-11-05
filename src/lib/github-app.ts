@@ -213,12 +213,7 @@ async function getInstallationToken(owner: string, repo: string): Promise<Instal
     const body = await safeJson(response);
     const status = response.status;
     const code = mapStatusToCode(status);
-    throw new GitHubAppError(
-      `Failed to create installation token (${status})`,
-      code,
-      status,
-      body
-    );
+    throw new GitHubAppError(`Failed to create installation token (${status})`, code, status, body);
   }
 
   const payload = (await response.json()) as { token: string; expires_at: string };
@@ -296,22 +291,19 @@ export async function triggerRepositoryDispatchWithConfig(config: RepositoryDisp
   const { owner, repo, eventType, clientPayload } = config;
   const { token } = await getInstallationToken(owner, repo);
 
-  const response = await fetch(
-    `${GITHUB_API_BASE}/repos/${owner}/${repo}/dispatches`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-      },
-      body: JSON.stringify({
-        event_type: eventType,
-        client_payload: clientPayload,
-      }),
-    }
-  );
+  const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/dispatches`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': GITHUB_API_VERSION,
+    },
+    body: JSON.stringify({
+      event_type: eventType,
+      client_payload: clientPayload,
+    }),
+  });
 
   if (response.status === 404) {
     throw new GitHubAppError(

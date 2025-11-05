@@ -35,10 +35,10 @@ cd /Users/koichinishizuka/Desktop/Spell
 
 tmux セッション `kamui` が起動し、以下のウィンドウが開きます：
 
-- `D1-Spec`  : README.md 編集（nvim）
+- `D1-Spec` : README.md 編集（nvim）
 - `D2-Claude`: Claude Code（main）
-- `D3-Test`  : 3ペイン並列テスト（main / api-opt / wasm-rt）
-- `D4-Ops`   : 運用ログ
+- `D3-Test` : 3ペイン並列テスト（main / api-opt / wasm-rt）
+- `D4-Ops` : 運用ログ
 
 **ウィンドウ切り替え**: `Ctrl-b n` (次) / `Ctrl-b p` (前) / `Ctrl-b 0-3` (番号指定)
 
@@ -124,7 +124,7 @@ tmux send-keys "cd ../Spell-worktrees/new-auth && codex test" C-m
 ```yaml
 commands:
   watch:
-    description: "Watch and auto-test"
+    description: 'Watch and auto-test'
     run: |
       cargo watch -x test
 ```

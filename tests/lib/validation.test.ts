@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  createSpellSchema,
-  validateRequest,
-} from '@/lib/validation';
+import { createSpellSchema, validateRequest } from '@/lib/validation';
 
 describe('validateRequest', () => {
   it('returns success with validated data when schema passes', () => {
@@ -46,7 +43,9 @@ describe('validateRequest', () => {
       const errors = result.errors.join(' | ');
       assert.ok(errors.includes('name: String must contain at least 3 character(s)'));
       assert.ok(
-        errors.includes('key: Key must contain only alphanumeric characters, hyphens, and underscores')
+        errors.includes(
+          'key: Key must contain only alphanumeric characters, hyphens, and underscores'
+        )
       );
       assert.ok(errors.includes('description: String must contain at least 10 character(s)'));
       assert.ok(errors.includes('priceAmount: Number must be greater than or equal to 0'));

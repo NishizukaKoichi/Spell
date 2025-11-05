@@ -65,8 +65,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     } = body;
 
     // Validate priceAmountCents if provided
-    if (priceAmountCents !== undefined && (!Number.isInteger(priceAmountCents) || priceAmountCents < 0)) {
-      return NextResponse.json({ error: 'priceAmountCents must be a non-negative integer' }, { status: 400 });
+    if (
+      priceAmountCents !== undefined &&
+      (!Number.isInteger(priceAmountCents) || priceAmountCents < 0)
+    ) {
+      return NextResponse.json(
+        { error: 'priceAmountCents must be a non-negative integer' },
+        { status: 400 }
+      );
     }
 
     const updatedSpell = await prisma.spell.update({
