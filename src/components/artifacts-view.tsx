@@ -99,7 +99,7 @@ export function ArtifactsView() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground sm:text-2xl">{t.artifacts.title}</h1>
-              <p className="text-xs text-muted-foreground sm:text-sm">{t.artifacts.description}</p>
+              <p className="text-xs text-muted-foreground sm:text-sm">{t.artifacts.subtitle}</p>
             </div>
           </div>
         </div>

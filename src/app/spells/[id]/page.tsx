@@ -72,7 +72,7 @@ export default async function SpellDetailPage({ params }: { params: Promise<{ id
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold">
-                    ${(spell.priceAmount / 100).toFixed(2)}
+                    ${(spell.priceAmountCents / 100).toFixed(2)}
                   </span>
                   <span className="text-white/60">
                     {spell.priceModel === 'one_time'
@@ -120,7 +120,7 @@ export default async function SpellDetailPage({ params }: { params: Promise<{ id
 
         {/* Cast Button */}
         <div className="flex justify-end">
-          <CastButton spellId={spell.id} priceAmount={spell.priceAmount} />
+          <CastButton spellId={spell.id} priceAmountCents={spell.priceAmountCents} />
         </div>
       </div>
     </DashboardLayout>

@@ -21,9 +21,12 @@ export class GitHubAppError extends Error {
   }
 }
 
-interface InstallationTokenCache {
+interface CachedInstallationToken {
   token: string;
   expiresAt: number;
+}
+
+interface InstallationTokenResult extends CachedInstallationToken {
   installationId: number;
 }
 
@@ -52,8 +55,13 @@ export interface GitHubArtifact {
   archive_download_url: string;
 }
 
-let cachedToken: InstallationTokenCache | null = null;
-let resolvedInstallationId: number | null = null;
+const installationCache = new Map<string, number>();
+const tokenCache = new Map<number, CachedInstallationToken>();
+const DEFAULT_REPOSITORY =
+  process.env.GITHUB_REPOSITORY ||
+  (process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME
+    ? `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`
+    : null);
 
 function base64UrlEncode(input: Buffer | string) {
   const buffer = typeof input === 'string' ? Buffer.from(input) : input;
@@ -94,11 +102,7 @@ function createAppJwt(appId: string, privateKey: string) {
 function getWorkflowConfig(): GitHubWorkflowConfig {
   const appId = process.env.GITHUB_APP_ID;
   const privateKeyEnv = process.env.GITHUB_APP_PRIVATE_KEY;
-  const repository =
-    process.env.GITHUB_REPOSITORY ||
-    (process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME
-      ? `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`
-      : null);
+  const repository = DEFAULT_REPOSITORY;
 
   if (!appId) {
     throw new GitHubConfigError('Missing GITHUB_APP_ID');
@@ -126,13 +130,23 @@ function getWorkflowConfig(): GitHubWorkflowConfig {
 }
 
 async function resolveInstallationId(owner: string, repo: string, jwt: string) {
-  if (resolvedInstallationId) {
-    return resolvedInstallationId;
+  const cacheKey = `${owner}/${repo}`;
+  const cached = installationCache.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
-  if (process.env.GITHUB_APP_INSTALLATION_ID) {
-    resolvedInstallationId = Number(process.env.GITHUB_APP_INSTALLATION_ID);
-    return resolvedInstallationId;
+  const envInstallationId = process.env.GITHUB_APP_INSTALLATION_ID;
+  if (envInstallationId) {
+    const parsed = Number(envInstallationId);
+    if (Number.isNaN(parsed)) {
+      throw new GitHubConfigError('Invalid GITHUB_APP_INSTALLATION_ID');
+    }
+
+    if (!DEFAULT_REPOSITORY || cacheKey === DEFAULT_REPOSITORY) {
+      installationCache.set(cacheKey, parsed);
+      return parsed;
+    }
   }
 
   const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/installation`, {
@@ -162,11 +176,11 @@ async function resolveInstallationId(owner: string, repo: string, jwt: string) {
   }
 
   const data = (await response.json()) as { id: number };
-  resolvedInstallationId = data.id;
-  return resolvedInstallationId;
+  installationCache.set(cacheKey, data.id);
+  return data.id;
 }
 
-async function getInstallationToken(owner: string, repo: string) {
+async function getInstallationToken(owner: string, repo: string): Promise<InstallationTokenResult> {
   const appId = process.env.GITHUB_APP_ID;
   const privateKeyEnv = process.env.GITHUB_APP_PRIVATE_KEY;
 
@@ -174,13 +188,14 @@ async function getInstallationToken(owner: string, repo: string) {
     throw new GitHubConfigError('Missing GitHub App credentials');
   }
 
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
-    return cachedToken;
-  }
-
   const privateKey = normalizePrivateKey(privateKeyEnv);
   const jwt = createAppJwt(appId, privateKey);
   const installationId = await resolveInstallationId(owner, repo, jwt);
+  const cached = tokenCache.get(installationId);
+
+  if (cached && Date.now() < cached.expiresAt - 60_000) {
+    return { ...cached, installationId };
+  }
 
   const response = await fetch(
     `${GITHUB_API_BASE}/app/installations/${installationId}/access_tokens`,
@@ -207,13 +222,14 @@ async function getInstallationToken(owner: string, repo: string) {
   }
 
   const payload = (await response.json()) as { token: string; expires_at: string };
-  cachedToken = {
+  const entry: CachedInstallationToken = {
     token: payload.token,
     expiresAt: new Date(payload.expires_at).getTime(),
-    installationId,
   };
 
-  return cachedToken;
+  tokenCache.set(installationId, entry);
+
+  return { ...entry, installationId };
 }
 
 function mapStatusToCode(status: number): ApiErrorCode {

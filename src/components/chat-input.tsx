@@ -15,6 +15,7 @@ interface BookmarkItem {
   author: string
   description?: string
   category?: string
+  tags?: string[]
   createdAt?: string
   cost?: number // Cost in currency units
 }
@@ -34,7 +35,7 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
   const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
   const grimoire = useMemo<FolderItem[]>(() => [], []) // Assuming grimoire is defined elsewhere
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     setInput(value)
 
@@ -56,7 +57,7 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
     }
   }
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions && filteredSpells.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault()
@@ -93,12 +94,12 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
 
   const handleSuggestionClick = (spell: BookmarkItem) => {
     setInput(spell.name)
-    onSpellSelect(spell)
+    onSpellSelect?.(spell)
     setShowSuggestions(false)
     setSelectedIndex(0)
   }
 
-  const handleFolderClick = (folder) => {
+  const handleFolderClick = (folder: FolderItem) => {
     setSelectedFolder(folder)
   }
 
@@ -108,7 +109,7 @@ export function ChatInput({ onSendMessage, onSpellSelect }: ChatInputProps) {
 
   const handleBookmarkClick = (bookmark: BookmarkItem) => {
     setInput(bookmark.name)
-    onSpellSelect(bookmark)
+    onSpellSelect?.(bookmark)
     setIsOpen(false)
   }
 

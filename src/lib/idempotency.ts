@@ -133,7 +133,7 @@ export async function persistIdempotencyResult(params: {
     },
     data: {
       responseStatus: params.responseStatus,
-      responseBody: params.responseBody,
+      responseBody: params.responseBody as Prisma.InputJsonValue,
     },
   });
 }

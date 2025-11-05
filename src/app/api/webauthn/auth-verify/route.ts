@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
           sub: authenticator.users.id,
         },
         secret,
+        salt: 'auth-verify',
         maxAge: 30 * 24 * 60 * 60, // 30 days
       });
 

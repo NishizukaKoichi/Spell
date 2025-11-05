@@ -78,7 +78,7 @@ export async function getPaymentMethods() {
   // 2. List payment methods attached to that customer
   // 3. Return the payment methods
 
-  return []
+  return { paymentMethods: [] }
 }
 
 export async function deletePaymentMethod(paymentMethodId: string) {
@@ -93,4 +93,26 @@ export async function deletePaymentMethod(paymentMethodId: string) {
   // 2. Detach the payment method from the customer
 
   return { success: true }
+}
+
+export async function createSetupIntent() {
+  const session = await auth()
+
+  if (!session?.user) {
+    throw new Error("Unauthorized")
+  }
+
+  // In a real implementation, you would:
+  // 1. Create a Stripe Setup Intent
+  // 2. Return the client secret
+
+  const setupIntent = await stripe.setupIntents.create({
+    payment_method_types: ["card"],
+  })
+
+  return { clientSecret: setupIntent.client_secret }
+}
+
+export async function removePaymentMethod(paymentMethodId: string) {
+  return deletePaymentMethod(paymentMethodId)
 }

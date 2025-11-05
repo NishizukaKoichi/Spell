@@ -6,7 +6,7 @@ export interface Spell {
   longDescription?: string | null;
   version: string;
   priceModel: string;
-  priceAmount: number;
+  priceAmountCents: number;
   priceCurrency: string;
   executionMode: string;
   tags: string[];

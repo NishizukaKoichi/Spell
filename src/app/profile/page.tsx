@@ -202,7 +202,7 @@ export default async function ProfilePage() {
                     rating: number;
                     totalCasts: number;
                     category: string | null;
-                    priceAmount: number;
+                    priceAmountCents: number;
                     priceModel: string;
                   }) => (
                     <Link key={spell.id} href={`/spells/${spell.id}`} className="block">
@@ -227,7 +227,7 @@ export default async function ProfilePage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">${(spell.priceAmount / 100).toFixed(2)}</p>
+                          <p className="font-semibold">${(spell.priceAmountCents / 100).toFixed(2)}</p>
                           <p className="text-xs text-white/60">
                             {spell.priceModel === 'one_time' ? 'one-time' : 'per use'}
                           </p>

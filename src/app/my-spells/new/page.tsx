@@ -75,7 +75,7 @@ export default function NewSpellPage() {
     longDescription: '',
     category: '',
     priceModel: 'metered',
-    priceAmount: '',
+    priceAmountCents: '',
     executionMode: 'workflow',
     webhookUrl: '',
   });
@@ -139,7 +139,7 @@ export default function NewSpellPage() {
     e.preventDefault();
     setError('');
 
-    if (!formData.name || !formData.description || !formData.priceAmount) {
+    if (!formData.name || !formData.description || !formData.priceAmountCents) {
       setError('Please fill in all required fields');
       return;
     }
@@ -171,7 +171,7 @@ export default function NewSpellPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          priceAmount: parseFloat(formData.priceAmount) * 100,
+          priceAmountCents: parseFloat(formData.priceAmountCents) * 100,
           tags,
           inputSchema: JSON.parse(inputSchema),
           outputSchema: JSON.parse(outputSchema),
@@ -383,8 +383,8 @@ export default function NewSpellPage() {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.priceAmount}
-                    onChange={(e) => setFormData({ ...formData, priceAmount: e.target.value })}
+                    value={formData.priceAmountCents}
+                    onChange={(e) => setFormData({ ...formData, priceAmountCents: e.target.value })}
                     placeholder="9.99"
                     className="bg-white text-black/5 border-white/10"
                     required
@@ -541,11 +541,11 @@ export default function NewSpellPage() {
 
                   <Separator className="bg-white text-black/10" />
 
-                  {formData.priceAmount && (
+                  {formData.priceAmountCents && (
                     <div>
                       <p className="text-sm text-white/60">Price</p>
                       <p className="text-2xl font-bold">
-                        ${formData.priceAmount}
+                        ${formData.priceAmountCents}
                         {formData.priceModel === 'metered' && (
                           <span className="text-sm font-normal text-white/60"> per use</span>
                         )}
