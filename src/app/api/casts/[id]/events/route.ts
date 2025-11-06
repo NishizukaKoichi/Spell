@@ -221,7 +221,9 @@ export async function GET(
       });
 
       const connectionDuration = Date.now() - connectionStartTime;
-      activeConnections.set(userId, currentConnections); // Decrement
+      // Decrement connection count, ensuring it doesn't go below 0
+      const currentCount = activeConnections.get(userId) || 0;
+      activeConnections.set(userId, Math.max(0, currentCount - 1));
 
       await createAuditLog({
         userId,
@@ -277,9 +279,10 @@ export async function GET(
       if (event.data.status === 'succeeded' || event.data.status === 'failed') {
         const connectionDuration = Date.now() - connectionStartTime;
 
-        // Cleanup
+        // Cleanup - decrement connection count
         unsubscribe();
-        activeConnections.set(userId, (activeConnections.get(userId) || 1) - 1);
+        const currentCount = activeConnections.get(userId) || 0;
+        activeConnections.set(userId, Math.max(0, currentCount - 1));
 
         await createAuditLog({
           userId,
@@ -305,7 +308,9 @@ export async function GET(
       const connectionDuration = Date.now() - connectionStartTime;
 
       unsubscribe();
-      activeConnections.set(userId!, (activeConnections.get(userId!) || 1) - 1);
+      // Decrement connection count, ensuring it doesn't go below 0
+      const currentCount = activeConnections.get(userId!) || 0;
+      activeConnections.set(userId!, Math.max(0, currentCount - 1));
 
       await createAuditLog({
         userId,

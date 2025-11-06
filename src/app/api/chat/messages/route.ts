@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     let body;
     try {
       body = await req.json();
-    } catch (error) {
+    } catch (_error) {
       return apiError('INVALID_INPUT', 400, 'Invalid JSON in request body');
     }
 

@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
-import { listArtifacts, deleteAllArtifactsForCast, formatBytes } from '@/lib/storage';
+import { deleteAllArtifactsForCast, formatBytes } from '@/lib/storage';
 import { logArtifactDeleted, getRequestContext } from '@/lib/audit-log';
 
 /**

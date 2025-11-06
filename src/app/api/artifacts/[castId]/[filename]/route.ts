@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
 import { apiError } from '@/lib/api-response';
 import { getArtifactUrl, validateFilename } from '@/lib/storage';

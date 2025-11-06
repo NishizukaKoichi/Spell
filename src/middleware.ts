@@ -29,6 +29,11 @@ export default auth(async (req) => {
     '/api/webauthn/register-verify',
     '/api/webauthn/auth-options',
     '/api/webauthn/auth-verify',
+    '/api/webhooks', // Webhook endpoints (Stripe, GitHub)
+    '/api/v1', // Public API v1 (uses API key auth)
+    '/api/health', // Health check endpoint
+    '/api/spells', // Public spell browsing
+    '/marketplace', // Public marketplace
   ];
 
   // Check if the current path is a public route

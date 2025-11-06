@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
@@ -8,7 +8,6 @@ import {
   logWasmModuleUploaded,
   logWasmModuleValidated,
   logWasmModuleValidationFailed,
-  getRequestContext,
 } from '@/lib/audit-log';
 
 /**
@@ -75,9 +74,6 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await wasmFile.arrayBuffer();
     const wasmBinary = Buffer.from(arrayBuffer);
 
-    // Get request context for audit logging
-    const { ipAddress, userAgent } = getRequestContext(req);
-
     // Validate WASM binary
     if (!validateWasmModule(wasmBinary)) {
       await logWasmModuleValidationFailed(
@@ -125,8 +121,8 @@ export async function POST(req: NextRequest) {
       },
       201
     );
-  } catch (error) {
-    console.error('WASM upload error:', error);
+  } catch (_error) {
+    console.error('WASM upload error:', _error);
     return apiError('INTERNAL', 500, 'Failed to upload WASM module');
   }
 }
