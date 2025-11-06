@@ -8,7 +8,7 @@ const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { email, name } = await req.json();
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -64,6 +64,15 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 5, // 5 minutes
       path: '/',
     });
+    if (name) {
+      cookieStore.set('webauthn-reg-name', name, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 5, // 5 minutes
+        path: '/',
+      });
+    }
 
     return NextResponse.json({ options });
   } catch (error) {

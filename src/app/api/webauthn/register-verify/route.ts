@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import type { RegistrationResponseJSON } from '@simplewebauthn/types';
 import { cookies } from 'next/headers';
 import { encode } from 'next-auth/jwt';
+import { logPasskeyRegister, logAuthRegister, getRequestContext } from '@/lib/audit-log';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
     const challenge = cookieStore.get('webauthn-reg-challenge')?.value;
     const email = cookieStore.get('webauthn-reg-email')?.value;
     const userID = cookieStore.get('webauthn-reg-userid')?.value;
+    const passkeyName = cookieStore.get('webauthn-reg-name')?.value;
 
     if (!challenge || !email || !userID) {
       return NextResponse.json({ error: 'Registration session expired' }, { status: 400 });
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
         credentialDeviceType: 'passkey',
         credentialBackedUp: false,
         transports: response.response.transports?.join(','),
+        name: passkeyName || null,
       },
     });
 
@@ -71,6 +74,17 @@ export async function POST(req: NextRequest) {
     cookieStore.delete('webauthn-reg-challenge');
     cookieStore.delete('webauthn-reg-email');
     cookieStore.delete('webauthn-reg-userid');
+    cookieStore.delete('webauthn-reg-name');
+
+    // Log passkey registration and user registration events
+    const { ipAddress, userAgent } = getRequestContext(req);
+    await logPasskeyRegister(
+      user.id,
+      Buffer.from(credentialID).toString('base64url'),
+      ipAddress,
+      userAgent
+    );
+    await logAuthRegister(user.id, ipAddress, userAgent, { method: 'passkey' });
 
     // Create NextAuth session manually by setting JWT token cookie
     try {

@@ -60,7 +60,8 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
       return;
     }
 
-    // Poll for updates every 3 seconds
+    // Poll for updates every 5 seconds (less aggressive than before)
+    // Note: Individual cast pages use SSE for real-time updates
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch('/api/casts');
@@ -71,7 +72,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
       } catch (error) {
         console.error('Error polling casts:', error);
       }
-    }, 3000);
+    }, 5000);
 
     return () => clearInterval(pollInterval);
   }, [casts]);

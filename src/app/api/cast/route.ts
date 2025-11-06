@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { apiError } from '@/lib/api-response';
 import { NATS } from '@/lib/runtime';
 import crypto from 'crypto';
+import { logCastCreated } from '@/lib/audit-log';
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,6 +72,12 @@ export async function POST(req: NextRequest) {
       data: {
         totalCasts: { increment: 1 },
       },
+    });
+
+    // Log cast creation
+    await logCastCreated(userId, cast.id, spellId, {
+      spellKey: spell.key,
+      inputHash,
     });
 
     // Return 202 Accepted - processing queued

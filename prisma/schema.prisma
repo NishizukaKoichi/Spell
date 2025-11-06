@@ -8,82 +8,97 @@ datasource db {
 }
 
 model User {
-  id             String           @id @default(cuid())
-  name           String?
-  email          String           @unique
-  emailVerified  DateTime?
-  image          String?
-  githubId       String?          @unique
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  accounts       accounts[]
-  api_keys       api_keys[]
-  authenticators authenticators[]
-  budgets        budgets?
-  casts          Cast[]
-  sessions       sessions[]
-  spells         Spell[]
-  reviews        Review[]
+  id              String              @id @default(cuid())
+  name            String?
+  email           String              @unique
+  emailVerified   DateTime?
+  image           String?
+  githubId        String?             @unique
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  accounts        accounts[]
+  api_keys        api_keys[]
+  authenticators  authenticators[]
+  budgets         budgets?
+  casts           Cast[]
+  sessions        sessions[]
+  spells          Spell[]
+  reviews         Review[]
+  auditLogs       AuditLog[]
+  chatMessages    ChatMessage[]
+  chatConversations ChatConversation[]
 
   @@map("users")
 }
 
 model Spell {
-  id               String   @id @default(cuid())
-  key              String   @unique
+  id               String         @id @default(cuid())
+  key              String         @unique
   name             String
   description      String
   longDescription  String?
-  version          String   @default("1.0.0")
+  version          String         @default("1.0.0")
   priceModel       String
-  priceAmountCents Int      @default(0)
-  priceCurrency    String   @default("USD")
+  priceAmountCents Int            @default(0)
+  priceCurrency    String         @default("USD")
   executionMode    String
   tags             String[]
   category         String?
-  rating           Float    @default(0)
-  totalCasts       Int      @default(0)
+  rating           Float          @default(0)
+  totalCasts       Int            @default(0)
   inputSchema      Json?
   outputSchema     Json?
   webhookUrl       String?
   authorId         String
-  status           String   @default("active")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status           String         @default("active")
+  wasmModuleUrl    String?
+  wasmModuleHash   String?
+  executionEngine  String         @default("github_actions")
+  resourceLimits   Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   casts            Cast[]
-  author           User     @relation(fields: [authorId], references: [id])
+  author           User           @relation(fields: [authorId], references: [id])
   reviews          Review[]
+  wasmModules      WasmModule[]
+  wasmExecutions   WasmExecution[]
 
   @@index([authorId])
   @@index([executionMode])
+  @@index([executionEngine])
   @@index([status])
   @@map("spells")
 }
 
 model Cast {
-  id           String    @id @default(cuid())
-  spellId      String
-  casterId     String
-  status       String    @default("queued")
-  inputHash    String?
-  startedAt    DateTime?
-  finishedAt   DateTime?
-  duration     Int?
-  costCents    Int       @default(0)
-  artifactUrl  String?
-  githubRunId  String?
-  githubRunAttempt Int?
-  errorMessage String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  caster       User      @relation(fields: [casterId], references: [id])
-  spell        Spell     @relation(fields: [spellId], references: [id])
-  review       Review?
+  id                   String         @id @default(cuid())
+  spellId              String
+  casterId             String
+  status               String         @default("queued")
+  inputHash            String?
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  duration             Int?
+  costCents            Int            @default(0)
+  artifactUrl          String?
+  artifactStorageKey   String?
+  artifactSize         Int?
+  artifactContentType  String?
+  githubRunId          String?
+  githubRunAttempt     Int?
+  errorMessage         String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  caster               User           @relation(fields: [casterId], references: [id])
+  spell                Spell          @relation(fields: [spellId], references: [id])
+  review               Review?
+  wasmExecution        WasmExecution?
 
   @@index([casterId])
   @@index([createdAt])
   @@index([spellId])
   @@index([status])
+  @@index([artifactStorageKey])
   @@map("casts")
 }
 
@@ -140,7 +155,7 @@ model api_keys {
 }
 
 model authenticators {
-  credentialID         String  @unique
+  credentialID         String   @unique
   userId               String
   providerAccountId    String
   credentialPublicKey  String
@@ -148,9 +163,13 @@ model authenticators {
   credentialDeviceType String
   credentialBackedUp   Boolean
   transports           String?
-  users                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                 String?
+  createdAt            DateTime @default(now())
+  lastUsedAt           DateTime?
+  users                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+  @@index([userId])
 }
 
 model budgets {
@@ -193,4 +212,103 @@ model verification_tokens {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  action       String
+  resource     String
+  resourceId   String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  status       String   @default("success")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+model ChatConversation {
+  id            String        @id @default(cuid())
+  userId        String
+  title         String?
+  lastMessageAt DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+
+  @@index([userId])
+  @@index([lastMessageAt])
+  @@index([userId, lastMessageAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String            @id @default(cuid())
+  conversationId String?
+  userId         String
+  content        String
+  role           String
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   ChatConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+model WasmModule {
+  id          String   @id @default(cuid())
+  spellId     String
+  version     String
+  wasmBinary  Bytes
+  hash        String
+  size        Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  spell       Spell    @relation(fields: [spellId], references: [id], onDelete: Cascade)
+
+  @@index([spellId])
+  @@index([spellId, version])
+  @@index([hash])
+  @@map("wasm_modules")
+}
+
+model WasmExecution {
+  id               String    @id @default(cuid())
+  castId           String    @unique
+  spellId          String
+  executionTimeMs  Int
+  memoryUsedMb     Float
+  wasmVersion      String
+  success          Boolean
+  errorMessage     String?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  cast             Cast      @relation(fields: [castId], references: [id], onDelete: Cascade)
+  spell            Spell     @relation(fields: [spellId], references: [id], onDelete: Cascade)
+
+  @@index([castId])
+  @@index([spellId])
+  @@index([success])
+  @@index([createdAt])
+  @@index([spellId, createdAt])
+  @@map("wasm_executions")
 }

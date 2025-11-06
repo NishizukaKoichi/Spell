@@ -9,14 +9,14 @@ import {
   getLatestWorkflowRun,
   getGitHubWorkflowConfig,
 } from '@/lib/github-app';
-import { rateLimitMiddleware } from '@/lib/rate-limit';
-import { checkBudget } from '@/lib/budget';
+import { checkBudget, estimateExecutionCost } from '@/lib/budget';
 import {
   initIdempotencyKey,
   persistIdempotencyResult,
   IdempotencyReplay,
   IdempotencyMismatchError,
 } from '@/lib/idempotency';
+import { executeSpell } from '@/lib/execution/router';
 
 const IDEMPOTENCY_ENDPOINT = 'POST /api/v1/cast';
 
@@ -68,11 +68,9 @@ export async function POST(req: NextRequest) {
   const idempotencyKey = req.headers.get('idempotency-key');
 
   try {
-    // Apply rate limiting: 60 requests per minute per API key/IP
-    const rateLimitError = await rateLimitMiddleware(req, 60, 60000);
-    if (rateLimitError) {
-      return rateLimitError;
-    }
+    // Note: Rate limiting is now handled globally by middleware.ts
+    // API keys get 60 requests/minute by default via the global rate limiter
+    // The global middleware will apply the appropriate tier based on authentication method
 
     // Get API key from Authorization header
     const authHeader = req.headers.get('authorization');
@@ -261,54 +259,46 @@ export async function POST(req: NextRequest) {
 
     const { cast, spell } = transactionResult;
 
-    if (spell.executionMode === 'workflow') {
-      try {
-        const cfg = getGitHubWorkflowConfig();
+    // Execute spell using execution router
+    // The router will determine whether to use WASM or GitHub Actions
+    try {
+      const executionResult = await executeSpell(spell.id, cast.id, {
+        input,
+        allowFallback: true, // Allow fallback to GitHub Actions if WASM fails
+      });
 
-        await triggerWorkflowDispatch({
-          cast_id: cast.id,
-          spell_key: spell.key,
-          input_data: serializedInput,
-        });
-
-        const runId = await getLatestWorkflowRun(cfg.workflowFile, 5000);
-
+      // Update cast with execution results
+      if (executionResult.success) {
         await prisma.cast.update({
           where: { id: cast.id },
           data: {
-            status: 'running',
-            startedAt: new Date(),
-            githubRunId: runId ? runId.toString() : null,
+            status: executionResult.engine === 'wasm' ? 'completed' : 'running',
+            costCents: executionResult.costCents,
+            duration: executionResult.executionTimeMs,
+            ...(executionResult.engine === 'wasm'
+              ? {
+                  finishedAt: new Date(),
+                }
+              : {
+                  startedAt: new Date(),
+                }),
           },
         });
-      } catch (error: unknown) {
-        console.error('Workflow trigger error:', error);
-
+      } else {
         await prisma.cast.update({
           where: { id: cast.id },
           data: {
             status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            errorMessage: executionResult.error || 'Unknown error',
             finishedAt: new Date(),
+            costCents: executionResult.costCents,
           },
         });
 
-        let responseStatus = 500;
-        let responseCode: ApiErrorCode = 'INTERNAL';
-        let responseMessage = 'Failed to trigger spell execution';
-
-        if (error instanceof GitHubAppError) {
-          responseStatus = error.status;
-          responseCode = error.code;
-          responseMessage = error.message;
-        } else if (error instanceof GitHubConfigError) {
-          responseMessage = error.message;
-        }
-
         const responseBody = {
           error: {
-            code: responseCode,
-            message: responseMessage,
+            code: 'INTERNAL' as ApiErrorCode,
+            message: executionResult.error || 'Failed to execute spell',
           },
         };
 
@@ -316,15 +306,46 @@ export async function POST(req: NextRequest) {
           key: idempotencyKey,
           endpoint: IDEMPOTENCY_ENDPOINT,
           scope: userId,
-          responseStatus,
+          responseStatus: 500,
           responseBody,
         });
 
         return new Response(JSON.stringify(responseBody), {
-          status: responseStatus,
+          status: 500,
           headers: { 'Content-Type': 'application/json' },
         });
       }
+    } catch (error: unknown) {
+      console.error('Spell execution error:', error);
+
+      await prisma.cast.update({
+        where: { id: cast.id },
+        data: {
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          finishedAt: new Date(),
+        },
+      });
+
+      const responseBody = {
+        error: {
+          code: 'INTERNAL' as ApiErrorCode,
+          message: 'Failed to execute spell',
+        },
+      };
+
+      await persistIdempotencySafe({
+        key: idempotencyKey,
+        endpoint: IDEMPOTENCY_ENDPOINT,
+        scope: userId,
+        responseStatus: 500,
+        responseBody,
+      });
+
+      return new Response(JSON.stringify(responseBody), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const successBody = {

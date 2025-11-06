@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ApiKeys } from '@/components/api-keys';
+import { PasskeyList } from '@/components/passkey-list';
 import { auth } from '@/lib/auth/config';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -26,12 +27,6 @@ async function getUserStats(userId: string) {
   };
 }
 
-async function getUserAuthenticators(userId: string) {
-  return prisma.authenticators.findMany({
-    where: { userId },
-    orderBy: { credentialID: 'asc' },
-  });
-}
 
 async function getUserSpells(userId: string) {
   return prisma.spell.findMany({
@@ -65,9 +60,8 @@ export default async function ProfilePage() {
     redirect('/auth/signin');
   }
 
-  const [stats, authenticators, userSpells, userCasts] = await Promise.all([
+  const [stats, userSpells, userCasts] = await Promise.all([
     getUserStats(session.user.id),
-    getUserAuthenticators(session.user.id),
     getUserSpells(session.user.id),
     getUserCasts(session.user.id),
   ]);
@@ -135,47 +129,8 @@ export default async function ProfilePage() {
             <h2 className="text-xl font-semibold">Passkeys</h2>
             <p className="text-sm text-white/60">Manage your authentication passkeys</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {authenticators.length === 0 ? (
-              <p className="text-white/60">No passkeys registered</p>
-            ) : (
-              <div className="space-y-3">
-                {authenticators.map(
-                  (
-                    auth: {
-                      credentialID: string;
-                      credentialDeviceType: string;
-                      credentialBackedUp: boolean;
-                      counter: number;
-                    },
-                    index: number
-                  ) => (
-                    <div
-                      key={auth.credentialID}
-                      className="flex items-center justify-between rounded-lg border border-white/10 p-4"
-                    >
-                      <div className="space-y-1">
-                        <p className="font-medium">Passkey #{index + 1}</p>
-                        <p className="text-xs text-white/40 font-mono">
-                          {auth.credentialID.slice(0, 20)}...
-                        </p>
-                        <div className="flex gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {auth.credentialDeviceType}
-                          </Badge>
-                          {auth.credentialBackedUp && (
-                            <Badge variant="outline" className="text-xs">
-                              Backed Up
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-sm text-white/60">Used {auth.counter} times</div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
+          <CardContent>
+            <PasskeyList />
           </CardContent>
         </Card>
 

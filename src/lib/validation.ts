@@ -70,6 +70,23 @@ export const updateCastStatusSchema = z.object({
   errorMessage: z.string().max(1000).optional(),
 });
 
+// Chat message validation
+export const sendChatMessageSchema = z.object({
+  content: z.string().min(1).max(10000),
+  conversationId: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+// Chat conversation validation
+export const createConversationSchema = z.object({
+  title: z.string().max(200).optional(),
+});
+
+export const updateConversationSchema = z.object({
+  conversationId: z.string(),
+  title: z.string().min(1).max(200),
+});
+
 // Helper function to validate request body
 export function validateRequest<T>(
   schema: z.Schema<T>,

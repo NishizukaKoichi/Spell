@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { logApiKeyCreated, getIpAddress } from '@/lib/audit-log';
 
 // Generate a secure API key
 function generateApiKey(): string {
@@ -97,6 +98,10 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       },
     });
+
+    // Log API key creation
+    const ipAddress = getIpAddress(req);
+    await logApiKeyCreated(session.user.id, newKey.id, newKey.name, ipAddress);
 
     // Return the full key only once (on creation)
     return NextResponse.json({

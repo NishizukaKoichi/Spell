@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
+import { logSpellCreated } from '@/lib/audit-log';
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +74,15 @@ export async function POST(req: NextRequest) {
         rating: 0,
         totalCasts: 0,
       },
+    });
+
+    // Log spell creation
+    await logSpellCreated(session.user.id, spell.id, spell.name, {
+      key: spell.key,
+      priceModel: spell.priceModel,
+      priceAmountCents: spell.priceAmountCents,
+      executionMode: spell.executionMode,
+      category: spell.category,
     });
 
     return NextResponse.json({

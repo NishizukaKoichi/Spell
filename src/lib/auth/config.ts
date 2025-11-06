@@ -5,6 +5,8 @@ import type { NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
+import { cookies } from 'next/headers';
+
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
@@ -25,6 +27,15 @@ export const authConfig: NextAuthConfig = {
         try {
           const response = JSON.parse(credentials.response as string) as AuthenticationResponseJSON;
 
+          // Retrieve challenge from secure HTTP-only cookie
+          const cookieStore = await cookies();
+          const challenge = cookieStore.get('webauthn-challenge')?.value;
+
+          if (!challenge) {
+            console.error('WebAuthn challenge not found or expired');
+            return null;
+          }
+
           // Find authenticator by credential ID
           const authenticator = await prisma.authenticators.findUnique({
             where: { credentialID: response.id },
@@ -35,10 +46,10 @@ export const authConfig: NextAuthConfig = {
             return null;
           }
 
-          // Verify the authentication response
+          // Verify the authentication response with challenge from cookie
           const verification = await verifyAuthenticationResponse({
             response,
-            expectedChallenge: '', // TODO: Get from session storage
+            expectedChallenge: challenge,
             expectedOrigin: origin,
             expectedRPID: rpID,
             authenticator: {
@@ -52,11 +63,17 @@ export const authConfig: NextAuthConfig = {
             return null;
           }
 
-          // Update counter
+          // Update counter and lastUsedAt
           await prisma.authenticators.update({
             where: { credentialID: authenticator.credentialID },
-            data: { counter: verification.authenticationInfo.newCounter },
+            data: {
+              counter: verification.authenticationInfo.newCounter,
+              lastUsedAt: new Date(),
+            },
           });
+
+          // Clear the challenge cookie after successful verification
+          cookieStore.delete('webauthn-challenge');
 
           return {
             id: authenticator.users.id,

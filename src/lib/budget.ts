@@ -198,3 +198,60 @@ function getNextMonthDate(lastReset: Date): Date {
   next.setMonth(next.getMonth() + 1);
   return next;
 }
+
+/**
+ * Calculate WASM execution cost based on metrics
+ *
+ * Pricing model:
+ * - $0.001 per second of execution time (0.1 cents per second)
+ * - $0.0001 per MB of memory used (0.01 cents per MB)
+ * - Minimum cost: 1 cent
+ *
+ * @param executionTimeMs - Execution time in milliseconds
+ * @param memoryUsedMb - Memory used in megabytes
+ * @returns Cost in cents
+ */
+export function calculateWasmExecutionCost(executionTimeMs: number, memoryUsedMb: number): number {
+  const timeCostCents = (executionTimeMs / 1000) * 0.1; // $0.001 per second = 0.1 cents
+  const memoryCostCents = memoryUsedMb * 0.01; // $0.0001 per MB = 0.01 cents
+
+  const totalCostCents = Math.ceil(timeCostCents + memoryCostCents);
+
+  // Minimum cost: 1 cent
+  return Math.max(1, totalCostCents);
+}
+
+/**
+ * Calculate GitHub Actions execution cost (estimated)
+ *
+ * @param durationMs - Duration in milliseconds
+ * @returns Cost in cents
+ */
+export function calculateGitHubActionsCost(durationMs: number): number {
+  // Estimate: $0.008 per minute = 0.8 cents per minute
+  const minutes = Math.ceil(durationMs / (60 * 1000));
+  const costCents = Math.ceil(minutes * 0.8);
+
+  // Minimum cost: 5 cents
+  return Math.max(5, costCents);
+}
+
+/**
+ * Estimate spell execution cost before running
+ *
+ * @param executionEngine - Engine type (wasm or github_actions)
+ * @param estimatedTimeMs - Estimated execution time in milliseconds
+ * @param estimatedMemoryMb - Estimated memory usage in megabytes (for WASM)
+ * @returns Estimated cost in cents
+ */
+export function estimateExecutionCost(
+  executionEngine: string,
+  estimatedTimeMs: number,
+  estimatedMemoryMb = 256
+): number {
+  if (executionEngine === 'wasm') {
+    return calculateWasmExecutionCost(estimatedTimeMs, estimatedMemoryMb);
+  } else {
+    return calculateGitHubActionsCost(estimatedTimeMs);
+  }
+}

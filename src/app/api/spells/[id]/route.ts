@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/config';
+import { logSpellUpdated, logSpellDeleted } from '@/lib/audit-log';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -93,6 +94,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
 
+    // Log spell update
+    await logSpellUpdated(session.user.id, id, {
+      changes: Object.keys(body),
+      previousStatus: spell.status,
+      newStatus: status,
+    });
+
     return NextResponse.json(updatedSpell);
   } catch (error) {
     console.error('Failed to update spell:', error);
@@ -137,6 +145,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         },
       });
 
+      // Log soft delete
+      await logSpellDeleted(session.user.id, id, spell.name);
+
       return NextResponse.json({
         message: 'Spell archived (soft deleted due to existing casts)',
       });
@@ -146,6 +157,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.spell.delete({
       where: { id },
     });
+
+    // Log hard delete
+    await logSpellDeleted(session.user.id, id, spell.name);
 
     return NextResponse.json({ message: 'Spell deleted' });
   } catch (error) {

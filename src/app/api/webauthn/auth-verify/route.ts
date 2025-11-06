@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
 import { cookies } from 'next/headers';
 import { encode } from 'next-auth/jwt';
+import { logPasskeyVerify, logAuthLogin, getRequestContext } from '@/lib/audit-log';
 
 const rpID = process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ?? 'localhost';
 const origin = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 400 });
     }
 
-    // Update authenticator counter
+    // Update authenticator counter and last used time
     await prisma.authenticators.update({
       where: {
         userId_credentialID: {
@@ -63,11 +64,22 @@ export async function POST(req: NextRequest) {
       },
       data: {
         counter: verification.authenticationInfo.newCounter,
+        lastUsedAt: new Date(),
       },
     });
 
     // Clear the challenge cookie
     cookieStore.delete('webauthn-challenge');
+
+    // Log passkey verification and login events
+    const { ipAddress, userAgent } = getRequestContext(req);
+    await logPasskeyVerify(
+      authenticator.users.id,
+      authenticator.credentialID,
+      ipAddress,
+      userAgent
+    );
+    await logAuthLogin(authenticator.users.id, ipAddress, userAgent, { method: 'passkey' });
 
     // Create NextAuth session manually by setting JWT token cookie
     try {

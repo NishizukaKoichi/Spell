@@ -1,9 +1,21 @@
 import { NextRequest } from 'next/server';
-import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
-import { listRunArtifactsWithRepo } from '@/lib/github-app';
+import { listRunArtifactsWithRepo, downloadGitHubArtifact } from '@/lib/github-app';
 import { updateBudgetSpend } from '@/lib/budget';
+import {
+  verifyGitHubSignature,
+  WebhookSignatureError,
+  WebhookConfigError,
+} from '@/lib/webhook';
+import {
+  publishCastStatusChange,
+  publishCastStarted,
+  publishCastCompleted,
+  publishCastFailed,
+} from '@/lib/cast-events';
+import { uploadArtifact, generateArtifactKey } from '@/lib/storage';
+import { logArtifactUploaded } from '@/lib/audit-log';
 
 /**
  * GitHub Webhook Handler
@@ -50,24 +62,6 @@ interface WorkflowRunPayload {
 }
 
 /**
- * Verify GitHub webhook signature
- * @see https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
- */
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  if (!signature.startsWith('sha256=')) {
-    return false;
-  }
-
-  const expectedSignature = signature.slice(7);
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(payload);
-  const calculatedSignature = hmac.digest('hex');
-
-  // Use timing-safe comparison
-  return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(calculatedSignature));
-}
-
-/**
  * Extract cast_id from workflow run
  *
  * The cast_id can be passed via:
@@ -89,23 +83,30 @@ async function extractCastId(runId: number, _owner: string, _repo: string): Prom
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify webhook secret
-    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      console.error('GITHUB_WEBHOOK_SECRET is not configured');
-      return apiError('INTERNAL', 500, 'Webhook secret not configured');
-    }
-
-    const signature = req.headers.get('x-hub-signature-256');
-    if (!signature) {
-      return apiError('UNAUTHORIZED', 401, 'Missing signature');
-    }
-
+    // Get raw body and signature
     const rawBody = await req.text();
-    const isValid = verifySignature(rawBody, signature, webhookSecret);
-    if (!isValid) {
-      console.error('Invalid webhook signature');
-      return apiError('UNAUTHORIZED', 401, 'Invalid signature');
+    const signature = req.headers.get('x-hub-signature-256');
+
+    // Verify webhook signature
+    try {
+      verifyGitHubSignature(
+        rawBody,
+        signature,
+        process.env.GITHUB_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      if (err instanceof WebhookConfigError) {
+        console.error('[GitHub Webhook] Configuration error:', err.message);
+        return apiError('INTERNAL', 500, 'Webhook secret not configured');
+      }
+
+      if (err instanceof WebhookSignatureError) {
+        console.error('[GitHub Webhook] Signature verification failed:', err.details);
+        return apiError('UNAUTHORIZED', 401, err.message);
+      }
+
+      console.error('[GitHub Webhook] Unexpected error during verification:', err);
+      return apiError('INTERNAL', 500, 'Webhook verification failed');
     }
 
     // Parse event type
@@ -126,19 +127,38 @@ export async function POST(req: NextRequest) {
       return apiSuccess({ message: 'No associated cast found' });
     }
 
+    // Fetch the cast to get previous status and user ID
+    const existingCast = await prisma.cast.findUnique({
+      where: { id: castId },
+      select: { status: true, casterId: true },
+    });
+
+    if (!existingCast) {
+      console.warn(`[GitHub Webhook] Cast ${castId} not found`);
+      return apiSuccess({ message: 'Cast not found' });
+    }
+
+    const previousStatus = existingCast.status;
+
     // Update Cast based on action
     switch (action) {
-      case 'in_progress':
+      case 'in_progress': {
+        const startedAt = new Date(workflow_run.created_at);
+
         await prisma.cast.update({
           where: { id: castId },
           data: {
             status: 'running',
-            startedAt: new Date(workflow_run.created_at),
+            startedAt,
             githubRunId: workflow_run.id.toString(),
             githubRunAttempt: workflow_run.run_attempt,
           },
         });
+
+        // Publish cast started event
+        await publishCastStarted(castId, existingCast.casterId, startedAt);
         break;
+      }
 
       case 'completed': {
         const isSuccess = workflow_run.conclusion === 'success';
@@ -149,8 +169,12 @@ export async function POST(req: NextRequest) {
         const startedAt = new Date(workflow_run.created_at);
         const duration = finishedAt.getTime() - startedAt.getTime();
 
-        // Fetch artifacts if succeeded
+        // Fetch and store artifacts if succeeded
         let artifactUrl: string | null = null;
+        let artifactStorageKey: string | null = null;
+        let artifactSize: number | null = null;
+        let artifactContentType: string | null = null;
+
         if (isSuccess) {
           try {
             const artifacts = await listRunArtifactsWithRepo(
@@ -163,9 +187,50 @@ export async function POST(req: NextRequest) {
               // Use the first non-expired artifact
               const artifact = artifacts.find((a) => !a.expired);
               if (artifact) {
-                // Store the archive_download_url
-                // Note: This URL requires authentication, so we'll need to proxy it
-                artifactUrl = `/api/v1/github/runs/${workflow_run.id}/artifacts/${artifact.id}`;
+                try {
+                  // Download artifact from GitHub
+                  console.log(`[GitHub Webhook] Downloading artifact ${artifact.id}...`);
+                  const artifactBuffer = await downloadGitHubArtifact(
+                    repository.owner.login,
+                    repository.name,
+                    artifact.id
+                  );
+
+                  // Upload to R2
+                  const filename = artifact.name || 'output.zip';
+                  console.log(`[GitHub Webhook] Uploading artifact to R2: ${filename}`);
+                  artifactStorageKey = await uploadArtifact({
+                    castId,
+                    filename,
+                    content: artifactBuffer,
+                    contentType: 'application/zip',
+                    metadata: {
+                      githubArtifactId: artifact.id.toString(),
+                      githubRunId: workflow_run.id.toString(),
+                    },
+                  });
+
+                  artifactSize = artifactBuffer.length;
+                  artifactContentType = 'application/zip';
+
+                  // Generate internal artifact URL for access
+                  artifactUrl = `/api/artifacts/${castId}/${filename}`;
+
+                  // Log artifact upload
+                  await logArtifactUploaded(
+                    existingCast.casterId,
+                    castId,
+                    filename,
+                    artifactSize,
+                    artifactStorageKey
+                  );
+
+                  console.log(`[GitHub Webhook] Artifact uploaded successfully: ${artifactStorageKey}`);
+                } catch (uploadError) {
+                  console.error(`[GitHub Webhook] Failed to upload artifact to R2:`, uploadError);
+                  // Fallback to old behavior
+                  artifactUrl = `/api/v1/github/runs/${workflow_run.id}/artifacts/${artifact.id}`;
+                }
               }
             }
           } catch (error) {
@@ -180,12 +245,34 @@ export async function POST(req: NextRequest) {
             finishedAt,
             duration: Math.round(duration),
             artifactUrl,
+            artifactStorageKey,
+            artifactSize,
+            artifactContentType,
             errorMessage: isSuccess ? null : `Workflow concluded with: ${workflow_run.conclusion}`,
           },
           include: {
             caster: true,
           },
         });
+
+        // Publish appropriate event based on status
+        if (isSuccess) {
+          await publishCastCompleted(
+            castId,
+            existingCast.casterId,
+            finishedAt,
+            Math.round(duration),
+            updatedCast.costCents,
+            artifactUrl
+          );
+        } else {
+          await publishCastFailed(
+            castId,
+            existingCast.casterId,
+            updatedCast.errorMessage || 'Workflow failed',
+            finishedAt
+          );
+        }
 
         // Update budget spend if execution succeeded
         // Note: We charge even for failed executions (user consumed resources)

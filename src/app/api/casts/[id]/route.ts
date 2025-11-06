@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { sendCastStatusWebhook } from '@/lib/webhook';
+import { publishCastUpdate } from '@/lib/cast-events';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,6 +54,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         },
       },
     });
+
+    // Publish cast update event for SSE listeners
+    await publishCastUpdate(cast.id);
 
     // Send webhook if cast succeeded or failed
     if (cast.status === 'succeeded' || (cast.status === 'failed' && cast.spell.webhookUrl)) {

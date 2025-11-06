@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
+import { logApiKeyRevoked, getIpAddress } from '@/lib/audit-log';
 
 // DELETE /api/keys/[id] - Delete an API key
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         id,
       },
     });
+
+    // Log API key revocation
+    const ipAddress = getIpAddress(req);
+    await logApiKeyRevoked(session.user.id, id, apiKey.name, ipAddress);
 
     return NextResponse.json({ message: 'API key deleted successfully' });
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
+import { useCastEvents } from '@/hooks/useCastEvents';
 
 interface Cast {
   id: string;
@@ -31,6 +32,9 @@ interface Cast {
   duration: number | null;
   errorMessage: string | null;
   artifactUrl: string | null;
+  artifactStorageKey: string | null;
+  artifactSize: number | null;
+  artifactContentType: string | null;
   costCents: number;
   createdAt: string;
   inputHash: string | null;
@@ -78,109 +82,95 @@ function formatDuration(ms: number | null): string {
   return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
 }
 
+function formatBytes(bytes: number | null): string {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
 export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
   const [cast, setCast] = useState<Cast>(initialCast);
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  useEffect(() => {
-    // Only connect to SSE if cast is not in terminal state
-    if (cast.status === 'succeeded' || cast.status === 'failed') {
-      return;
-    }
+  // Only enable SSE if cast is not in terminal state
+  const isTerminal = cast.status === 'succeeded' || cast.status === 'failed';
 
-    let eventSource: EventSource | null = null;
-    let reconnectTimer: NodeJS.Timeout | null = null;
+  // Subscribe to real-time cast events
+  const { isConnected, lastUpdate, reconnectCount } = useCastEvents(
+    {
+      castId: cast.id,
+      enabled: !isTerminal,
+    },
+    {
+      onStatus: (data) => {
+        const previousStatus = cast.status;
 
-    const connect = () => {
-      eventSource = new EventSource(`/api/casts/${cast.id}/stream`);
+        // Update cast state with new data
+        setCast((prev) => ({
+          ...prev,
+          status: data.status || prev.status,
+          startedAt: data.startedAt !== undefined ? data.startedAt : prev.startedAt,
+          finishedAt: data.finishedAt !== undefined ? data.finishedAt : prev.finishedAt,
+          duration: data.duration !== undefined ? data.duration : prev.duration,
+          errorMessage: data.errorMessage !== undefined ? data.errorMessage : prev.errorMessage,
+          artifactUrl: data.artifactUrl !== undefined ? data.artifactUrl : prev.artifactUrl,
+          costCents: data.costCents !== undefined ? data.costCents : prev.costCents,
+        }));
 
-      eventSource.onopen = () => {
-        setIsConnected(true);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.error) {
-            console.error('SSE error:', data.error);
-            return;
+        // Show toast notifications for status changes
+        if (previousStatus !== data.status) {
+          if (data.status === 'running') {
+            toast.info('Execution started', {
+              description: 'Your spell is now running',
+            });
+          } else if (data.status === 'succeeded') {
+            toast.success('Execution succeeded', {
+              description: 'Your spell has finished successfully',
+            });
+          } else if (data.status === 'failed') {
+            toast.error('Execution failed', {
+              description: data.errorMessage || 'An error occurred',
+            });
           }
-
-          const previousStatus = cast.status;
-
-          // Update cast state with new data
+        }
+      },
+      onProgress: (data) => {
+        if (data.message) {
+          toast.info('Progress update', {
+            description: data.message,
+          });
+        }
+      },
+      onComplete: (data) => {
+        // Update final state
+        setCast((prev) => ({
+          ...prev,
+          status: data.status || prev.status,
+          finishedAt: data.finishedAt !== undefined ? data.finishedAt : prev.finishedAt,
+          duration: data.duration !== undefined ? data.duration : prev.duration,
+          costCents: data.costCents !== undefined ? data.costCents : prev.costCents,
+          artifactUrl: data.artifactUrl !== undefined ? data.artifactUrl : prev.artifactUrl,
+        }));
+      },
+      onError: (data) => {
+        if (data.errorMessage) {
           setCast((prev) => ({
             ...prev,
-            status: data.status,
-            startedAt: data.startedAt,
-            finishedAt: data.finishedAt,
-            duration: data.duration,
+            status: 'failed',
             errorMessage: data.errorMessage,
-            artifactUrl: data.artifactUrl,
-            costCents: data.costCents,
           }));
-
-          setLastUpdate(new Date());
-
-          // Show toast notifications for status changes
-          if (previousStatus !== data.status) {
-            if (data.status === 'running') {
-              toast.info('Execution started', {
-                description: 'Your spell is now running',
-              });
-            } else if (data.status === 'succeeded') {
-              toast.success('Execution succeeded', {
-                description: 'Your spell has finished successfully',
-              });
-            } else if (data.status === 'failed') {
-              toast.error('Execution failed', {
-                description: data.errorMessage || 'An error occurred',
-              });
-            }
-          }
-
-          // Close connection if cast reached terminal state
-          if (data.status === 'succeeded' || data.status === 'failed') {
-            eventSource?.close();
-            setIsConnected(false);
-          }
-        } catch (error) {
-          console.error('Error parsing SSE data:', error);
         }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        setIsConnected(false);
-        eventSource?.close();
-
-        // Show reconnection toast
-        toast.warning('Connection lost', {
-          description: 'Attempting to reconnect...',
-        });
-
-        // Attempt to reconnect after 5 seconds
-        reconnectTimer = setTimeout(() => {
-          connect();
-        }, 5000);
-      };
-    };
-
-    connect();
-
-    // Cleanup function
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-        setIsConnected(false);
-      }
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [cast.id, cast.status]);
+      },
+      onConnectionChange: (connected) => {
+        if (!connected && !isTerminal && reconnectCount > 0) {
+          toast.warning('Connection lost', {
+            description: 'Attempting to reconnect...',
+          });
+        }
+      },
+    }
+  );
 
   return (
     <>
@@ -241,7 +231,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Zap className="h-5 w-5" />
               Execution Status
-              {isConnected && (
+              {lastUpdate && (
                 <span className="text-xs text-white/60 font-normal">
                   (Last update: {lastUpdate.toLocaleTimeString()})
                 </span>
@@ -328,10 +318,42 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-white/60">The execution output is available for download.</p>
+
+              {/* Artifact Metadata */}
+              {(cast.artifactSize || cast.artifactContentType) && (
+                <div className="grid grid-cols-2 gap-4 p-3 bg-black/30 rounded-lg">
+                  {cast.artifactSize && (
+                    <div>
+                      <p className="text-xs text-white/60">Size</p>
+                      <p className="text-sm font-mono">{formatBytes(cast.artifactSize)}</p>
+                    </div>
+                  )}
+                  {cast.artifactContentType && (
+                    <div>
+                      <p className="text-xs text-white/60">Type</p>
+                      <p className="text-sm font-mono">{cast.artifactContentType}</p>
+                    </div>
+                  )}
+                  {cast.artifactStorageKey && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-white/60">Storage</p>
+                      <p className="text-xs font-mono text-white/40 truncate">
+                        {cast.artifactStorageKey}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <a href={cast.artifactUrl} target="_blank" rel="noopener noreferrer">
                 <Button className="w-full md:w-auto">
                   <Download className="h-4 w-4 mr-2" />
                   Download Artifact
+                  {cast.artifactSize && (
+                    <span className="ml-2 text-xs opacity-70">
+                      ({formatBytes(cast.artifactSize)})
+                    </span>
+                  )}
                 </Button>
               </a>
             </CardContent>

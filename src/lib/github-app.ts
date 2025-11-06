@@ -534,3 +534,48 @@ export async function getLatestWorkflowRunWithRepo(
 export function getGitHubWorkflowConfig() {
   return getWorkflowConfig();
 }
+
+/**
+ * Download artifact from GitHub Actions
+ * Returns the artifact content as a Buffer
+ */
+export async function downloadGitHubArtifact(
+  owner: string,
+  repo: string,
+  artifactId: number
+): Promise<Buffer> {
+  const { token } = await getInstallationToken(owner, repo);
+  const response = await fetch(
+    `${GITHUB_API_BASE}/repos/${owner}/${repo}/actions/artifacts/${artifactId}/zip`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
+      },
+    }
+  );
+
+  if (response.status === 404 || response.status === 410) {
+    throw new GitHubAppError(
+      `Artifact ${artifactId} not found or expired`,
+      'ARTIFACT_EXPIRED',
+      410
+    );
+  }
+
+  if (!response.ok) {
+    const body = await safeJson(response);
+    throw new GitHubAppError(
+      `Failed to download artifact ${artifactId}`,
+      mapStatusToCode(response.status),
+      response.status,
+      body
+    );
+  }
+
+  // Read response as buffer
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
