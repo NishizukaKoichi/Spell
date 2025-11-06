@@ -1,5 +1,5 @@
 interface WebhookPayload {
-  event: 'cast.completed' | 'cast.failed';
+  event: 'cast.succeeded' | 'cast.failed';
   cast: {
     id: string;
     status: string;
@@ -65,7 +65,7 @@ export async function deliverWebhook(
   return false;
 }
 
-export async function sendCastCompletedWebhook(cast: {
+export async function sendCastStatusWebhook(cast: {
   id: string;
   status: string;
   spellId: string;
@@ -86,7 +86,7 @@ export async function sendCastCompletedWebhook(cast: {
     return;
   }
 
-  const event = cast.status === 'completed' ? 'cast.completed' : 'cast.failed';
+  const event = cast.status === 'succeeded' ? 'cast.succeeded' : 'cast.failed';
 
   const payload: WebhookPayload = {
     event,

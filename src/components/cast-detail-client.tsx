@@ -47,7 +47,7 @@ interface Cast {
 
 function getStatusIcon(status: string) {
   switch (status) {
-    case 'completed':
+    case 'succeeded':
       return <CheckCircle className="h-6 w-6 text-green-500" />;
     case 'failed':
       return <XCircle className="h-6 w-6 text-red-500" />;
@@ -60,7 +60,7 @@ function getStatusIcon(status: string) {
 
 function getStatusColor(status: string): string {
   switch (status) {
-    case 'completed':
+    case 'succeeded':
       return 'text-green-500 bg-green-500/10 border-green-500/20';
     case 'failed':
       return 'text-red-500 bg-red-500/10 border-red-500/20';
@@ -85,7 +85,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
 
   useEffect(() => {
     // Only connect to SSE if cast is not in terminal state
-    if (cast.status === 'completed' || cast.status === 'failed') {
+    if (cast.status === 'succeeded' || cast.status === 'failed') {
       return;
     }
 
@@ -130,8 +130,8 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
               toast.info('Execution started', {
                 description: 'Your spell is now running',
               });
-            } else if (data.status === 'completed') {
-              toast.success('Execution completed', {
+            } else if (data.status === 'succeeded') {
+              toast.success('Execution succeeded', {
                 description: 'Your spell has finished successfully',
               });
             } else if (data.status === 'failed') {
@@ -142,7 +142,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
           }
 
           // Close connection if cast reached terminal state
-          if (data.status === 'completed' || data.status === 'failed') {
+          if (data.status === 'succeeded' || data.status === 'failed') {
             eventSource?.close();
             setIsConnected(false);
           }
@@ -196,7 +196,9 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
               </div>
               <div className="flex items-center gap-2">
                 <Badge className={`${getStatusColor(cast.status)} border`} variant="outline">
-                  {cast.status.toUpperCase()}
+                  {cast.status === 'succeeded'
+                    ? 'COMPLETED'
+                    : cast.status.toUpperCase()}
                 </Badge>
                 {(cast.status === 'running' || cast.status === 'queued') && (
                   <Badge
@@ -434,18 +436,18 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
                 <div className="flex items-start gap-4">
                   <div
                     className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                      cast.status === 'completed' ? 'bg-green-500/20' : 'bg-red-500/20'
+                      cast.status === 'succeeded' ? 'bg-green-500/20' : 'bg-red-500/20'
                     }`}
                   >
                     <div
                       className={`h-3 w-3 rounded-full ${
-                        cast.status === 'completed' ? 'bg-green-500' : 'bg-red-500'
+                        cast.status === 'succeeded' ? 'bg-green-500' : 'bg-red-500'
                       }`}
                     />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold">
-                      {cast.status === 'completed' ? 'Completed' : 'Failed'}
+                      {cast.status === 'succeeded' ? 'Completed' : 'Failed'}
                     </p>
                     <p className="text-sm text-white/60">
                       {new Date(cast.finishedAt).toLocaleString()}
@@ -457,8 +459,8 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
           </CardContent>
         </Card>
 
-        {/* Review Form (only show for completed casts) */}
-        {cast.status === 'completed' && <ReviewForm castId={cast.id} spellName={cast.spell.name} />}
+        {/* Review Form (only show for succeeded casts) */}
+        {cast.status === 'succeeded' && <ReviewForm castId={cast.id} spellName={cast.spell.name} />}
       </div>
     </>
   );

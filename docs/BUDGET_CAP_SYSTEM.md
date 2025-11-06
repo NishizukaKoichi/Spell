@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
 
 ```typescript
 // src/app/api/webhooks/github/route.ts
-case 'completed':
+case 'succeeded':
   const updatedCast = await prisma.cast.update({
     where: { id: castId },
     data: { status, finishedAt, /* ... */ },

@@ -63,7 +63,7 @@ export const createApiKeySchema = z.object({
 
 // Cast status update validation (internal)
 export const updateCastStatusSchema = z.object({
-  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  status: z.enum(['queued', 'running', 'succeeded', 'failed']),
   finishedAt: z.string().datetime().optional(),
   duration: z.number().int().min(0).optional(),
   artifactUrl: z.string().url().optional(),

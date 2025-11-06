@@ -248,7 +248,7 @@ GET /api/casts/{id}
 {
   "id": "cast_abc123",
   "spellId": "spell_123",
-  "status": "completed",
+  "status": "succeeded",
   "startedAt": "2024-01-20T15:30:05Z",
   "finishedAt": "2024-01-20T15:30:45Z",
   "duration": 40000,
@@ -285,7 +285,7 @@ GET /api/casts
   "casts": [
     {
       "id": "cast_abc123",
-      "status": "completed",
+      "status": "succeeded",
       "duration": 40000,
       "costCents": 299,
       "spell": {
@@ -318,8 +318,8 @@ data: {"status":"running","progress":25}
 event: status
 data: {"status":"running","progress":75}
 
-event: completed
-data: {"status":"completed","artifactUrl":"https://..."}
+event: succeeded
+data: {"status":"succeeded","artifactUrl":"https://..."}
 ```
 
 ---
@@ -568,12 +568,12 @@ When you configure a webhook URL for your spell, we'll send POST requests to tha
 
 ```json
 {
-  "event": "cast.completed",
+  "event": "cast.succeeded",
   "timestamp": "2024-01-20T15:30:45Z",
   "cast": {
     "id": "cast_abc123",
     "spellId": "spell_123",
-    "status": "completed",
+    "status": "succeeded",
     "duration": 40000,
     "costCents": 299,
     "artifactUrl": "https://storage.example.com/output.pdf",
@@ -588,7 +588,7 @@ When you configure a webhook URL for your spell, we'll send POST requests to tha
 ```
 Content-Type: application/json
 User-Agent: Spell-Platform-Webhook/1.0
-X-Spell-Event: cast.completed
+X-Spell-Event: cast.succeeded
 X-Spell-Cast-ID: cast_abc123
 X-Spell-Delivery-Attempt: 1
 ```

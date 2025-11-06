@@ -45,7 +45,7 @@ interface PaymentData {
 
 function getStatusIcon(status: string) {
   switch (status) {
-    case 'completed':
+    case 'succeeded':
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     case 'failed':
       return <XCircle className="h-4 w-4 text-red-500" />;
@@ -56,7 +56,7 @@ function getStatusIcon(status: string) {
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case 'completed':
+    case 'succeeded':
       return (
         <Badge variant="outline" className="text-green-500 border-green-500/20">
           Completed

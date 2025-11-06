@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You can only review your own casts' }, { status: 403 });
     }
 
-    if (cast.status !== 'completed') {
-      return NextResponse.json({ error: 'You can only review completed casts' }, { status: 400 });
+    if (cast.status !== 'succeeded') {
+      return NextResponse.json({ error: 'You can only review succeeded casts' }, { status: 400 });
     }
 
     // Check if review already exists

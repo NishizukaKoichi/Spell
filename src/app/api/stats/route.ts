@@ -117,7 +117,7 @@ export async function GET() {
     const casterTotalCasts = casterCasts.length;
 
     const casterCompletedCasts = casterCasts.filter(
-      (cast: { status: string }) => cast.status === 'completed'
+      (cast: { status: string }) => cast.status === 'succeeded'
     ).length;
 
     const casterFailedCasts = casterCasts.filter(

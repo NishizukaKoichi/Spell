@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
-import { sendCastCompletedWebhook } from '@/lib/webhook';
+import { sendCastStatusWebhook } from '@/lib/webhook';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -54,9 +54,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
 
-    // Send webhook if cast is completed or failed
-    if (cast.status === 'completed' || (cast.status === 'failed' && cast.spell.webhookUrl)) {
-      sendCastCompletedWebhook(cast);
+    // Send webhook if cast succeeded or failed
+    if (cast.status === 'succeeded' || (cast.status === 'failed' && cast.spell.webhookUrl)) {
+      sendCastStatusWebhook(cast);
     }
 
     return apiSuccess(cast);

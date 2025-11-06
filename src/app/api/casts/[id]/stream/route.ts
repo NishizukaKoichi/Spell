@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       });
 
       // If cast is in a terminal state, stop polling
-      if (cast.status === 'completed' || cast.status === 'failed') {
+      if (cast.status === 'succeeded' || cast.status === 'failed') {
         clearInterval(pollInterval);
         await writer.close();
       }

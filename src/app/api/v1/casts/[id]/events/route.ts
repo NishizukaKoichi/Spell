@@ -150,7 +150,7 @@ function getStatusMessage(status: string): string {
     case 'running':
       return 'Cast is currently running';
     case 'succeeded':
-      return 'Cast completed successfully';
+      return 'Cast succeeded';
     case 'failed':
       return 'Cast execution failed';
     default:

@@ -149,7 +149,7 @@ async function main() {
     data: {
       spellId: spell1.id,
       casterId: user2.id,
-      status: 'completed',
+      status: 'succeeded',
       costCents: 50,
       startedAt: new Date('2025-10-26T10:00:00Z'),
       finishedAt: new Date('2025-10-26T10:01:30Z'),
@@ -162,7 +162,7 @@ async function main() {
     data: {
       spellId: spell2.id,
       casterId: user2.id,
-      status: 'completed',
+      status: 'succeeded',
       costCents: 299,
       startedAt: new Date('2025-10-26T14:30:00Z'),
       finishedAt: new Date('2025-10-26T14:32:15Z'),

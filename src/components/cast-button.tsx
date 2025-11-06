@@ -26,11 +26,14 @@ export function CastButton({ spellId, priceAmountCents = 0 }: CastButtonProps) {
 
     try {
       // If spell requires payment, redirect to Stripe checkout
+      const idempotencyKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
       if (priceAmountCents > 0) {
         const checkoutResponse = await fetch('/api/create-checkout-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
           },
           body: JSON.stringify({ spellId }),
         });
@@ -50,6 +53,7 @@ export function CastButton({ spellId, priceAmountCents = 0 }: CastButtonProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({
           spellId,
@@ -64,7 +68,8 @@ export function CastButton({ spellId, priceAmountCents = 0 }: CastButtonProps) {
       }
 
       const data = await response.json();
-      alert(`Cast initiated! Cast ID: ${data.cast.id}`);
+      const castId: string | undefined = data.castId || data.cast?.id;
+      alert(`Cast initiated! Cast ID: ${castId ?? 'unknown'}`);
       router.push('/casts');
     } catch (error) {
       console.error('Cast error:', error);

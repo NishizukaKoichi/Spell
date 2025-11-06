@@ -14,7 +14,7 @@ async function getUserStats(userId: string) {
     prisma.spell.count({ where: { authorId: userId } }),
     prisma.cast.count({ where: { casterId: userId } }),
     prisma.cast.aggregate({
-      where: { casterId: userId, status: 'completed' },
+      where: { casterId: userId, status: 'succeeded' },
       _sum: { costCents: true },
     }),
   ]);
@@ -274,7 +274,7 @@ export default async function ProfilePage() {
                             <Badge
                               variant="outline"
                               className={`text-xs ${
-                                cast.status === 'completed'
+                                cast.status === 'succeeded'
                                   ? 'text-green-500 border-green-500/20'
                                   : cast.status === 'failed'
                                     ? 'text-red-500 border-red-500/20'
@@ -283,7 +283,9 @@ export default async function ProfilePage() {
                                       : 'text-yellow-500 border-yellow-500/20'
                               }`}
                             >
-                              {cast.status}
+                              {cast.status === 'succeeded'
+                                ? 'Completed'
+                                : cast.status.charAt(0).toUpperCase() + cast.status.slice(1)}
                             </Badge>
                             {cast.spell.category && (
                               <Badge variant="outline" className="text-xs">

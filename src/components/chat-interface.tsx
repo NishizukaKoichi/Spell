@@ -77,7 +77,7 @@ export function ChatInterface() {
       spellName: selectedSpell?.name || content,
       timestamp: new Date().toISOString(),
       response:
-        'Spell execution completed successfully. This is a sample response from the spell execution.',
+        'Spell execution succeeded. This is a sample response from the spell execution.',
       ui: (
         <div className="space-y-4">
           <div className="rounded-lg border border-white/20 bg-white/5 p-4">

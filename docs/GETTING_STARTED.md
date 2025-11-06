@@ -69,12 +69,12 @@ Poll the status endpoint to check progress:
 curl https://your-domain.com/api/casts/cast_abc123
 ```
 
-**Response when completed:**
+**Response when succeeded:**
 
 ```json
 {
   "id": "cast_abc123",
-  "status": "completed",
+  "status": "succeeded",
   "duration": 40000,
   "artifactUrl": "https://storage.example.com/output.pdf",
   "finishedAt": "2024-01-20T15:30:45Z"
@@ -93,7 +93,7 @@ eventSource.addEventListener('status', (event) => {
   console.log('Status:', data.status);
 });
 
-eventSource.addEventListener('completed', (event) => {
+eventSource.addEventListener('succeeded', (event) => {
   const data = JSON.parse(event.data);
   console.log('Result:', data.artifactUrl);
   eventSource.close();
@@ -130,8 +130,8 @@ Create an endpoint to receive webhooks:
 app.post('/webhooks/spell', express.json(), (req, res) => {
   const { event, cast } = req.body;
 
-  if (event === 'cast.completed') {
-    console.log(`Cast ${cast.id} completed!`);
+  if (event === 'cast.succeeded') {
+    console.log(`Cast ${cast.id} succeeded!`);
     console.log(`Result: ${cast.artifactUrl}`);
 
     // Process the result
@@ -146,12 +146,12 @@ app.post('/webhooks/spell', express.json(), (req, res) => {
 
 ```json
 {
-  "event": "cast.completed",
+  "event": "cast.succeeded",
   "timestamp": "2024-01-20T15:30:45Z",
   "cast": {
     "id": "cast_abc123",
     "spellId": "spell_123",
-    "status": "completed",
+    "status": "succeeded",
     "duration": 40000,
     "costCents": 299,
     "artifactUrl": "https://storage.example.com/output.pdf",
@@ -240,7 +240,7 @@ class SpellClient {
     while (true) {
       const status = await this.getStatus(castId);
 
-      if (status.status === 'completed') {
+      if (status.status === 'succeeded') {
         return status;
       }
 
@@ -299,7 +299,7 @@ class SpellClient:
         while True:
             status = self.get_status(cast_id)
 
-            if status['status'] == 'completed':
+            if status['status'] == 'succeeded':
                 return status
 
             if status['status'] == 'failed':

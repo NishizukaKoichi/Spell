@@ -30,7 +30,7 @@ interface Cast {
 
 function getStatusIcon(status: string) {
   switch (status) {
-    case 'completed':
+    case 'succeeded':
       return <CheckCircle className="h-5 w-5 text-green-500" />;
     case 'failed':
       return <XCircle className="h-5 w-5 text-red-500" />;
@@ -42,7 +42,7 @@ function getStatusIcon(status: string) {
 }
 
 function getStatusBadgeVariant(status: string): 'default' | 'outline' {
-  return status === 'completed' ? 'default' : 'outline';
+  return status === 'succeeded' ? 'default' : 'outline';
 }
 
 export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
@@ -53,7 +53,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
   useEffect(() => {
     // Check if any casts are in non-terminal state
     const hasActiveCasts = casts.some(
-      (cast) => cast.status !== 'completed' && cast.status !== 'failed'
+      (cast) => cast.status !== 'succeeded' && cast.status !== 'failed'
     );
 
     if (!hasActiveCasts) {
@@ -124,7 +124,7 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="succeeded">Completed</SelectItem>
             <SelectItem value="running">Running</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
@@ -159,7 +159,11 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
                         <span className="text-xl font-semibold hover:text-white/80 transition-colors">
                           {cast.spell.name}
                         </span>
-                        <Badge variant={getStatusBadgeVariant(cast.status)}>{cast.status}</Badge>
+                    <Badge variant={getStatusBadgeVariant(cast.status)}>
+                      {cast.status === 'succeeded'
+                        ? 'Completed'
+                        : cast.status.charAt(0).toUpperCase() + cast.status.slice(1)}
+                    </Badge>
                       </div>
                       <p className="text-sm text-white/60">Cast ID: {cast.id}</p>
                     </div>
