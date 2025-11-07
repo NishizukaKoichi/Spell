@@ -5,6 +5,7 @@
 ## 必須タスクチェックリスト
 
 ### ✅ 完了済み
+
 - [x] TypeScript型エラーの修正
 - [x] ESLintエラーの修正
 - [x] データベーススキーマの定義
@@ -30,6 +31,7 @@ cp .env.example .env
 ```
 
 必要な環境変数：
+
 - `NEXTAUTH_URL`: 本番環境のURL
 - `AUTH_SECRET`: 上記で生成したシークレット
 - `GITHUB_APP_ID`: GitHub Appの設定から取得
@@ -96,6 +98,7 @@ vercel --prod
 ```
 
 環境変数をVercelに設定:
+
 ```bash
 vercel env add NEXTAUTH_URL
 vercel env add AUTH_SECRET
@@ -135,20 +138,24 @@ pnpm dev
 ## トラブルシューティング
 
 ### データベース接続エラー
+
 - `DATABASE_URL`が正しく設定されているか確認
 - Neonのデータベースが起動しているか確認
 
 ### GitHub App認証エラー
+
 - Private Keyの改行が正しくエスケープされているか確認
 - Installation IDが正しいか確認
 
 ### Stripe Webhookエラー
+
 - Webhook URLが正しく設定されているか確認
 - Webhook Secretが一致しているか確認
 
 ## サポート
 
 問題が発生した場合：
+
 1. GitHub Issuesで報告
 2. ログを確認: `vercel logs`
 3. データベースの状態を確認: `pnpm prisma studio`

@@ -20,13 +20,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const body = await req.json();
-    const { status, finishedAt, duration, artifactUrl, errorMessage, runId, runAttempt } = body;
+    const { status, finishedAt, durationMs, artifactUrl, errorMessage, runId, runAttempt } = body;
 
     const updateData: any = {};
 
     if (status) updateData.status = status;
     if (finishedAt) updateData.finishedAt = new Date(finishedAt);
-    if (duration !== undefined) updateData.duration = duration;
+    if (durationMs !== undefined) updateData.durationMs = durationMs;
     if (runId) {
       updateData.githubRunId = String(runId);
       if (!artifactUrl) {

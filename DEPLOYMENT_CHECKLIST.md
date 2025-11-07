@@ -26,6 +26,7 @@ Spellプラットフォームの本番環境デプロイ前の最終チェック
 ### 1. 外部サービスの設定
 
 #### GitHub App（必須）
+
 - [ ] GitHub Appを作成: https://github.com/settings/apps/new
 - [ ] 権限設定:
   - Repository permissions → Actions: Read & Write
@@ -34,6 +35,7 @@ Spellプラットフォームの本番環境デプロイ前の最終チェック
 - [ ] App IDとInstallation IDを.envに設定
 
 #### Stripe（必須）
+
 - [ ] Stripeアカウント作成: https://dashboard.stripe.com/
 - [ ] APIキー取得: https://dashboard.stripe.com/apikeys
 - [ ] Webhook設定: https://dashboard.stripe.com/webhooks
@@ -52,7 +54,9 @@ vercel --prod
 ```
 
 #### 環境変数の設定
+
 Vercelダッシュボードで以下を設定:
+
 - [ ] `DATABASE_URL`
 - [ ] `NEXTAUTH_URL`
 - [ ] `AUTH_SECRET`

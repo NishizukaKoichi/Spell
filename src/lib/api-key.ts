@@ -11,7 +11,7 @@ export interface ApiKeyValidationResult {
 export async function validateApiKey(apiKey: string): Promise<ApiKeyValidationResult | null> {
   try {
     const key = await prisma.api_keys.findUnique({
-      where: { key: apiKey },
+      where: { keyHash: apiKey },
       include: { users: true },
     });
 

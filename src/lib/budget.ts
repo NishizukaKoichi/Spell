@@ -8,7 +8,7 @@ export interface BudgetCheck {
   allowed: boolean;
   budget: {
     monthlyCapCents: number;
-    currentSpendCents: number;
+    currentMonthCents: number;
     remainingCents: number;
     percentUsed: number;
   };
@@ -42,8 +42,8 @@ export async function checkBudget(
         id: `budget_${userId}`,
         userId,
         monthlyCapCents: 10000,
-        currentSpendCents: 0,
-        lastResetAt: new Date(),
+        currentMonthCents: 0,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -51,7 +51,7 @@ export async function checkBudget(
 
   // Check if monthly reset is needed
   const now = new Date();
-  const lastReset = new Date(budget.lastResetAt);
+  const lastReset = new Date(budget.periodStart);
   const monthsDiff =
     (now.getFullYear() - lastReset.getFullYear()) * 12 + now.getMonth() - lastReset.getMonth();
 
@@ -60,18 +60,19 @@ export async function checkBudget(
     budget = await db.budgets.update({
       where: { userId },
       data: {
-        currentSpendCents: 0,
-        lastResetAt: now,
+        currentMonthCents: 0,
+        periodStart: now,
         updatedAt: now,
       },
     });
   }
 
-  const remainingCents = budget.monthlyCapCents - budget.currentSpendCents;
-  const percentUsed = (budget.currentSpendCents / budget.monthlyCapCents) * 100;
+  const monthlyCapCents = budget.monthlyCapCents ?? 0;
+  const remainingCents = monthlyCapCents - budget.currentMonthCents;
+  const percentUsed = monthlyCapCents > 0 ? (budget.currentMonthCents / monthlyCapCents) * 100 : 0;
 
   // Check if user can afford this execution (integer comparison, no floating-point errors)
-  const allowed = budget.currentSpendCents + estimatedCostCents <= budget.monthlyCapCents;
+  const allowed = budget.currentMonthCents + estimatedCostCents <= monthlyCapCents;
 
   // Calculate retry_after (seconds until next month)
   let retryAfter: number | undefined;
@@ -84,15 +85,15 @@ export async function checkBudget(
   return {
     allowed,
     budget: {
-      monthlyCapCents: budget.monthlyCapCents,
-      currentSpendCents: budget.currentSpendCents,
+      monthlyCapCents,
+      currentMonthCents: budget.currentMonthCents,
       remainingCents,
       percentUsed,
     },
     estimatedCostCents,
     reason: allowed
       ? undefined
-      : `Budget cap exceeded. Current spend: ${budget.currentSpendCents} cents ($${(budget.currentSpendCents / 100).toFixed(2)}), Monthly cap: ${budget.monthlyCapCents} cents ($${(budget.monthlyCapCents / 100).toFixed(2)}), Estimated cost: ${estimatedCostCents} cents ($${(estimatedCostCents / 100).toFixed(2)})`,
+      : `Budget cap exceeded. Current spend: ${budget.currentMonthCents} cents ($${(budget.currentMonthCents / 100).toFixed(2)}), Monthly cap: ${monthlyCapCents} cents ($${(monthlyCapCents / 100).toFixed(2)}), Estimated cost: ${estimatedCostCents} cents ($${(estimatedCostCents / 100).toFixed(2)})`,
     retryAfter,
   };
 }
@@ -112,7 +113,7 @@ export async function updateBudgetSpend(
   await client.budgets.update({
     where: { userId },
     data: {
-      currentSpendCents: {
+      currentMonthCents: {
         increment: actualCostCents,
       },
       updatedAt: new Date(),
@@ -129,8 +130,8 @@ export async function resetBudget(userId: string): Promise<void> {
   await prisma.budgets.update({
     where: { userId },
     data: {
-      currentSpendCents: 0,
-      lastResetAt: new Date(),
+      currentMonthCents: 0,
+      periodStart: new Date(),
       updatedAt: new Date(),
     },
   });
@@ -153,8 +154,8 @@ export async function getBudgetStatus(userId: string) {
         id: `budget_${userId}`,
         userId,
         monthlyCapCents: 10000,
-        currentSpendCents: 0,
-        lastResetAt: new Date(),
+        currentMonthCents: 0,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -162,7 +163,7 @@ export async function getBudgetStatus(userId: string) {
 
   // Check if monthly reset is needed
   const now = new Date();
-  const lastReset = new Date(budget.lastResetAt);
+  const lastReset = new Date(budget.periodStart);
   const monthsDiff =
     (now.getFullYear() - lastReset.getFullYear()) * 12 + now.getMonth() - lastReset.getMonth();
 
@@ -170,23 +171,24 @@ export async function getBudgetStatus(userId: string) {
     budget = await prisma.budgets.update({
       where: { userId },
       data: {
-        currentSpendCents: 0,
-        lastResetAt: now,
+        currentMonthCents: 0,
+        periodStart: now,
         updatedAt: now,
       },
     });
   }
 
-  const remainingCents = budget.monthlyCapCents - budget.currentSpendCents;
-  const percentUsed = (budget.currentSpendCents / budget.monthlyCapCents) * 100;
+  const monthlyCapCents = budget.monthlyCapCents ?? 0;
+  const remainingCents = monthlyCapCents - budget.currentMonthCents;
+  const percentUsed = monthlyCapCents > 0 ? (budget.currentMonthCents / monthlyCapCents) * 100 : 0;
 
   return {
-    monthlyCapCents: budget.monthlyCapCents,
-    currentSpendCents: budget.currentSpendCents,
+    monthlyCapCents,
+    currentMonthCents: budget.currentMonthCents,
     remainingCents,
     percentUsed,
-    lastResetAt: budget.lastResetAt,
-    willResetAt: getNextMonthDate(budget.lastResetAt),
+    periodStart: budget.periodStart,
+    willResetAt: getNextMonthDate(budget.periodStart),
   };
 }
 

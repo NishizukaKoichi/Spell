@@ -97,7 +97,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               progress: getProgress(updatedCast.status),
               started_at: updatedCast.startedAt?.toISOString(),
               finished_at: updatedCast.finishedAt?.toISOString(),
-              duration_ms: updatedCast.duration,
+              duration_ms: updatedCast.durationMs,
               artifact_url: updatedCast.artifactUrl,
               error_message: updatedCast.errorMessage,
             });

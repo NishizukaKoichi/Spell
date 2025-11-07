@@ -122,4 +122,3 @@ export async function ensureConnection(retry = false): Promise<boolean> {
 
   return false;
 }
-

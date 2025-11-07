@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 
 // Generate a secure API key
 function generateApiKey(): string {
@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest) {
       select: {
         id: true,
         name: true,
-        key: true,
+        keyPrefix: true,
         status: true,
         lastUsedAt: true,
         createdAt: true,
@@ -35,19 +35,18 @@ export async function GET(_req: NextRequest) {
       },
     });
 
-    // Mask the keys for security (show only last 4 characters)
+    // Mask the keys for security (show only prefix)
     const maskedKeys = apiKeys.map(
       (key: {
         id: string;
         name: string;
-        key: string;
+        keyPrefix: string;
         status: string;
         lastUsedAt: Date | null;
         createdAt: Date;
       }) => ({
         ...key,
-        key: `${key.key.substring(0, 8)}...${key.key.slice(-4)}`,
-        fullKey: undefined, // Don't send full key
+        key: `${key.keyPrefix}...`,
       })
     );
 
@@ -86,13 +85,17 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = generateApiKey();
+    const keyHash = createHash('sha256').update(apiKey).digest('hex');
+    const keyPrefix = apiKey.substring(0, 8);
 
     const newKey = await prisma.api_keys.create({
       data: {
         id: randomBytes(16).toString('hex'),
         userId: session.user.id,
         name: name.trim(),
-        key: apiKey,
+        keyHash,
+        keyPrefix,
+        scopes: ['read', 'write'],
         status: 'active',
         updatedAt: new Date(),
       },
