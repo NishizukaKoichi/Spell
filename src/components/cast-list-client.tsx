@@ -159,11 +159,11 @@ export function CastListClient({ initialCasts }: { initialCasts: Cast[] }) {
                         <span className="text-xl font-semibold hover:text-white/80 transition-colors">
                           {cast.spell.name}
                         </span>
-                    <Badge variant={getStatusBadgeVariant(cast.status)}>
-                      {cast.status === 'succeeded'
-                        ? 'Completed'
-                        : cast.status.charAt(0).toUpperCase() + cast.status.slice(1)}
-                    </Badge>
+                        <Badge variant={getStatusBadgeVariant(cast.status)}>
+                          {cast.status === 'succeeded'
+                            ? 'Completed'
+                            : cast.status.charAt(0).toUpperCase() + cast.status.slice(1)}
+                        </Badge>
                       </div>
                       <p className="text-sm text-white/60">Cast ID: {cast.id}</p>
                     </div>

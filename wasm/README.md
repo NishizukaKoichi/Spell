@@ -5,6 +5,7 @@ This directory contains compiled WebAssembly modules for Spell execution.
 ## Structure
 
 Each spell should be compiled to a `.wasm` file with the following naming convention:
+
 ```
 {spell-key}.wasm
 ```
@@ -23,6 +24,7 @@ Each WASM module must export:
 ## Example Spells
 
 To create a sample spell, you can compile from:
+
 - Rust (using wasm32-unknown-unknown target)
 - AssemblyScript
 - C/C++ (using Emscripten or wasm-clang)

@@ -196,9 +196,7 @@ export function CastDetailClient({ initialCast }: { initialCast: Cast }) {
               </div>
               <div className="flex items-center gap-2">
                 <Badge className={`${getStatusColor(cast.status)} border`} variant="outline">
-                  {cast.status === 'succeeded'
-                    ? 'COMPLETED'
-                    : cast.status.toUpperCase()}
+                  {cast.status === 'succeeded' ? 'COMPLETED' : cast.status.toUpperCase()}
                 </Badge>
                 {(cast.status === 'running' || cast.status === 'queued') && (
                   <Badge
