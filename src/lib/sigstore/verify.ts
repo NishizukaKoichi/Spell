@@ -22,9 +22,21 @@ export interface VerificationResult {
  * @param signatureBundle - The Sigstore signature bundle
  * @returns Verification result with metadata
  */
+interface SignatureBundle {
+  cert?: string;
+  rekorBundle?: {
+    Payload?: {
+      logID?: string;
+      logIndex?: number;
+      integratedTime?: number;
+      bodyHash?: string;
+    };
+  };
+}
+
 export async function verifySpellSignature(
   tarBytes: Buffer,
-  signatureBundle: any
+  signatureBundle: SignatureBundle
 ): Promise<VerificationResult> {
   const errors: string[] = [];
 
@@ -42,7 +54,7 @@ export async function verifySpellSignature(
       execSync(`cosign verify-blob ${tempTar} --bundle ${tempSig}`, {
         stdio: 'pipe',
       });
-    } catch (e) {
+    } catch {
       errors.push('Signature verification failed');
       return {
         verified: false,
@@ -89,11 +101,17 @@ export async function verifySpellSignature(
   }
 }
 
+interface RekorPayload {
+  logID?: string;
+  logIndex?: number;
+  bodyHash?: string;
+}
+
 /**
  * Verifies a Rekor transparency log entry.
  * Queries the public Rekor instance and validates the entry.
  */
-async function verifyRekorEntry(rekorPayload: any): Promise<boolean> {
+async function verifyRekorEntry(rekorPayload: RekorPayload | undefined): Promise<boolean> {
   if (!rekorPayload?.logID || !rekorPayload?.logIndex) {
     return false;
   }
@@ -126,7 +144,7 @@ async function verifyRekorEntry(rekorPayload: any): Promise<boolean> {
  */
 function extractIdentity(cert: string): string {
   try {
-    const match = cert.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = cert.match(/github\.com\/([^/]+)\/([^/]+)/);
     return match ? `${match[1]}/${match[2]}` : 'unknown';
   } catch {
     return 'unknown';

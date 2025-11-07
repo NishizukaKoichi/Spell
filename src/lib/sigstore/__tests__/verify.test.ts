@@ -1,7 +1,6 @@
 // Sigstore Verification Tests - TKT-021
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import { verifySpellSignature } from '../verify';
-import type { VerificationResult } from '../verify';
 
 describe('Sigstore Verification', () => {
   describe('verifySpellSignature', () => {
@@ -9,7 +8,7 @@ describe('Sigstore Verification', () => {
       const tarBytes = Buffer.from('fake-tarball-content');
       const invalidBundle = {
         cert: '',
-        rekorBundle: null,
+        rekorBundle: undefined,
       };
 
       const result = await verifySpellSignature(tarBytes, invalidBundle);

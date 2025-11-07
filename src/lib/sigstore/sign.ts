@@ -55,7 +55,7 @@ export async function signSpellPackage(
  */
 function extractIdentity(cert: string): string {
   try {
-    const match = cert.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = cert.match(/github\.com\/([^/]+)\/([^/]+)/);
     return match ? `${match[1]}/${match[2]}` : 'unknown';
   } catch {
     return 'unknown';
