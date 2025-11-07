@@ -187,7 +187,10 @@ export async function POST(req: NextRequest) {
           casterId: userId,
           status: 'queued',
           costCents: spell.priceAmountCents,
-          inputHash,
+          inputHash: inputHash ?? '',
+          spellKey: spell.key,
+          spellVersion: '1',
+          idempotencyKey,
         },
         select: {
           id: true,

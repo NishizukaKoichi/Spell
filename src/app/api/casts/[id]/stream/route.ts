@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         status: cast.status,
         startedAt: cast.startedAt,
         finishedAt: cast.finishedAt,
-        duration: cast.duration,
+        durationMs: cast.durationMs,
         errorMessage: cast.errorMessage,
         artifactUrl: cast.artifactUrl,
         costCents: cast.costCents,

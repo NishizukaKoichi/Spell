@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         key: true,
+        version: true,
         status: true,
       },
     });
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
       .update(JSON.stringify(input || {}))
       .digest('hex');
 
+    // Get idempotency key from header or generate one
+    const idempotencyKey = req.headers.get('idempotency-key') || crypto.randomUUID();
+
     // Create cast record
     const cast = await prisma.cast.create({
       data: {
@@ -53,6 +57,9 @@ export async function POST(req: NextRequest) {
         status: 'queued',
         inputHash,
         costCents: 0, // Default to 0 for testing
+        spellKey: spell.key,
+        spellVersion: spell.version,
+        idempotencyKey,
       },
     });
 

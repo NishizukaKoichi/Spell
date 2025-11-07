@@ -153,8 +153,12 @@ async function main() {
       costCents: 50,
       startedAt: new Date('2025-10-26T10:00:00Z'),
       finishedAt: new Date('2025-10-26T10:01:30Z'),
-      duration: 90000,
+      durationMs: 90000,
       artifactUrl: 'https://example.com/artifacts/cast1.zip',
+      spellKey: spell1.key,
+      spellVersion: spell1.version,
+      inputHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      idempotencyKey: '00000000-0000-0000-0000-000000000001',
     },
   });
 
@@ -166,8 +170,12 @@ async function main() {
       costCents: 299,
       startedAt: new Date('2025-10-26T14:30:00Z'),
       finishedAt: new Date('2025-10-26T14:32:15Z'),
-      duration: 135000,
+      durationMs: 135000,
       artifactUrl: 'https://example.com/artifacts/cast2.pdf',
+      spellKey: spell2.key,
+      spellVersion: spell2.version,
+      inputHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      idempotencyKey: '00000000-0000-0000-0000-000000000002',
     },
   });
 
@@ -178,6 +186,10 @@ async function main() {
       status: 'running',
       costCents: 25,
       startedAt: new Date(),
+      spellKey: spell4.key,
+      spellVersion: spell4.version,
+      inputHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      idempotencyKey: '00000000-0000-0000-0000-000000000003',
     },
   });
 
@@ -189,8 +201,12 @@ async function main() {
       costCents: 150,
       startedAt: new Date('2025-10-26T16:00:00Z'),
       finishedAt: new Date('2025-10-26T16:01:00Z'),
-      duration: 60000,
+      durationMs: 60000,
       errorMessage: 'Invalid video format',
+      spellKey: spell3.key,
+      spellVersion: spell3.version,
+      inputHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      idempotencyKey: '00000000-0000-0000-0000-000000000004',
     },
   });
 

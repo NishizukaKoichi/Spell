@@ -14,6 +14,19 @@ model User {
   emailVerified  DateTime?
   image          String?
   githubId       String?          @unique
+  role           String           @default("caster") // maker, caster, operator, auditor
+  status         String           @default("active") // active, suspended, deleted
+
+  // GDPR/CCPA Compliance
+  ccpaDoNotSell    Boolean   @default(false)
+  consentVersion   String?
+  consentedAt      DateTime?
+  deletedAt        DateTime?
+  deletionReason   String?
+
+  // Billing
+  stripeCustomerId String?   @unique
+
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   accounts       accounts[]
@@ -24,7 +37,10 @@ model User {
   sessions       sessions[]
   spells         Spell[]
   reviews        Review[]
+  dataTransferConsents DataTransferConsent[]
 
+  @@index([githubId])
+  @@index([stripeCustomerId])
   @@map("users")
 }
 
@@ -39,6 +55,7 @@ model Spell {
   priceAmountCents Int      @default(0)
   priceCurrency    String   @default("USD")
   executionMode    String
+  executionConfig  Json?    // varies by mode
   tags             String[]
   category         String?
   rating           Float    @default(0)
@@ -47,42 +64,85 @@ model Spell {
   outputSchema     Json?
   webhookUrl       String?
   authorId         String
-  status           String   @default("active")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  casts            Cast[]
-  author           User     @relation(fields: [authorId], references: [id])
-  reviews          Review[]
 
+  // Supply Chain Security
+  sbomIncluded         Boolean @default(false)
+  sbomFormat           String? // spdx-json, cyclonedx-json
+  sbomUrl              String?
+  dependencyScanPassed Boolean @default(false)
+  signatureUrl         String? // Sigstore bundle
+
+  // Metadata
+  repository   String?
+  license      String?
+  visibility   String   @default("public") // public, unlisted, private
+
+  status       String   @default("draft") // draft, published, suspended, active
+  publishedAt  DateTime?
+  suspendedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  casts        Cast[]
+  author       User     @relation(fields: [authorId], references: [id])
+  reviews      Review[]
+  policyViolations PolicyViolation[]
+
+  @@unique([key, version])
   @@index([authorId])
   @@index([executionMode])
   @@index([status])
+  @@index([category])
   @@map("spells")
 }
 
 model Cast {
   id           String    @id @default(cuid())
   spellId      String
+  spellKey     String    // denormalized for queries
+  spellVersion String    // denormalized for queries
   casterId     String
-  status       String    @default("queued")
-  inputHash    String?
+  status       String    @default("queued") // queued, running, succeeded, failed, timeout
+  inputHash    String    // SHA256 of input for privacy
+  mode         String?   // workflow, service
+  runUrl       String?   // GitHub Actions URL or internal
+  artifactUrl  String?
+
+  // Execution
   startedAt    DateTime?
   finishedAt   DateTime?
-  duration     Int?
-  costCents    Int       @default(0)
-  artifactUrl  String?
-  githubRunId  String?
+  durationMs   Int?
+
+  // Resource Tracking
+  cpuCycles            BigInt?
+  memoryPeakBytes      BigInt?
+  networkBytesSent     BigInt?
+  networkBytesReceived BigInt?
+
+  // Billing
+  costCents      Int     @default(0)
+  billingStatus  String? // pending, charged, refunded
+
+  // Region
+  region String?
+
+  // Idempotency
+  idempotencyKey String @unique
+
+  // Legacy fields
+  githubRunId      String?
   githubRunAttempt Int?
-  errorMessage String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  caster       User      @relation(fields: [casterId], references: [id])
-  spell        Spell     @relation(fields: [spellId], references: [id])
-  review       Review?
+  errorMessage     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  caster    User     @relation(fields: [casterId], references: [id])
+  spell     Spell    @relation(fields: [spellId], references: [id])
+  review    Review?
 
   @@index([casterId])
   @@index([createdAt])
   @@index([spellId])
+  @@index([spellKey])
   @@index([status])
   @@map("casts")
 }
@@ -125,17 +185,21 @@ model accounts {
 }
 
 model api_keys {
-  id         String    @id
+  id         String    @id @default(cuid())
   userId     String
   name       String
-  key        String    @unique
+  keyHash    String    @unique // Hashed value for security
+  keyPrefix  String    // First 8 chars for display (sk_live_xxx...)
+  scopes     String[]  // spell:publish, cast:invoke, ops:deploy, audit:read
   lastUsedAt DateTime?
-  status     String    @default("active")
+  status     String    @default("active") // active, revoked
+  expiresAt  DateTime?
+  revokedAt  DateTime?
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime
+  updatedAt  DateTime  @updatedAt
   users      User      @relation(fields: [userId], references: [id])
 
-  @@index([key])
+  @@index([keyHash])
   @@index([userId])
 }
 
@@ -154,14 +218,29 @@ model authenticators {
 }
 
 model budgets {
-  id                String   @id
+  id                String   @id @default(cuid())
   userId            String   @unique
-  monthlyCapCents   Int      @default(10000)
-  currentSpendCents Int      @default(0)
-  lastResetAt       DateTime @default(now())
+
+  // Caps
+  monthlyCapCents   Int?     // Monthly spending cap
+  totalCapCents     Int?     // Total lifetime cap
+
+  // Usage
+  currentMonthCents Int      @default(0)
+  totalCents        Int      @default(0)
+
+  // Period
+  periodStart       DateTime @default(now())
+  periodEnd         DateTime?
+
+  // Status
+  capExceeded       Boolean  @default(false)
+
   createdAt         DateTime @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @updatedAt
   users             User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model IdempotencyKey {
@@ -193,4 +272,38 @@ model verification_tokens {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PolicyViolation {
+  id            String   @id @default(cuid())
+  spellKey      String
+  spellId       String
+  castId        String?
+
+  violationType String   // network, fs, timeout, memory
+  details       String
+  severity      String   // low, medium, high, critical
+
+  createdAt     DateTime @default(now())
+  spell         Spell    @relation(fields: [spellId], references: [id])
+
+  @@index([spellKey])
+  @@index([spellId])
+  @@index([createdAt])
+  @@map("policy_violations")
+}
+
+model DataTransferConsent {
+  id              String   @id @default(cuid())
+  userId          String
+
+  transferType    String   // eu_us, us_jp, etc
+  mechanism       String   // scc, adequacy, dpf
+  consentVersion  String
+  consentedAt     DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("data_transfer_consents")
 }

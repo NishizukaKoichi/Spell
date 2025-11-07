@@ -37,12 +37,26 @@ export async function POST(req: NextRequest) {
         };
 
         // Create a cast for the purchased spell
+        const spell = await prisma.spell.findUnique({
+          where: { id: spellId },
+          select: { key: true },
+        });
+
+        if (!spell) {
+          console.error('Spell not found:', spellId);
+          break;
+        }
+
         await prisma.cast.create({
           data: {
             spellId,
             casterId: userId,
             status: 'queued',
             costCents: session.amount_total || 0,
+            spellKey: spell.key,
+            spellVersion: '1',
+            inputHash: '',
+            idempotencyKey: `stripe_${session.id}`,
           },
         });
 

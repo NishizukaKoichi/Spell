@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
           data: {
             status,
             finishedAt,
-            duration: Math.round(duration),
+            durationMs: Math.round(duration),
             artifactUrl,
             errorMessage: isSuccess ? null : `Workflow concluded with: ${workflow_run.conclusion}`,
           },

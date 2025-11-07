@@ -8,13 +8,13 @@ import { prisma } from '@/lib/prisma';
  *
  * All monetary values should be in cents (integer):
  * - Budget caps: stored as monthlyCapCents (e.g., 10000 = $100.00)
- * - Current spend: stored as currentSpendCents
+ * - Current spend: stored as currentMonthCents
  * - Estimated costs: passed as cents to checkBudget()
  *
  * Expected behavior:
  * - No floating-point arithmetic
  * - Exact integer comparisons (no rounding errors)
- * - Budget enforcement: currentSpendCents + estimateCents <= monthlyCapCents
+ * - Budget enforcement: currentMonthCents + estimateCents <= monthlyCapCents
  */
 
 const TEST_USER_ID = 'test-user-budget-cents';
@@ -54,7 +54,7 @@ describe('Budget (Cents-based)', () => {
 
     assert.equal(result.allowed, true);
     assert.equal(result.budget.monthlyCapCents, 10000); // $100.00
-    assert.equal(result.budget.currentSpendCents, 0);
+    assert.equal(result.budget.currentMonthCents, 0);
     assert.equal(result.budget.remainingCents, 10000);
     assert.equal(result.estimatedCostCents, 1000);
   });
@@ -66,8 +66,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 50000,
-        currentSpendCents: 30000, // Already spent $300
-        lastResetAt: new Date(),
+        currentMonthCents: 30000, // Already spent $300
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -75,7 +75,7 @@ describe('Budget (Cents-based)', () => {
     const result = await checkBudget(TEST_USER_ID, 15000); // Request $150
 
     assert.equal(result.allowed, true); // 30000 + 15000 = 45000 <= 50000
-    assert.equal(result.budget.currentSpendCents, 30000);
+    assert.equal(result.budget.currentMonthCents, 30000);
     assert.equal(result.budget.monthlyCapCents, 50000);
     assert.equal(result.budget.remainingCents, 20000);
   });
@@ -86,8 +86,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000, // $100
-        currentSpendCents: 9500, // $95 spent
-        lastResetAt: new Date(),
+        currentMonthCents: 9500, // $95 spent
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -105,8 +105,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 7500,
-        lastResetAt: new Date(),
+        currentMonthCents: 7500,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -122,8 +122,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 0,
-        lastResetAt: new Date(),
+        currentMonthCents: 0,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -135,7 +135,7 @@ describe('Budget (Cents-based)', () => {
       where: { userId: TEST_USER_ID },
     });
 
-    assert.equal(budget?.currentSpendCents, 1234); // Exact integer, no rounding
+    assert.equal(budget?.currentMonthCents, 1234); // Exact integer, no rounding
 
     // Update again with 5678 cents ($56.78)
     await updateBudgetSpend(TEST_USER_ID, 5678);
@@ -144,7 +144,7 @@ describe('Budget (Cents-based)', () => {
       where: { userId: TEST_USER_ID },
     });
 
-    assert.equal(updated?.currentSpendCents, 1234 + 5678); // 6912 cents = $69.12
+    assert.equal(updated?.currentMonthCents, 1234 + 5678); // 6912 cents = $69.12
   });
 
   it('resets budget to zero cents', async () => {
@@ -153,8 +153,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 7500,
-        lastResetAt: new Date('2024-01-01'),
+        currentMonthCents: 7500,
+        periodStart: new Date('2024-01-01'),
         updatedAt: new Date(),
       },
     });
@@ -165,8 +165,8 @@ describe('Budget (Cents-based)', () => {
       where: { userId: TEST_USER_ID },
     });
 
-    assert.equal(budget?.currentSpendCents, 0);
-    assert.ok(budget!.lastResetAt.getTime() > new Date('2024-01-01').getTime());
+    assert.equal(budget?.currentMonthCents, 0);
+    assert.ok(budget!.periodStart.getTime() > new Date('2024-01-01').getTime());
   });
 
   it('returns budget status in cents', async () => {
@@ -175,8 +175,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 25000, // $250
-        currentSpendCents: 12500, // $125
-        lastResetAt: new Date(),
+        currentMonthCents: 12500, // $125
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -184,7 +184,7 @@ describe('Budget (Cents-based)', () => {
     const status = await getBudgetStatus(TEST_USER_ID);
 
     assert.equal(status.monthlyCapCents, 25000);
-    assert.equal(status.currentSpendCents, 12500);
+    assert.equal(status.currentMonthCents, 12500);
     assert.equal(status.remainingCents, 12500);
     assert.equal(status.percentUsed, 50); // 50% used
   });
@@ -195,8 +195,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 3333, // 33.33% used
-        lastResetAt: new Date(),
+        currentMonthCents: 3333, // 33.33% used
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -212,8 +212,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 5000,
-        lastResetAt: new Date(),
+        currentMonthCents: 5000,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -237,8 +237,8 @@ describe('Budget (Cents-based)', () => {
         id: `budget_${TEST_USER_ID}`,
         userId: TEST_USER_ID,
         monthlyCapCents: 10000,
-        currentSpendCents: 9999, // Almost at cap
-        lastResetAt: oneMonthAgo,
+        currentMonthCents: 9999, // Almost at cap
+        periodStart: oneMonthAgo,
         updatedAt: new Date(),
       },
     });
@@ -246,6 +246,6 @@ describe('Budget (Cents-based)', () => {
     const result = await checkBudget(TEST_USER_ID, 5000); // Request $50
 
     assert.equal(result.allowed, true); // Should reset and allow
-    assert.equal(result.budget.currentSpendCents, 0); // Reset to 0
+    assert.equal(result.budget.currentMonthCents, 0); // Reset to 0
   });
 });

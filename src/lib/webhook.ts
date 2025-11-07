@@ -72,7 +72,7 @@ export async function sendCastStatusWebhook(cast: {
   casterId: string;
   startedAt: Date | null;
   finishedAt: Date | null;
-  duration: number | null;
+  durationMs: number | null;
   costCents: number;
   artifactUrl: string | null;
   errorMessage: string | null;
@@ -98,7 +98,7 @@ export async function sendCastStatusWebhook(cast: {
       casterId: cast.casterId,
       startedAt: cast.startedAt,
       finishedAt: cast.finishedAt,
-      duration: cast.duration,
+      duration: cast.durationMs,
       costCents: cast.costCents,
       artifactUrl: cast.artifactUrl,
       errorMessage: cast.errorMessage,

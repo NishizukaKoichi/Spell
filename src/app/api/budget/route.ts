@@ -54,16 +54,16 @@ export async function PATCH(req: NextRequest) {
         id: `budget_${session.user.id}`,
         userId: session.user.id,
         monthlyCapCents,
-        currentSpendCents: 0,
-        lastResetAt: new Date(),
+        currentMonthCents: 0,
+        periodStart: new Date(),
         updatedAt: new Date(),
       },
     });
 
     return NextResponse.json({
       monthlyCapCents: budget.monthlyCapCents,
-      currentSpendCents: budget.currentSpendCents,
-      remainingCents: budget.monthlyCapCents - budget.currentSpendCents,
+      currentMonthCents: budget.currentMonthCents,
+      remainingCents: (budget.monthlyCapCents ?? 0) - budget.currentMonthCents,
     });
   } catch (error) {
     console.error('Failed to update budget:', error);
