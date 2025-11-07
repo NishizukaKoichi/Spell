@@ -1,0 +1,82 @@
+# Spell Publishing Workflow Template
+# This is a reference template for Makers to publish Spells with Sigstore signing
+# Copy this to your Spell repository at .github/workflows/publish.yml
+
+name: Publish Spell
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for Sigstore OIDC
+  contents: read
+
+jobs:
+  build-and-sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WASM
+        run: npm run build:wasm
+
+      - name: Create package tarball
+        run: |
+          tar -czf spell-package.tar.gz \
+            spell.wasm \
+            spell.yaml \
+            README.md \
+            LICENSE
+
+      - name: Generate SHA-256
+        id: sha256
+        run: |
+          echo "hash=$(sha256sum spell-package.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign package with Sigstore
+        run: |
+          cosign sign-blob spell-package.tar.gz \
+            --bundle spell-signature.json \
+            --oidc-issuer=https://token.actions.githubusercontent.com \
+            --yes
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: spell-sbom.spdx.json
+          output-file: spell-sbom.spdx.json
+          format: spdx-json
+
+      - name: Upload to Spell Platform
+        env:
+          SPELL_API_KEY: ${{ secrets.SPELL_API_KEY }}
+        run: |
+          curl -X POST https://spell.platform/api/v1/spells/publish \
+            -H "Authorization: Bearer $SPELL_API_KEY" \
+            -F "package=@spell-package.tar.gz" \
+            -F "signature=@spell-signature.json" \
+            -F "sbom=@spell-sbom.spdx.json" \
+            -F "sha256=${{ steps.sha256.outputs.hash }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            spell-package.tar.gz
+            spell-signature.json
+            spell-sbom.spdx.json
