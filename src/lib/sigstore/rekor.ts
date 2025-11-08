@@ -25,15 +25,12 @@ export interface RekorSearchResult {
 
 /**
  * Queries Rekor transparency log for a specific entry.
- * 
+ *
  * @param logId - The Rekor log ID
  * @param logIndex - The log entry index
  * @returns The Rekor entry or null if not found
  */
-export async function getRekorEntry(
-  logId: string,
-  logIndex: number
-): Promise<RekorEntry | null> {
+export async function getRekorEntry(logId: string, logIndex: number): Promise<RekorEntry | null> {
   try {
     const response = await fetch(
       `https://rekor.sigstore.dev/api/v1/log/entries/${logId}/${logIndex}`
@@ -53,22 +50,17 @@ export async function getRekorEntry(
 /**
  * Searches Rekor for entries matching a hash.
  * Useful for finding signatures for a specific artifact.
- * 
+ *
  * @param hash - The artifact hash (SHA-256)
  * @returns Search results
  */
-export async function searchRekorByHash(
-  hash: string
-): Promise<RekorSearchResult> {
+export async function searchRekorByHash(hash: string): Promise<RekorSearchResult> {
   try {
-    const response = await fetch(
-      `https://rekor.sigstore.dev/api/v1/index/retrieve`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hash }),
-      }
-    );
+    const response = await fetch(`https://rekor.sigstore.dev/api/v1/index/retrieve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash }),
+    });
 
     if (!response.ok) {
       return { entries: [], total: 0 };
@@ -79,9 +71,7 @@ export async function searchRekorByHash(
     // Fetch full entries for each UUID
     const entries = await Promise.all(
       uuids.map(async (uuid: string) => {
-        const entryResponse = await fetch(
-          `https://rekor.sigstore.dev/api/v1/log/entries/${uuid}`
-        );
+        const entryResponse = await fetch(`https://rekor.sigstore.dev/api/v1/log/entries/${uuid}`);
         return entryResponse.ok ? await entryResponse.json() : null;
       })
     );
@@ -101,13 +91,11 @@ export async function searchRekorByHash(
 /**
  * Verifies the inclusion proof for a Rekor entry.
  * This proves the entry was included in the transparency log.
- * 
+ *
  * @param entry - The Rekor entry to verify
  * @returns true if inclusion proof is valid
  */
-export async function verifyInclusionProof(
-  entry: RekorEntry
-): Promise<boolean> {
+export async function verifyInclusionProof(entry: RekorEntry): Promise<boolean> {
   try {
     if (!entry.verification.inclusion_proof) {
       return false;
@@ -117,9 +105,7 @@ export async function verifyInclusionProof(
     // For now, we just check that the proof exists
     const proof = entry.verification.inclusion_proof;
     return (
-      proof.log_index === entry.log_index &&
-      proof.root_hash.length > 0 &&
-      proof.hashes.length > 0
+      proof.log_index === entry.log_index && proof.root_hash.length > 0 && proof.hashes.length > 0
     );
   } catch {
     return false;
@@ -131,9 +117,7 @@ export async function verifyInclusionProof(
  */
 export async function getRekorLogInfo() {
   try {
-    const response = await fetch(
-      'https://rekor.sigstore.dev/api/v1/log/publicKey'
-    );
+    const response = await fetch('https://rekor.sigstore.dev/api/v1/log/publicKey');
 
     if (!response.ok) {
       return null;

@@ -65,6 +65,7 @@ tickets/
 最小限のMVPを実現するためのクリティカルパス：
 
 ### Phase 0: Foundation (Weeks 1-2)
+
 1. **TKT-001**: Database Schema Migration ⭐
 2. **TKT-002**: Core Data Models & DTOs ⭐
 3. **TKT-003**: API Authentication Middleware ⭐
@@ -73,6 +74,7 @@ tickets/
 6. **TKT-006**: Error Catalog Implementation
 
 ### Phase 1: Core Execution (Weeks 3-4)
+
 7. **TKT-041**: WASM Module Loader ⭐
 8. **TKT-042**: WASI Sandbox ⭐
 9. **TKT-043**: Resource Limits
@@ -81,6 +83,7 @@ tickets/
 12. **TKT-087**: Budget Cap Enforcement ⭐
 
 ### Phase 2: Security & Payment (Weeks 5-6)
+
 13. **TKT-021**: Sigstore Integration
 14. **TKT-022**: SBOM Generation Pipeline
 15. **TKT-023**: SBOM Validation Service
@@ -89,6 +92,7 @@ tickets/
 18. **TKT-111**: GDPR Data Export
 
 ### Phase 3: API & Testing (Weeks 7-8)
+
 19. **TKT-161**: POST /v1/spells ⭐
 20. **TKT-164**: POST /v1/spells/{id}:cast ⭐
 21. **TKT-202**: Integration Test Suite
@@ -106,55 +110,68 @@ tickets/
 # [TKT-XXX] {Feature Name}
 
 ## 目的
+
 {Purpose and business value}
 
 ## スコープ
+
 {Target directories/files}
 
 ## 実装詳細
+
 {Implementation details from SPEC}
 
 ## 受け入れ条件
+
 - [ ] {Acceptance criteria 1}
 - [ ] {Acceptance criteria 2}
 - [ ] Tests pass locally
 - [ ] Code committed
 
 ## 依存関係
+
 blocks: [TKT-xxx, TKT-yyy]
 blocked-by: [TKT-zzz]
 
 ## 技術スタック
+
 {Relevant technologies from SPEC}
 
 ## 優先度
+
 {CRITICAL | HIGH | MEDIUM | LOW}
 
 ## 見積もり複雑度
+
 {XL | L | M | S}
 
 ## セキュリティ考慮事項
+
 {Security requirements if applicable}
 ```
 
 ## 使い方
 
 ### 1. チケット選択
+
 - `INDEX.md` で全体像を把握
 - 優先度と依存関係を確認
 - 自分のスキルセットに合ったチケットを選択
 
 ### 2. 実装
+
 - チケット内の「実装詳細」を参照
 - SPEC-Platform.md / SPEC-Implementation.md のセクションを確認
 - 受け入れ条件を満たすまで実装
 
 ### 3. テスト
+
 - ローカルでテスト実行
 - 全受け入れ条件をチェック
 - コードレビュー準備
 
 ### 4. PR作成
+
 - チケット番号をブランチ名・コミットメッセージに含める
   - `git checkout -b feature/TKT-001-database-schema`
   - `git commit -m "feat(TKT-001): implement database schema migration"`
@@ -163,6 +180,7 @@ blocked-by: [TKT-zzz]
 ## ステータス管理
 
 現在のステータス表示：
+
 - 🔴 Not Started (未着手)
 - 🟡 In Progress (進行中)
 - 🟢 Complete (完了)
@@ -175,18 +193,21 @@ blocked-by: [TKT-zzz]
 以下のチケットは互いに依存せず、並行して作業可能：
 
 **Week 1-2:**
+
 - TKT-001 (DB Schema)
 - TKT-006 (Error Catalog)
 - TKT-020 (Configuration Management)
 - TKT-022 (SBOM Generation Pipeline)
 
 **Week 3-4:**
+
 - TKT-041 (WASM Loader) ← DB完了後
 - TKT-061 (Workflow Mode) ← DB完了後
 - TKT-021 (Sigstore) ← DB完了後
 - TKT-081 (Stripe Setup) ← 独立
 
 **Week 5-6:**
+
 - TKT-042 (WASI Sandbox) ← WASM Loader完了後
 - TKT-062 (Service Mode) ← DB完了後
 - TKT-111 (GDPR Export) ← DB完了後

@@ -14,7 +14,7 @@ export interface SignatureBundle {
 /**
  * Signs a Spell package tarball using Sigstore cosign.
  * This function is intended to run in GitHub Actions during the Maker's CI/CD.
- * 
+ *
  * @param tarPath - Path to the tarball to sign
  * @param outputPath - Path where signature bundle will be written
  * @returns Signature metadata

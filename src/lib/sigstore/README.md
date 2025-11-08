@@ -5,6 +5,7 @@ Supply chain security for Spell packages using Sigstore (Fulcio + Rekor).
 ## Overview
 
 This module provides keyless code signing for Spell packages using:
+
 - **Fulcio**: Short-lived certificate authority (15 min certificates)
 - **Rekor**: Immutable transparency log
 - **Cosign**: Signing tool (CLI-based)
@@ -12,6 +13,7 @@ This module provides keyless code signing for Spell packages using:
 ## Architecture
 
 ### Maker Side (Signing)
+
 ```
 GitHub Actions → OIDC Token → Fulcio → Certificate
                                      ↓
@@ -19,6 +21,7 @@ Spell Package → Cosign → Signature + Rekor Entry
 ```
 
 ### Platform Side (Verification)
+
 ```
 Uploaded Package → Verify Signature → Verify Rekor → Store Metadata
 ```
@@ -60,6 +63,7 @@ if (result.verified) {
 Signs a spell package tarball.
 
 **Parameters:**
+
 - `tarPath` - Path to tarball
 - `outputPath` - Where to write signature bundle
 
@@ -70,6 +74,7 @@ Signs a spell package tarball.
 Verifies a signed spell package.
 
 **Parameters:**
+
 - `tarBytes` - Package bytes
 - `signatureBundle` - Signature bundle JSON
 

@@ -17,7 +17,7 @@ export interface VerificationResult {
 /**
  * Verifies a Spell package signature using Sigstore.
  * This runs on the Platform side when a Spell is uploaded.
- * 
+ *
  * @param tarBytes - The tarball bytes to verify
  * @param signatureBundle - The Sigstore signature bundle
  * @returns Verification result with metadata
@@ -67,9 +67,7 @@ export async function verifySpellSignature(
     }
 
     // 2. Verify Rekor entry
-    const rekorVerified = await verifyRekorEntry(
-      signatureBundle.rekorBundle?.Payload
-    );
+    const rekorVerified = await verifyRekorEntry(signatureBundle.rekorBundle?.Payload);
 
     if (!rekorVerified) {
       errors.push('Rekor entry verification failed');
@@ -77,9 +75,7 @@ export async function verifySpellSignature(
 
     // 3. Extract metadata
     const signedBy = extractIdentity(signatureBundle.cert || '');
-    const signedAt = new Date(
-      (signatureBundle.rekorBundle?.Payload?.integratedTime || 0) * 1000
-    );
+    const signedAt = new Date((signatureBundle.rekorBundle?.Payload?.integratedTime || 0) * 1000);
     const rekorIndex = signatureBundle.rekorBundle?.Payload?.logIndex || 0;
 
     return {
@@ -129,9 +125,7 @@ async function verifyRekorEntry(rekorPayload: RekorPayload | undefined): Promise
     const entry = await response.json();
 
     // Verify entry matches our payload
-    const entryHash = createHash('sha256')
-      .update(JSON.stringify(entry))
-      .digest('hex');
+    const entryHash = createHash('sha256').update(JSON.stringify(entry)).digest('hex');
 
     return entryHash === rekorPayload.bodyHash;
   } catch {
