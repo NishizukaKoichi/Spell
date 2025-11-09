@@ -73,7 +73,7 @@ function getLoggerConfig(): LoggerConfig {
       pretty: false,
       sampleRate: 1.0, // Can be adjusted based on traffic
     };
-  } catch (error) {
+  } catch {
     // Fallback config if getConfig() fails (e.g., missing env vars in tests)
     const nodeEnv = process.env.NODE_ENV || 'development';
 
@@ -180,6 +180,7 @@ function log(
   } else if (level === 'warn') {
     console.warn(formatted);
   } else {
+    // eslint-disable-next-line no-console
     console.log(formatted);
   }
 }
