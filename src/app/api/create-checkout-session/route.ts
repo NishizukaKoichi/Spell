@@ -6,6 +6,7 @@ import {
   initIdempotencyKey,
   persistIdempotencyResult,
 } from '@/lib/idempotency';
+import { requireIdempotencyKey } from '@/lib/api-middleware';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -14,11 +15,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: NextRequest) {
   try {
-    const idempotencyKey = req.headers.get('idempotency-key');
-
-    if (!idempotencyKey) {
-      return NextResponse.json({ error: 'Idempotency-Key header is required' }, { status: 400 });
+    const idempotencyResult = requireIdempotencyKey(req);
+    if (!idempotencyResult.ok) {
+      return idempotencyResult.response;
     }
+    const idempotencyKey = idempotencyResult.value;
 
     const session = await auth();
 

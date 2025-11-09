@@ -7,7 +7,7 @@ import { randomBytes } from 'crypto';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
 import { hashApiKey } from '@/lib/api-key';
-import { logger, createRequestLogger } from '@/lib/logger';
+import { createRequestLogger } from '@/lib/logger';
 import { ErrorCatalog, handleError } from '@/lib/api-response';
 import { randomUUID } from 'crypto';
 
@@ -19,7 +19,7 @@ function generateApiKey(): string {
 }
 
 // GET /api/keys - List user's API keys
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const requestLogger = createRequestLogger(randomUUID(), '/api/keys', 'GET');
 
   try {
