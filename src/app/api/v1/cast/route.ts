@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
 
   try {
     // Apply rate limiting: 60 requests per minute per API key/IP
-    const rateLimitError = await rateLimitMiddleware(req, 60, 60000);
+    const rateLimitError = await rateLimitMiddleware({
+      limit: 60,
+      window: 60,
+    })(req);
     if (rateLimitError) {
       return rateLimitError;
     }

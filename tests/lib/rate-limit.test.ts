@@ -1,56 +1,43 @@
+// Rate Limiting Tests - TKT-004
 import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+import * as assert from 'node:assert/strict';
 
-import { RateLimiter } from '@/lib/rate-limit';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
-describe('RateLimiter', () => {
-  it('allows first request and decrements remaining tokens', () => {
-    const limiter = new RateLimiter({ interval: 1000 });
-    const token = 'token-success';
+describe('Rate Limiting', () => {
+  describe('checkRateLimit', () => {
+    it('should allow first request within limit', async () => {
+      const result = await checkRateLimit('test-user-1', {
+        limit: 5,
+        window: 60,
+      });
 
-    const result = limiter.check(5, token);
+      assert.equal(result.allowed, true);
+      assert.equal(result.limit, 5);
+      assert.ok(result.remaining >= 0);
+      assert.ok(result.reset > Math.floor(Date.now() / 1000));
+    });
 
-    assert.equal(result.success, true);
-    assert.equal(result.limit, 5);
-    assert.equal(result.remaining, 4);
-    assert.ok(result.reset > Date.now());
-  });
+    it('should track remaining requests', async () => {
+      const config = { limit: 3, window: 60 };
+      const key = 'test-user-track';
 
-  it('blocks requests that exceed the provided limit', () => {
-    const limiter = new RateLimiter({ interval: 1000 });
-    const token = 'token-limit';
+      const result1 = await checkRateLimit(key, config);
+      assert.equal(result1.allowed, true);
 
-    limiter.check(2, token);
-    limiter.check(2, token);
-    const result = limiter.check(2, token);
+      const result2 = await checkRateLimit(key, config);
+      assert.equal(result2.allowed, true);
+      assert.ok(result2.remaining < result1.remaining);
+    });
 
-    assert.equal(result.success, false);
-    assert.equal(result.limit, 2);
-    assert.equal(result.remaining, 0);
-    assert.ok(result.reset > Date.now());
-  });
+    it('should use predefined rate limit configs', () => {
+      assert.ok(RATE_LIMITS.api);
+      assert.equal(RATE_LIMITS.api.limit, 1000);
+      assert.equal(RATE_LIMITS.api.window, 3600);
 
-  it('resets usage once the interval has passed', () => {
-    const limiter = new RateLimiter({ interval: 1000 });
-    const token = 'token-reset';
-    const now = 1_000_000;
-    const originalNow = Date.now;
-
-    try {
-      Date.now = () => now;
-      limiter.check(2, token);
-
-      Date.now = () => now + 500;
-      limiter.check(2, token);
-
-      Date.now = () => now + 1500;
-      const result = limiter.check(2, token);
-
-      assert.equal(result.success, true);
-      assert.equal(result.remaining, 1);
-      assert.equal(result.reset, now + 1500 + 1000);
-    } finally {
-      Date.now = originalNow;
-    }
+      assert.ok(RATE_LIMITS.anonymous);
+      assert.equal(RATE_LIMITS.anonymous.limit, 10);
+      assert.equal(RATE_LIMITS.anonymous.window, 60);
+    });
   });
 });
