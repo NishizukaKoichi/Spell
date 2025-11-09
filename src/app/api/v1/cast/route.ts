@@ -226,7 +226,10 @@ export async function POST(req: NextRequest) {
     if (transactionResult.kind === 'replay') {
       return new Response(JSON.stringify(transactionResult.replay.body), {
         status: transactionResult.replay.status,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotent-Replayed': 'true',
+        },
       });
     }
 

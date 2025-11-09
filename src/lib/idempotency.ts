@@ -1,9 +1,18 @@
+// Idempotency Key Management - TKT-005
+// SPEC Reference: Section 6 (Idempotency), Section 24 (Error Codes)
+
 import crypto from 'node:crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
+import { redis, isRedisConfigured } from '@/lib/redis';
 
 type IdempotencyScope = string;
+
+/**
+ * Redis cache TTL for idempotency results (24 hours)
+ */
+const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
 export type IdempotencyReplay = {
   status: number;
@@ -62,6 +71,61 @@ export function hashRequestPayload(payload: unknown): string {
 
 type PrismaClientOrTransaction = PrismaClient | Prisma.TransactionClient;
 
+/**
+ * Generate Redis cache key for idempotency
+ */
+function getRedisKey(key: string, endpoint: string, scope: string): string {
+  return `idempotency:${scope}:${endpoint}:${key}`;
+}
+
+/**
+ * Check Redis cache for idempotency result
+ */
+async function checkRedisCache(
+  key: string,
+  endpoint: string,
+  scope: string
+): Promise<IdempotencyReplay | null> {
+  if (!isRedisConfigured()) {
+    return null;
+  }
+
+  try {
+    const redisKey = getRedisKey(key, endpoint, scope);
+    const cached = await redis.get(redisKey);
+
+    if (cached && typeof cached === 'object' && 'status' in cached && 'body' in cached) {
+      return cached as IdempotencyReplay;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Redis cache check failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Store idempotency result in Redis cache
+ */
+async function storeRedisCache(
+  key: string,
+  endpoint: string,
+  scope: string,
+  replay: IdempotencyReplay
+): Promise<void> {
+  if (!isRedisConfigured()) {
+    return;
+  }
+
+  try {
+    const redisKey = getRedisKey(key, endpoint, scope);
+    await redis.setex(redisKey, IDEMPOTENCY_TTL_SECONDS, replay);
+  } catch (error) {
+    console.error('Redis cache store failed:', error);
+  }
+}
+
 export async function initIdempotencyKey(
   params: {
     key: string;
@@ -73,6 +137,12 @@ export async function initIdempotencyKey(
 ): Promise<InitResult> {
   const requestHash = hashRequestPayload(params.requestPayload);
   const db = client;
+
+  // Check Redis cache first for fast path
+  const cachedReplay = await checkRedisCache(params.key, params.endpoint, params.scope);
+  if (cachedReplay) {
+    return { state: 'replay', replay: cachedReplay };
+  }
 
   try {
     await db.idempotencyKey.create({
@@ -109,13 +179,15 @@ export async function initIdempotencyKey(
       }
 
       if (existing.responseStatus !== null && existing.responseBody !== null) {
-        return {
-          state: 'replay',
-          replay: {
-            status: existing.responseStatus,
-            body: existing.responseBody,
-          },
+        const replay = {
+          status: existing.responseStatus,
+          body: existing.responseBody,
         };
+
+        // Cache in Redis for future requests
+        await storeRedisCache(params.key, params.endpoint, params.scope, replay);
+
+        return { state: 'replay', replay };
       }
 
       return { state: 'pending' };
@@ -135,6 +207,9 @@ export async function persistIdempotencyResult(
   },
   client: PrismaClientOrTransaction = prisma
 ): Promise<void> {
+  // Only cache successful responses (2xx status codes)
+  const shouldCache = params.responseStatus >= 200 && params.responseStatus < 300;
+
   await client.idempotencyKey.update({
     where: {
       key_endpoint_scope: {
@@ -148,4 +223,12 @@ export async function persistIdempotencyResult(
       responseBody: params.responseBody as Prisma.InputJsonValue,
     },
   });
+
+  // Store in Redis cache if successful
+  if (shouldCache) {
+    await storeRedisCache(params.key, params.endpoint, params.scope, {
+      status: params.responseStatus,
+      body: params.responseBody,
+    });
+  }
 }
