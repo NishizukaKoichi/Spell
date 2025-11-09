@@ -114,9 +114,7 @@ describe('API Keys Endpoints', () => {
         { id: '3', createdAt: new Date(now.getTime() - 2000) }, // 2 seconds ago
       ];
 
-      const sorted = [...keys].sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-      );
+      const sorted = [...keys].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       assert.equal(sorted[0].id, '2'); // Most recent first
       assert.equal(sorted[1].id, '3');
@@ -195,13 +193,7 @@ describe('API Keys Endpoints', () => {
     });
 
     it('should accept valid names', () => {
-      const validNames = [
-        'Production API Key',
-        'Development',
-        'test-key-123',
-        'My_Key_Name',
-        'A',
-      ];
+      const validNames = ['Production API Key', 'Development', 'test-key-123', 'My_Key_Name', 'A'];
 
       for (const name of validNames) {
         assert.ok(
@@ -231,7 +223,8 @@ describe('API Keys Endpoints', () => {
           status: 'active',
           createdAt: new Date(),
         },
-        message: "API key created successfully. Make sure to copy it now - you won't be able to see it again!",
+        message:
+          "API key created successfully. Make sure to copy it now - you won't be able to see it again!",
       };
 
       assert.ok('apiKey' in response);

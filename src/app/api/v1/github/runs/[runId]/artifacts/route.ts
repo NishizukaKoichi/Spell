@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
 import { apiError, apiSuccess } from '@/lib/api-response';
-import { validateApiKey } from '@/lib/api-key';
+import { requireApiKey } from '@/lib/api-middleware';
 import {
   GitHubAppError,
   GitHubConfigError,
@@ -22,14 +22,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<RouteP
     return apiError('VALIDATION_ERROR', 422, 'runId must be a positive integer');
   }
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return apiError('UNAUTHORIZED', 401, 'Missing or invalid Authorization header');
-  }
-
-  const validation = await validateApiKey(authHeader.substring(7));
-  if (!validation) {
-    return apiError('UNAUTHORIZED', 401, 'Invalid or inactive API key');
+  const authResult = await requireApiKey(req);
+  if (!authResult.ok) {
+    return authResult.response;
   }
 
   const url = new URL(req.url);

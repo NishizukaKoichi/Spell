@@ -4,16 +4,17 @@ import { apiError } from '@/lib/api-response';
 import { validateApiKey } from '@/lib/api-key';
 import { rateLimitMiddleware, RateLimitConfig } from '@/lib/rate-limit';
 
-type MiddlewareResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; response: Response };
+type MiddlewareResult<T> = { ok: true; value: T } | { ok: false; response: Response };
 
 export async function requireApiKey(
   req: NextRequest
 ): Promise<MiddlewareResult<{ userId: string; keyId: string }>> {
   const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { ok: false, response: apiError('UNAUTHORIZED', 401, 'Missing or invalid Authorization header') };
+    return {
+      ok: false,
+      response: apiError('UNAUTHORIZED', 401, 'Missing or invalid Authorization header'),
+    };
   }
 
   const apiKey = authHeader.substring(7);
