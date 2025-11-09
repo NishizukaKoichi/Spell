@@ -1,5 +1,6 @@
 // Sigstore Verification Tests - TKT-021
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'node:test';
+import * as assert from 'node:assert/strict';
 import { verifySpellSignature } from '../verify';
 
 describe('Sigstore Verification', () => {
@@ -13,9 +14,9 @@ describe('Sigstore Verification', () => {
 
       const result = await verifySpellSignature(tarBytes, invalidBundle);
 
-      expect(result.verified).toBe(false);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.length).toBeGreaterThan(0);
+      assert.equal(result.verified, false);
+      assert.ok(result.errors);
+      assert.ok(result.errors.length > 0);
     });
 
     it('should return unknown signer for missing cert', async () => {
@@ -33,7 +34,7 @@ describe('Sigstore Verification', () => {
 
       const result = await verifySpellSignature(tarBytes, bundleWithoutCert);
 
-      expect(result.signed_by).toBe('unknown');
+      assert.equal(result.signed_by, 'unknown');
     });
 
     it('should extract GitHub identity from valid cert', async () => {
@@ -53,7 +54,7 @@ describe('Sigstore Verification', () => {
       const result = await verifySpellSignature(tarBytes, bundle);
 
       // Will fail signature verification but should extract identity
-      expect(result.signed_by).toContain('testowner/testrepo');
+      assert.ok(result.signed_by.includes('testowner/testrepo'));
     });
 
     it('should parse timestamp correctly', async () => {
@@ -73,7 +74,7 @@ describe('Sigstore Verification', () => {
       const result = await verifySpellSignature(tarBytes, bundle);
 
       const expectedDate = new Date(testTime * 1000);
-      expect(result.signed_at.getTime()).toBe(expectedDate.getTime());
+      assert.equal(result.signed_at.getTime(), expectedDate.getTime());
     });
   });
 });
