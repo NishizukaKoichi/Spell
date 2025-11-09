@@ -41,9 +41,7 @@ export function hashApiKey(apiKey: string): string {
  * Creates a new API key for a user.
  * Returns the full API key (only time it's visible).
  */
-export async function createApiKey(
-  options: ApiKeyCreateOptions
-): Promise<ApiKeyInfo> {
+export async function createApiKey(options: ApiKeyCreateOptions): Promise<ApiKeyInfo> {
   const apiKey = generateApiKey();
   const keyHash = hashApiKey(apiKey);
   const keyPrefix = apiKey.substring(0, 12); // "sk_live_XXXX"
@@ -56,7 +54,7 @@ export async function createApiKey(
       userId: options.userId,
       keyHash,
       keyPrefix,
-      name: options.name,
+      name: options.name || 'API Key',
       scopes,
       expiresAt: options.expiresAt,
     },
@@ -140,10 +138,7 @@ export function validateApiKeyFormat(apiKey: string): boolean {
  * Rotates an API key by creating a new one and revoking the old.
  * Returns new key info.
  */
-export async function rotateApiKey(
-  oldKeyId: string,
-  userId: string
-): Promise<ApiKeyInfo> {
+export async function rotateApiKey(oldKeyId: string, userId: string): Promise<ApiKeyInfo> {
   const oldKey = await prisma.api_keys.findFirst({
     where: {
       id: oldKeyId,

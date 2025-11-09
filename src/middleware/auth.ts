@@ -18,9 +18,7 @@ export interface AuthContext {
  * 1. API Key: Authorization: Bearer sk_...
  * 2. Session Token (JWT): Authorization: Bearer ey...
  */
-export async function authenticateRequest(
-  req: NextRequest
-): Promise<AuthContext | null> {
+export async function authenticateRequest(req: NextRequest): Promise<AuthContext | null> {
   const authHeader = req.headers.get('authorization');
 
   if (!authHeader) {
@@ -55,7 +53,7 @@ async function authenticateApiKey(key: string): Promise<AuthContext | null> {
   try {
     const apiKey = await prisma.api_keys.findUnique({
       where: { keyHash },
-      include: { user: true },
+      include: { users: true },
     });
 
     if (!apiKey) {
@@ -84,7 +82,7 @@ async function authenticateApiKey(key: string): Promise<AuthContext | null> {
 
     return {
       user_id: apiKey.userId,
-      role: apiKey.user.role as 'consumer' | 'maker' | 'admin',
+      role: apiKey.users.role as 'consumer' | 'maker' | 'admin',
       scopes: apiKey.scopes,
       api_key_id: apiKey.id,
     };
@@ -128,19 +126,23 @@ async function authenticateSession(token: string): Promise<AuthContext | null> {
   }
 }
 
+interface JWTPayload {
+  sub?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Basic JWT decoder (not cryptographically verified).
  * In production, use NextAuth's getToken() or jose library.
  */
-function decodeJWT(token: string): any {
+function decodeJWT(token: string): JWTPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
       return null;
     }
-    const payload = JSON.parse(
-      Buffer.from(parts[1], 'base64url').toString('utf-8')
-    );
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8')) as JWTPayload;
     return payload;
   } catch {
     return null;
@@ -152,10 +154,7 @@ function decodeJWT(token: string): any {
  * Returns 401 if not authenticated, 403 if missing required scopes.
  */
 export function requireAuth(requiredScopes?: string[]) {
-  return async (
-    req: NextRequest,
-    ctx: AuthContext | null
-  ): Promise<NextResponse | null> => {
+  return async (req: NextRequest, ctx: AuthContext | null): Promise<NextResponse | null> => {
     if (!ctx) {
       return NextResponse.json(
         {
@@ -194,10 +193,7 @@ export function requireAuth(requiredScopes?: string[]) {
  * Middleware to require specific role.
  */
 export function requireRole(role: 'consumer' | 'maker' | 'admin') {
-  return async (
-    req: NextRequest,
-    ctx: AuthContext | null
-  ): Promise<NextResponse | null> => {
+  return async (req: NextRequest, ctx: AuthContext | null): Promise<NextResponse | null> => {
     if (!ctx) {
       return NextResponse.json(
         {
@@ -246,10 +242,7 @@ export function getAuthContext(req: NextRequest): AuthContext | null {
 /**
  * Attach auth context to request for downstream handlers.
  */
-export function attachAuthContext(
-  req: NextRequest,
-  ctx: AuthContext
-): NextRequest {
+export function attachAuthContext(req: NextRequest, ctx: AuthContext): NextRequest {
   const headers = new Headers(req.headers);
   headers.set('x-auth-context', JSON.stringify(ctx));
 

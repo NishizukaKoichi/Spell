@@ -14,9 +14,7 @@ export interface GitHubUser {
 /**
  * Exchanges GitHub OAuth code for access token.
  */
-export async function exchangeCodeForToken(
-  code: string
-): Promise<string | null> {
+export async function exchangeCodeForToken(code: string): Promise<string | null> {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
@@ -50,9 +48,7 @@ export async function exchangeCodeForToken(
 /**
  * Fetches GitHub user info using access token.
  */
-export async function getGitHubUser(
-  accessToken: string
-): Promise<GitHubUser | null> {
+export async function getGitHubUser(accessToken: string): Promise<GitHubUser | null> {
   const response = await fetch('https://api.github.com/user', {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -78,8 +74,11 @@ export async function getGitHubUser(
     });
 
     if (emailResponse.ok) {
-      const emails = await emailResponse.json();
-      const primaryEmail = emails.find((e: any) => e.primary);
+      const emails = (await emailResponse.json()) as Array<{
+        email: string;
+        primary: boolean;
+      }>;
+      const primaryEmail = emails.find((e) => e.primary);
       email = primaryEmail?.email || emails[0]?.email;
     }
   }
@@ -97,9 +96,7 @@ export async function getGitHubUser(
  * Creates or updates user from GitHub OAuth.
  * Returns user ID.
  */
-export async function upsertUserFromGitHub(
-  githubUser: GitHubUser
-): Promise<string> {
+export async function upsertUserFromGitHub(githubUser: GitHubUser): Promise<string> {
   const existingUser = await prisma.user.findUnique({
     where: { githubId: githubUser.id.toString() },
   });
@@ -109,10 +106,8 @@ export async function upsertUserFromGitHub(
     const updated = await prisma.user.update({
       where: { id: existingUser.id },
       data: {
-        githubUsername: githubUser.login,
         name: githubUser.name || existingUser.name,
-        avatarUrl: githubUser.avatar_url,
-        lastLoginAt: new Date(),
+        image: githubUser.avatar_url,
       },
     });
     return updated.id;
@@ -124,11 +119,9 @@ export async function upsertUserFromGitHub(
       email: githubUser.email,
       name: githubUser.name || githubUser.login,
       githubId: githubUser.id.toString(),
-      githubUsername: githubUser.login,
-      avatarUrl: githubUser.avatar_url,
-      role: 'consumer', // Default role
+      image: githubUser.avatar_url,
+      role: 'caster', // Default role
       ccpaDoNotSell: false,
-      lastLoginAt: new Date(),
     },
   });
 
