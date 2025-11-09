@@ -16,12 +16,12 @@
 
 | ID      | Title                                   | Priority | Complexity | Status | Dependencies              |
 | ------- | --------------------------------------- | -------- | ---------- | ------ | ------------------------- |
-| TKT-001 | Database Schema Migration & Core Tables | CRITICAL | L          | 🔴     | -                         |
-| TKT-002 | Core Data Models & DTOs                 | CRITICAL | M          | 🔴     | TKT-001                   |
-| TKT-003 | API Authentication Middleware           | CRITICAL | M          | 🔴     | TKT-001, TKT-002          |
-| TKT-004 | Rate Limiting (Redis-backed)            | HIGH     | M          | 🔴     | TKT-001, TKT-003          |
-| TKT-005 | Idempotency Handling                    | HIGH     | S          | 🔴     | TKT-001, TKT-003, TKT-004 |
-| TKT-006 | Error Catalog Implementation            | HIGH     | S          | 🔴     | -                         |
+| TKT-001 | Database Schema Migration & Core Tables | CRITICAL | L          | 🟢     | -                         |
+| TKT-002 | Core Data Models & DTOs                 | CRITICAL | M          | 🟢     | TKT-001                   |
+| TKT-003 | API Authentication Middleware           | CRITICAL | M          | 🟢     | TKT-001, TKT-002          |
+| TKT-004 | Rate Limiting (Redis-backed)            | HIGH     | M          | 🟢     | TKT-001, TKT-003          |
+| TKT-005 | Idempotency Handling                    | HIGH     | S          | 🟢     | TKT-001, TKT-003, TKT-004 |
+| TKT-006 | Error Catalog Implementation            | HIGH     | S          | 🟢     | -                         |
 | TKT-007 | Redis Cache Layer Setup                 | HIGH     | M          | 🔴     | -                         |
 | TKT-008 | Neon PostgreSQL Connection Pool         | HIGH     | S          | 🔴     | TKT-001                   |
 | TKT-009 | Database Migrations CLI                 | MEDIUM   | S          | 🔴     | TKT-001                   |
@@ -30,12 +30,12 @@
 | TKT-012 | RBAC (Role-Based Access Control)        | MEDIUM   | M          | 🔴     | TKT-003                   |
 | TKT-013 | Request Validation Middleware           | MEDIUM   | S          | 🔴     | TKT-002                   |
 | TKT-014 | Response Serialization Layer            | LOW      | S          | 🔴     | TKT-002                   |
-| TKT-015 | Logging Infrastructure (JSON)           | HIGH     | M          | 🔴     | -                         |
+| TKT-015 | Logging Infrastructure (JSON)           | HIGH     | M          | 🟢     | -                         |
 | TKT-016 | Health Check Endpoint                   | MEDIUM   | S          | 🔴     | TKT-008                   |
 | TKT-017 | Readiness Probe                         | MEDIUM   | S          | 🔴     | TKT-008                   |
 | TKT-018 | Liveness Probe                          | MEDIUM   | S          | 🔴     | -                         |
 | TKT-019 | Graceful Shutdown Handler               | MEDIUM   | M          | 🔴     | -                         |
-| TKT-020 | Configuration Management (env vars)     | HIGH     | S          | 🔴     | -                         |
+| TKT-020 | Configuration Management (env vars)     | HIGH     | S          | 🟢     | -                         |
 
 ---
 
@@ -43,7 +43,7 @@
 
 | ID      | Title                                      | Priority | Complexity | Status | Dependencies              |
 | ------- | ------------------------------------------ | -------- | ---------- | ------ | ------------------------- |
-| TKT-021 | Sigstore Integration (Fulcio + Rekor)      | HIGH     | L          | 🔴     | TKT-001                   |
+| TKT-021 | Sigstore Integration (Fulcio + Rekor)      | HIGH     | L          | 🟢     | TKT-001                   |
 | TKT-022 | SBOM Generation Pipeline                   | HIGH     | M          | 🔴     | -                         |
 | TKT-023 | SBOM Validation Service                    | HIGH     | L          | 🔴     | TKT-001, TKT-021, TKT-022 |
 | TKT-024 | Canonical Package Format                   | HIGH     | M          | 🔴     | TKT-021                   |
@@ -97,16 +97,16 @@
 
 | ID      | Title                                   | Priority | Complexity | Status | Dependencies              |
 | ------- | --------------------------------------- | -------- | ---------- | ------ | ------------------------- |
-| TKT-061 | Workflow Mode (GitHub Actions Dispatch) | CRITICAL | L          | 🔴     | TKT-001, TKT-005          |
+| TKT-061 | Workflow Mode (GitHub Actions Dispatch) | CRITICAL | L          | 🟢     | TKT-001, TKT-005          |
 | TKT-062 | Service Mode (JetStream-based)          | HIGH     | L          | 🔴     | TKT-001, TKT-042          |
 | TKT-063 | Clone Mode (Template Generation)        | MEDIUM   | M          | 🔴     | TKT-001                   |
 | TKT-064 | GitHub App Installation Check           | HIGH     | M          | 🔴     | TKT-061                   |
 | TKT-065 | Repository Permission Validation        | HIGH     | M          | 🔴     | TKT-061, TKT-064          |
-| TKT-066 | workflow_dispatch Trigger               | CRITICAL | M          | 🔴     | TKT-061                   |
-| TKT-067 | repository_dispatch Trigger             | MEDIUM   | M          | 🔴     | TKT-061                   |
-| TKT-068 | GitHub Artifacts API Integration        | HIGH     | L          | 🔴     | TKT-061                   |
+| TKT-066 | workflow_dispatch Trigger               | CRITICAL | M          | 🟢     | TKT-061                   |
+| TKT-067 | repository_dispatch Trigger             | MEDIUM   | M          | 🟢     | TKT-061                   |
+| TKT-068 | GitHub Artifacts API Integration        | HIGH     | L          | 🟢     | TKT-061                   |
 | TKT-069 | Artifact Download & Storage             | HIGH     | M          | 🔴     | TKT-068                   |
-| TKT-070 | Progress Streaming (SSE)                | MEDIUM   | M          | 🔴     | TKT-061                   |
+| TKT-070 | Progress Streaming (SSE)                | MEDIUM   | M          | 🟢     | TKT-061                   |
 | TKT-071 | NATS JetStream Setup                    | HIGH     | M          | 🔴     | -                         |
 | TKT-072 | RunRequest Message Schema               | MEDIUM   | S          | 🔴     | TKT-071                   |
 | TKT-073 | RunResult Message Schema                | MEDIUM   | S          | 🔴     | TKT-071                   |
@@ -114,7 +114,7 @@
 | TKT-075 | Double Ack Pattern                      | MEDIUM   | M          | 🔴     | TKT-071                   |
 | TKT-076 | Template Repository Generation          | MEDIUM   | L          | 🔴     | TKT-063                   |
 | TKT-077 | Initial Setup PR Creation               | LOW      | M          | 🔴     | TKT-076                   |
-| TKT-078 | Run Status Polling                      | MEDIUM   | M          | 🔴     | TKT-061                   |
+| TKT-078 | Run Status Polling                      | MEDIUM   | M          | 🟢     | TKT-061                   |
 | TKT-079 | Execution Mode Selection Logic          | MEDIUM   | M          | 🔴     | TKT-061, TKT-062, TKT-063 |
 | TKT-080 | Fallback Strategy on Failure            | LOW      | M          | 🔴     | TKT-079                   |
 
@@ -130,22 +130,22 @@
 | TKT-084 | Metered Subscriptions              | HIGH     | M          | 🔴     | TKT-081          |
 | TKT-085 | Usage Records API                  | HIGH     | M          | 🔴     | TKT-084          |
 | TKT-086 | Billing Thresholds                 | MEDIUM   | M          | 🔴     | TKT-084          |
-| TKT-087 | Budget Cap Enforcement             | CRITICAL | M          | 🔴     | TKT-001          |
-| TKT-088 | Budget Cap Pre-check (402)         | CRITICAL | M          | 🔴     | TKT-087          |
+| TKT-087 | Budget Cap Enforcement             | CRITICAL | M          | 🟢     | TKT-001          |
+| TKT-088 | Budget Cap Pre-check (402)         | CRITICAL | M          | 🟢     | TKT-087          |
 | TKT-089 | Flat Pricing (Pay-per-cast)        | HIGH     | M          | 🔴     | TKT-081          |
 | TKT-090 | Setup Intent (Payment Method)      | HIGH     | M          | 🔴     | TKT-089          |
 | TKT-091 | Payment Intent (Charge)            | HIGH     | M          | 🔴     | TKT-090          |
 | TKT-092 | One-time Payment (Clone mode)      | MEDIUM   | M          | 🔴     | TKT-081, TKT-063 |
 | TKT-093 | Stripe Checkout Integration        | MEDIUM   | M          | 🔴     | TKT-092          |
-| TKT-094 | Webhook Handler (/webhooks/stripe) | HIGH     | M          | 🔴     | TKT-081          |
-| TKT-095 | Webhook Signature Verification     | HIGH     | S          | 🔴     | TKT-094          |
+| TKT-094 | Webhook Handler (/webhooks/stripe) | HIGH     | M          | 🟢     | TKT-081          |
+| TKT-095 | Webhook Signature Verification     | HIGH     | S          | 🟢     | TKT-094          |
 | TKT-096 | Event Deduplication                | MEDIUM   | S          | 🔴     | TKT-094          |
 | TKT-097 | Refund Automation (SLA-based)      | MEDIUM   | M          | 🔴     | TKT-081          |
 | TKT-098 | Partial Refund Logic               | MEDIUM   | M          | 🔴     | TKT-097          |
 | TKT-099 | Chargeback Handling                | LOW      | M          | 🔴     | TKT-081          |
 | TKT-100 | Invoice Generation                 | MEDIUM   | M          | 🔴     | TKT-084          |
 | TKT-101 | Receipt Email                      | LOW      | M          | 🔴     | TKT-089          |
-| TKT-102 | Billing History Endpoint           | MEDIUM   | S          | 🔴     | TKT-001          |
+| TKT-102 | Billing History Endpoint           | MEDIUM   | S          | 🟢     | TKT-001          |
 | TKT-103 | Payment Method Management          | MEDIUM   | M          | 🔴     | TKT-090          |
 | TKT-104 | Failed Payment Retry               | MEDIUM   | M          | 🔴     | TKT-091          |
 | TKT-105 | Dunning Management                 | LOW      | M          | 🔴     | TKT-104          |

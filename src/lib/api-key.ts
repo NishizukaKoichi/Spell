@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import { prisma } from '@/lib/prisma';
 
 export interface ApiKeyValidationResult {
@@ -6,12 +8,20 @@ export interface ApiKeyValidationResult {
 }
 
 /**
+ * Hash API key using SHA-256 (matches storage format)
+ */
+export function hashApiKey(rawKey: string): string {
+  return createHash('sha256').update(rawKey).digest('hex');
+}
+
+/**
  * Validates the provided API key and updates usage metadata.
  */
 export async function validateApiKey(apiKey: string): Promise<ApiKeyValidationResult | null> {
   try {
+    const hashedKey = hashApiKey(apiKey);
     const key = await prisma.api_keys.findUnique({
-      where: { keyHash: apiKey },
+      where: { keyHash: hashedKey },
       include: { users: true },
     });
 
