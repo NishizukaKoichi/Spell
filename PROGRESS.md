@@ -5,7 +5,7 @@ Last Updated: 2025-11-09
 ## Current Status
 
 **Active Branch:** main
-**Last Completed Ticket:** TKT-015 (Logging Infrastructure)
+**Last Completed Ticket:** TKT-007/008/009 (API Keys Management)
 **Next Ticket:** TBD
 
 ## Completed Tickets
@@ -41,6 +41,13 @@ Last Updated: 2025-11-09
   - Status: Merged to main
   - Notes: Environment-aware structured logging with child logger support
 
+### Phase 2: API Implementation (進行中)
+
+- ✅ **TKT-007/008/009**: API Keys Management (PR #11) - 2025-11-09
+  - Files: `src/app/api/keys/route.ts`, `src/app/api/keys/[id]/route.ts`, `tests/api/keys.test.ts`
+  - Status: Merged to main
+  - Notes: Refactored existing endpoints to use foundation libraries (logger, ErrorCatalog, handleError). Changed to soft delete (revoke). 22 tests added.
+
 ## Pending Tickets
 
 ### Phase 2: API Implementation
@@ -54,9 +61,9 @@ Last Updated: 2025-11-09
 
 #### API Keys Management
 
-- ⬜ **TKT-007**: POST /v1/keys - Create API key
-- ⬜ **TKT-008**: GET /v1/keys - List API keys
-- ⬜ **TKT-009**: DELETE /v1/keys/:id - Revoke API key
+- ✅ **TKT-007**: POST /v1/keys - Create API key (completed in PR #11)
+- ✅ **TKT-008**: GET /v1/keys - List API keys (completed in PR #11)
+- ✅ **TKT-009**: DELETE /v1/keys/:id - Revoke API key (completed in PR #11)
 
 #### Spell Management
 
@@ -116,10 +123,10 @@ Last Updated: 2025-11-09
 
 ### 推奨される次のチケット優先順位
 
-1. **TKT-007, TKT-008, TKT-009** (API Keys) - 認証基盤として重要
-2. **TKT-001, TKT-002, TKT-003** (Auth endpoints) - ユーザー管理
-3. **TKT-010, TKT-011** (Spell管理) - コア機能
-4. **TKT-016, TKT-017, TKT-018** (Cast実行) - メイン機能
+1. **TKT-001, TKT-002, TKT-003** (Auth endpoints) - ユーザー管理
+2. **TKT-010, TKT-011** (Spell管理) - コア機能
+3. **TKT-016, TKT-017, TKT-018** (Cast実行) - メイン機能
+4. **TKT-021, TKT-022** (Webhooks) - イベント処理
 
 ## Technical Notes
 
@@ -143,8 +150,9 @@ Last Updated: 2025-11-09
 
 ## Test Coverage
 
-Current test suite: 60 tests passing
+Current test suite: 82 tests passing
 
+- API Keys: 22 tests
 - Error Catalog: 8 tests
 - Budget: 8 tests
 - Configuration: 4 tests
