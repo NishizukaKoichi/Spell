@@ -1,33 +1,50 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Stripe Webhook Handler - TKT-021
+// SPEC Reference: Section 13 (Webhooks & Monitoring)
+
+import { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
+import { randomUUID } from 'crypto';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { parseStripeWebhookEvent, StripeWebhookError } from '@/lib/stripe-webhook';
+import { ErrorCatalog, handleError, apiSuccess } from '@/lib/api-response';
+import { createRequestLogger } from '@/lib/logger';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
 export async function POST(req: NextRequest) {
-  const body = await req.text();
-  const headersList = await headers();
-  const signature = headersList.get('stripe-signature');
-
-  if (!signature) {
-    return NextResponse.json({ error: 'No signature provided' }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
+  const requestLogger = createRequestLogger(randomUUID(), '/webhooks/stripe', 'POST');
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
+    const body = await req.text();
+    const headersList = await headers();
+    const signature = headersList.get('stripe-signature');
 
-  try {
+    requestLogger.info('Stripe webhook received', {
+      hasSignature: !!signature,
+    });
+
+    let event: Stripe.Event;
+    try {
+      event = parseStripeWebhookEvent(body, signature, undefined, stripe);
+    } catch (error) {
+      if (error instanceof StripeWebhookError) {
+        requestLogger.warn('Stripe webhook verification failed', {
+          status: error.status,
+          message: error.message,
+        });
+        throw ErrorCatalog.UNAUTHORIZED();
+      }
+      throw error;
+    }
+
+    requestLogger.info('Processing Stripe event', {
+      eventType: event.type,
+      eventId: event.id,
+    });
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -36,6 +53,13 @@ export async function POST(req: NextRequest) {
           userId: string;
         };
 
+        requestLogger.info('Checkout session completed', {
+          sessionId: session.id,
+          spellId,
+          userId,
+          amount: session.amount_total,
+        });
+
         // Create a cast for the purchased spell
         const spell = await prisma.spell.findUnique({
           where: { id: spellId },
@@ -43,7 +67,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!spell) {
-          console.error('Spell not found:', spellId);
+          requestLogger.warn('Spell not found in checkout session', { spellId });
           break;
         }
 
@@ -66,23 +90,29 @@ export async function POST(req: NextRequest) {
           data: { totalCasts: { increment: 1 } },
         });
 
-        // Payment successful
+        requestLogger.info('Cast created from checkout session', {
+          spellId,
+          userId,
+        });
         break;
       }
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.error('Payment failed:', paymentIntent.id);
+        requestLogger.warn('Payment intent failed', {
+          paymentIntentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+        });
         break;
       }
 
       default:
-      // Unhandled event type
+        requestLogger.info('Unhandled event type', { eventType: event.type });
     }
 
-    return NextResponse.json({ received: true });
+    return apiSuccess({ received: true });
   } catch (error) {
-    console.error('Webhook handler error:', error);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
+    requestLogger.error('Stripe webhook handler error', error as Error);
+    return handleError(error);
   }
 }
