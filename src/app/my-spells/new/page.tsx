@@ -78,6 +78,7 @@ export default function NewSpellPage() {
     priceAmountCents: '',
     executionMode: 'workflow',
     webhookUrl: '',
+    runtime: 'node',
   });
 
   const [tags, setTags] = useState<string[]>([]);
@@ -88,6 +89,8 @@ export default function NewSpellPage() {
 
   const [inputSchemaError, setInputSchemaError] = useState('');
   const [outputSchemaError, setOutputSchemaError] = useState('');
+
+  const [spellCode, setSpellCode] = useState('');
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -175,6 +178,8 @@ export default function NewSpellPage() {
           tags,
           inputSchema: JSON.parse(inputSchema),
           outputSchema: JSON.parse(outputSchema),
+          code: spellCode || undefined,
+          runtime: formData.runtime,
         }),
       });
 
@@ -417,6 +422,23 @@ export default function NewSpellPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Runtime</label>
+                  <select
+                    value={formData.runtime}
+                    onChange={(e) => setFormData({ ...formData, runtime: e.target.value })}
+                    className="w-full rounded-md bg-white text-black/5 border border-white/10 px-3 py-2 text-sm"
+                  >
+                    <option value="node">Node.js</option>
+                    <option value="python">Python</option>
+                    <option value="deno">Deno</option>
+                    <option value="wasm">WebAssembly (WASM)</option>
+                  </select>
+                  <p className="text-xs text-white/60">
+                    Select the runtime environment for your spell code
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Webhook URL (Optional)</label>
                   <Input
                     type="url"
@@ -427,6 +449,41 @@ export default function NewSpellPage() {
                   />
                   <p className="text-xs text-white/60">
                     Receive POST notifications when spell execution completes
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Spell Code */}
+            <Card className="border-white/10">
+              <CardHeader>
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Code2 className="h-5 w-5" />
+                  Spell Code
+                </h2>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Code <span className="text-white/60">(Optional)</span>
+                  </label>
+                  <textarea
+                    value={spellCode}
+                    onChange={(e) => setSpellCode(e.target.value)}
+                    placeholder={
+                      formData.runtime === 'node'
+                        ? '// Your Node.js spell code\nconst input = JSON.parse(process.argv[2]);\nconsole.log(JSON.stringify({ result: "success" }));'
+                        : formData.runtime === 'python'
+                          ? '# Your Python spell code\nimport sys\nimport json\n\ninput_data = json.loads(sys.argv[1])\nprint(json.dumps({"result": "success"}))'
+                          : formData.runtime === 'deno'
+                            ? '// Your Deno spell code\nconst input = JSON.parse(Deno.args[0]);\nconsole.log(JSON.stringify({ result: "success" }));'
+                            : '// Your WASM code\n// Compile your WASM module and upload the binary'
+                    }
+                    className="w-full min-h-[400px] rounded-md bg-black/50 border border-white/10 px-3 py-2 text-xs font-mono"
+                  />
+                  <p className="text-xs text-white/60">
+                    Write your spell implementation code. Code will be uploaded to R2 storage and
+                    executed when the spell is cast.
                   </p>
                 </div>
               </CardContent>
