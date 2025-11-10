@@ -29,6 +29,8 @@ export type CreateCastResult =
         name: string;
         executionMode: string;
         priceAmountCents: number;
+        codeUrl: string | null;
+        runtime: string | null;
       };
     };
 
@@ -83,6 +85,8 @@ export async function createQueuedCastTransaction(
         status: true,
         executionMode: true,
         priceAmountCents: true,
+        codeUrl: true,
+        runtime: true,
       },
     });
 
@@ -165,6 +169,8 @@ export async function createQueuedCastTransaction(
         name: spell.name,
         executionMode: spell.executionMode,
         priceAmountCents: spell.priceAmountCents,
+        codeUrl: spell.codeUrl,
+        runtime: spell.runtime,
       },
     };
   });

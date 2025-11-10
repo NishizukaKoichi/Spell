@@ -65,6 +65,11 @@ model Spell {
   webhookUrl       String?
   authorId         String
 
+  // Spell Code Storage
+  codeUrl      String? // R2/S3 URL to spell code (WASM, JS, Python, etc.)
+  runtime      String? // wasm, node, python, deno, etc.
+  codeHash     String? // SHA-256 hash for integrity verification
+
   // Supply Chain Security
   sbomIncluded         Boolean @default(false)
   sbomFormat           String? // spdx-json, cyclonedx-json

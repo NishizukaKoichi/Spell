@@ -131,6 +131,8 @@ export async function POST(req: NextRequest) {
           cast_id: cast.id,
           spell_key: spell.key,
           input_data: serializedInput,
+          code_url: spell.codeUrl || undefined,
+          runtime: spell.runtime || undefined,
         });
 
         const runId = await getLatestWorkflowRun(cfg.workflowFile, 5000);

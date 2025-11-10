@@ -16,6 +16,14 @@ on:
         required: false
         type: string
         default: "{}"
+      code_url:
+        description: "URL to download spell code from R2"
+        required: false
+        type: string
+      runtime:
+        description: "Runtime type (wasm, node, python, deno)"
+        required: false
+        type: string
 
 jobs:
   execute:
@@ -32,23 +40,78 @@ jobs:
           echo "cast_id=${{ github.event.inputs.cast_id }}" >> $GITHUB_OUTPUT
           echo "spell_key=${{ github.event.inputs.spell_key }}" >> $GITHUB_OUTPUT
           echo 'input_data=${{ github.event.inputs.input_data }}' >> $GITHUB_OUTPUT
+          echo "code_url=${{ github.event.inputs.code_url }}" >> $GITHUB_OUTPUT
+          echo "runtime=${{ github.event.inputs.runtime }}" >> $GITHUB_OUTPUT
 
-      - name: Execute spell (placeholder)
+      - name: Download spell code
+        if: ${{ github.event.inputs.code_url != '' }}
+        run: |
+          echo "Downloading spell code from: ${{ steps.parse.outputs.code_url }}"
+          mkdir -p spell-code
+          curl -o spell-code/code "${{ steps.parse.outputs.code_url }}"
+          ls -lah spell-code/
+
+      - name: Setup Node.js
+        if: ${{ github.event.inputs.runtime == 'node' || github.event.inputs.runtime == 'nodejs' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        if: ${{ github.event.inputs.runtime == 'python' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Deno
+        if: ${{ github.event.inputs.runtime == 'deno' }}
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Execute spell
         id: execute
         run: |
           echo "Executing spell: ${{ steps.parse.outputs.spell_key }}"
           echo "Cast ID: ${{ steps.parse.outputs.cast_id }}"
+          echo "Runtime: ${{ steps.parse.outputs.runtime }}"
           echo "Input data: ${{ steps.parse.outputs.input_data }}"
 
-          # Placeholder: In a real implementation, this would:
-          # 1. Download the WASM binary for the spell
-          # 2. Execute it with the input data
-          # 3. Capture the output
-
-          # For now, just create a mock output
           mkdir -p output
-          echo "Mock output for spell ${{ steps.parse.outputs.spell_key }}" > output/result.txt
-          echo "Executed at: $(date)" >> output/result.txt
+
+          # Save input data to file for runtime to read
+          echo '${{ steps.parse.outputs.input_data }}' > input.json
+
+          # Execute based on runtime
+          if [ "${{ steps.parse.outputs.runtime }}" == "node" ] || [ "${{ steps.parse.outputs.runtime }}" == "nodejs" ]; then
+            echo "Executing Node.js spell..."
+            node spell-code/code > output/result.txt 2>&1 || echo "Execution failed" > output/result.txt
+
+          elif [ "${{ steps.parse.outputs.runtime }}" == "python" ]; then
+            echo "Executing Python spell..."
+            python3 spell-code/code > output/result.txt 2>&1 || echo "Execution failed" > output/result.txt
+
+          elif [ "${{ steps.parse.inputs.runtime }}" == "deno" ]; then
+            echo "Executing Deno spell..."
+            deno run --allow-read --allow-write spell-code/code > output/result.txt 2>&1 || echo "Execution failed" > output/result.txt
+
+          elif [ "${{ steps.parse.outputs.runtime }}" == "wasm" ]; then
+            echo "Executing WASM spell..."
+            # Note: WASM execution requires a runtime like wasmtime
+            # Install wasmtime
+            curl https://wasmtime.dev/install.sh -sSf | bash
+            export PATH="$HOME/.wasmtime/bin:$PATH"
+            wasmtime spell-code/code > output/result.txt 2>&1 || echo "Execution failed" > output/result.txt
+
+          else
+            # No code provided - create placeholder output
+            echo "No spell code provided - creating placeholder output"
+            echo "Mock output for spell ${{ steps.parse.outputs.spell_key }}" > output/result.txt
+            echo "Executed at: $(date)" >> output/result.txt
+          fi
+
+          echo "Execution complete"
+          cat output/result.txt
 
       - name: Upload artifact to R2
         id: upload
