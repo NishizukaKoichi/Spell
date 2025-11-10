@@ -3,7 +3,10 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 
 export class StripeWebhookError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(
+    message: string,
+    public status: number
+  ) {
     super(message);
     this.name = 'StripeWebhookError';
   }

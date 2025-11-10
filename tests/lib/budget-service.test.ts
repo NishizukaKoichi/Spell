@@ -25,7 +25,10 @@ class MockBudgetsTable {
     return record;
   }
 
-  async update(params: { where: { userId: string }; data: Partial<BudgetRecord> & { currentMonthCents?: { increment: number } | number } }) {
+  async update(params: {
+    where: { userId: string };
+    data: Partial<BudgetRecord> & { currentMonthCents?: { increment: number } | number };
+  }) {
     const existing = this.store.get(params.where.userId);
     if (!existing) {
       throw new Error('Record not found');

@@ -58,8 +58,7 @@ export class BudgetService {
 
   private needsMonthlyReset(periodStart: Date, now: Date) {
     return (
-      now.getFullYear() !== periodStart.getFullYear() ||
-      now.getMonth() !== periodStart.getMonth()
+      now.getFullYear() !== periodStart.getFullYear() || now.getMonth() !== periodStart.getMonth()
     );
   }
 

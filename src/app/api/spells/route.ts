@@ -121,7 +121,9 @@ export async function GET(req: NextRequest) {
       where: { status: 'active' },
       select: { tags: true },
     });
-    const allTags = Array.from(new Set(allSpells.flatMap((s: { tags: string[] }) => s.tags))).sort();
+    const allTags = Array.from(
+      new Set(allSpells.flatMap((s: { tags: string[] }) => s.tags))
+    ).sort();
 
     requestLogger.info('Spells fetched successfully', {
       count: spells.length,
@@ -139,7 +141,10 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
       filters: {
-        categories: categories.map((c: { category: string | null }) => c.category).filter(Boolean).sort(),
+        categories: categories
+          .map((c: { category: string | null }) => c.category)
+          .filter(Boolean)
+          .sort(),
         tags: allTags,
       },
     });

@@ -50,7 +50,13 @@ export async function POST(req: NextRequest) {
     if (!tags) missingFields.tags = ['Tags are required'];
 
     if (Object.keys(missingFields).length > 0) {
-      requestLogger.warn('Missing required fields', { name, key, description, priceAmountCents, tags });
+      requestLogger.warn('Missing required fields', {
+        name,
+        key,
+        description,
+        priceAmountCents,
+        tags,
+      });
       throw ErrorCatalog.VALIDATION_ERROR(missingFields);
     }
 
@@ -110,10 +116,13 @@ export async function POST(req: NextRequest) {
       spellKey: spell.key,
     });
 
-    return apiSuccess({
-      spell,
-      message: 'Spell created successfully',
-    }, 201);
+    return apiSuccess(
+      {
+        spell,
+        message: 'Spell created successfully',
+      },
+      201
+    );
   } catch (error) {
     requestLogger.error('Failed to create spell', error as Error, {
       userId: (await auth())?.user?.id,
