@@ -1,3 +1,5 @@
+import { createRequestLogger } from '@/lib/logger';
+
 interface WebhookPayload {
   event: 'cast.succeeded' | 'cast.failed';
   cast: {
@@ -17,11 +19,14 @@ interface WebhookPayload {
   timestamp: string;
 }
 
+import { createRequestLogger } from '@/lib/logger';
+
 export async function deliverWebhook(
   webhookUrl: string,
   payload: WebhookPayload,
   retries = 3
 ): Promise<boolean> {
+  const log = createRequestLogger('webhook', webhookUrl, 'POST');
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await fetch(webhookUrl, {
@@ -38,20 +43,25 @@ export async function deliverWebhook(
       });
 
       if (response.ok) {
+        log.info('Webhook delivered', { attempt });
         return true;
       }
 
-      console.warn(
-        `Webhook delivery failed (attempt ${attempt}/${retries}): ${response.status} ${response.statusText}`
-      );
+      log.warn('Webhook delivery failed', {
+        attempt,
+        status: response.status,
+        statusText: response.statusText,
+      });
 
       // Don't retry on 4xx errors (client errors)
       if (response.status >= 400 && response.status < 500) {
-        console.error(`Webhook delivery failed with client error: ${response.status}`);
+        log.error('Webhook delivery aborted due to client error', {
+          status: response.status,
+        });
         return false;
       }
     } catch (error) {
-      console.error(`Webhook delivery error (attempt ${attempt}/${retries}):`, error);
+      log.error('Webhook delivery error', error as Error, { attempt });
     }
 
     // Wait before retrying (exponential backoff)
@@ -61,7 +71,9 @@ export async function deliverWebhook(
     }
   }
 
-  console.error(`Webhook delivery failed after ${retries} attempts`);
+  log.error('Webhook delivery failed after max retries', new Error('webhook-delivery-failed'), {
+    retries,
+  });
   return false;
 }
 
@@ -109,6 +121,9 @@ export async function sendCastStatusWebhook(cast: {
 
   // Fire and forget - don't block the main flow
   deliverWebhook(cast.spell.webhookUrl, payload).catch((error) => {
-    console.error('Failed to deliver webhook:', error);
+    createRequestLogger('webhook', cast.spell.webhookUrl!, 'POST').error(
+      'Failed to deliver webhook',
+      error as Error
+    );
   });
 }
