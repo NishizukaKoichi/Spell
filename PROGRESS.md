@@ -1,11 +1,11 @@
 # Development Progress Tracker
 
-Last Updated: 2025-11-09
+Last Updated: 2025-11-10
 
 ## Current Status
 
 **Active Branch:** main
-**Last Completed Ticket:** TKT-007/008/009 (API Keys Management)
+**Last Completed Ticket:** TKT-010/011 (Spells Management Refactoring)
 **Next Ticket:** TBD
 
 ## Completed Tickets
@@ -48,6 +48,11 @@ Last Updated: 2025-11-09
   - Status: Merged to main
   - Notes: Refactored existing endpoints to use foundation libraries (logger, ErrorCatalog, handleError). Changed to soft delete (revoke). 22 tests added.
 
+- ✅ **TKT-010/011**: Spells Management Refactoring (PR #12) - 2025-11-10
+  - Files: `src/app/api/spells/create/route.ts`, `src/app/api/spells/route.ts`, `src/app/api/spells/[id]/route.ts`, `src/lib/stripe-webhook.ts`
+  - Status: Merged to main
+  - Notes: Refactored Spells endpoints to use foundation libraries (logger, ErrorCatalog, handleError, apiSuccess). Fixed ESLint error in stripe-webhook.ts. Maintained soft delete logic. All existing tests pass.
+
 ## Pending Tickets
 
 ### Phase 2: API Implementation
@@ -67,8 +72,8 @@ Last Updated: 2025-11-09
 
 #### Spell Management
 
-- ⬜ **TKT-010**: POST /v1/spells - Create spell
-- ⬜ **TKT-011**: GET /v1/spells/:key - Get spell details
+- ✅ **TKT-010**: POST /v1/spells - Create spell (completed in PR #12)
+- ✅ **TKT-011**: GET /v1/spells/:key - Get spell details (completed in PR #12)
 
 #### Cast Execution
 
