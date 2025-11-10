@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import type Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { createRequestLogger } from '@/lib/logger';
 import { parseStripeWebhookEvent, StripeWebhookError } from '@/lib/stripe-webhook';

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
+
 import { prisma } from '@/lib/prisma';
 import {
   IdempotencyMismatchError,
   initIdempotencyKey,
   persistIdempotencyResult,
 } from '@/lib/idempotency';
-import { requireIdempotencyKey } from '@/lib/api-middleware';
+import { requireIdempotencyKey, requireSession } from '@/lib/api-middleware';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -21,11 +21,11 @@ export async function POST(req: NextRequest) {
     }
     const idempotencyKey = idempotencyResult.value;
 
-    const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const sessionResult = await requireSession();
+    if (!sessionResult.ok) {
+      return sessionResult.response;
     }
+    const session = sessionResult.value;
 
     const { spellId } = await req.json();
 

@@ -30,7 +30,7 @@ export interface BudgetStatus {
 
 type BudgetRecord = Awaited<ReturnType<typeof prisma.budgets.findUnique>>;
 
-class BudgetService {
+export class BudgetService {
   constructor(private readonly defaultClient: PrismaClientOrTransaction = prisma) {}
 
   private getClient(client?: PrismaClientOrTransaction) {

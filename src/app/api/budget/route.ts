@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
+
 import { getBudgetStatus, setMonthlyCap } from '@/lib/budget';
+import { requireSession } from '@/lib/api-middleware';
 
 // GET /api/budget - Get user's budget
 export async function GET(_req: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const sessionResult = await requireSession();
+    if (!sessionResult.ok) {
+      return sessionResult.response;
     }
+    const session = sessionResult.value;
 
     const budgetStatus = await getBudgetStatus(session.user.id);
 
@@ -23,11 +24,11 @@ export async function GET(_req: NextRequest) {
 // PATCH /api/budget - Update user's budget cap
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const sessionResult = await requireSession();
+    if (!sessionResult.ok) {
+      return sessionResult.response;
     }
+    const session = sessionResult.value;
 
     const body = await req.json();
     const { monthlyCapCents } = body;

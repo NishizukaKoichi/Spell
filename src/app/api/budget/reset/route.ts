@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
+
 import { resetBudget, getBudgetStatus } from '@/lib/budget';
+import { requireSession } from '@/lib/api-middleware';
 
 /**
  * POST /api/budget/reset - Reset user's budget
@@ -15,11 +16,11 @@ import { resetBudget, getBudgetStatus } from '@/lib/budget';
  */
 export async function POST(_req: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const sessionResult = await requireSession();
+    if (!sessionResult.ok) {
+      return sessionResult.response;
     }
+    const session = sessionResult.value;
 
     // Reset the budget
     await resetBudget(session.user.id);

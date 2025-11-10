@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { apiError } from '@/lib/api-response';
 import { validateApiKey } from '@/lib/api-key';
 import { rateLimitMiddleware, RateLimitConfig } from '@/lib/rate-limit';
+import { auth } from '@/lib/auth/config';
 
 type MiddlewareResult<T> = { ok: true; value: T } | { ok: false; response: Response };
 
@@ -44,4 +45,15 @@ export function requireIdempotencyKey(req: NextRequest): MiddlewareResult<string
     };
   }
   return { ok: true, value: idempotencyKey };
+}
+
+export async function requireSession(): Promise<
+  MiddlewareResult<NonNullable<Awaited<ReturnType<typeof auth>>>>
+> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, response: apiError('UNAUTHORIZED', 401, 'Authentication required') };
+  }
+
+  return { ok: true, value: session };
 }
