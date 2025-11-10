@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import type Stripe from 'stripe';
+import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
-import { createRequestLogger } from '@/lib/logger';
-import { parseStripeWebhookEvent, StripeWebhookError } from '@/lib/stripe-webhook';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-10-29.clover',
+});
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: NextRequest) {
-  const log = createRequestLogger('stripe-webhook', '/api/webhooks/stripe', 'POST');
   const body = await req.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
 
+  if (!signature) {
+    return NextResponse.json({ error: 'No signature provided' }, { status: 400 });
+  }
+
   let event: Stripe.Event;
+
   try {
-    event = parseStripeWebhookEvent(body, signature);
-  } catch (error) {
-    const err = error as StripeWebhookError;
-    log.warn('Stripe webhook verification failed', err);
-    return NextResponse.json({ error: err.message }, { status: err.status });
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   try {
@@ -36,7 +43,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!spell) {
-          log.error('Spell not found for checkout session', new Error(`spellId=${spellId}`));
+          console.error('Spell not found:', spellId);
           break;
         }
 
@@ -65,7 +72,7 @@ export async function POST(req: NextRequest) {
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        log.warn(`Payment failed: ${paymentIntent.id}`);
+        console.error('Payment failed:', paymentIntent.id);
         break;
       }
 
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    log.error('Stripe webhook handler error', error as Error);
+    console.error('Webhook handler error:', error);
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 }

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-import { getBudgetStatus, setMonthlyCap } from '@/lib/budget';
-import { requireSession } from '@/lib/api-middleware';
+import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/prisma';
+import { getBudgetStatus } from '@/lib/budget';
 
 // GET /api/budget - Get user's budget
 export async function GET(_req: NextRequest) {
   try {
-    const sessionResult = await requireSession();
-    if (!sessionResult.ok) {
-      return sessionResult.response;
+    const session = await auth();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const session = sessionResult.value;
 
     const budgetStatus = await getBudgetStatus(session.user.id);
 
@@ -24,11 +24,11 @@ export async function GET(_req: NextRequest) {
 // PATCH /api/budget - Update user's budget cap
 export async function PATCH(req: NextRequest) {
   try {
-    const sessionResult = await requireSession();
-    if (!sessionResult.ok) {
-      return sessionResult.response;
+    const session = await auth();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const session = sessionResult.value;
 
     const body = await req.json();
     const { monthlyCapCents } = body;
@@ -44,12 +44,26 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updated = await setMonthlyCap(session.user.id, monthlyCapCents);
+    const budget = await prisma.budgets.upsert({
+      where: { userId: session.user.id },
+      update: {
+        monthlyCapCents,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: `budget_${session.user.id}`,
+        userId: session.user.id,
+        monthlyCapCents,
+        currentMonthCents: 0,
+        periodStart: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
     return NextResponse.json({
-      monthlyCapCents: updated.monthlyCapCents,
-      currentMonthCents: updated.currentMonthCents,
-      remainingCents: updated.remainingCents,
+      monthlyCapCents: budget.monthlyCapCents,
+      currentMonthCents: budget.currentMonthCents,
+      remainingCents: (budget.monthlyCapCents ?? 0) - budget.currentMonthCents,
     });
   } catch (error) {
     console.error('Failed to update budget:', error);

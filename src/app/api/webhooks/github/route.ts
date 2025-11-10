@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { listRunArtifactsWithRepo } from '@/lib/github-app';
 import { updateBudgetSpend } from '@/lib/budget';
-import { createRequestLogger } from '@/lib/logger';
 
 /**
  * GitHub Webhook Handler
@@ -89,12 +88,11 @@ async function extractCastId(runId: number, _owner: string, _repo: string): Prom
 }
 
 export async function POST(req: NextRequest) {
-  const log = createRequestLogger('github-webhook', '/api/webhooks/github', 'POST');
   try {
     // Verify webhook secret
     const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      log.error('GITHUB_WEBHOOK_SECRET is not configured');
+      console.error('GITHUB_WEBHOOK_SECRET is not configured');
       return apiError('INTERNAL', 500, 'Webhook secret not configured');
     }
 
@@ -106,7 +104,7 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
     const isValid = verifySignature(rawBody, signature, webhookSecret);
     if (!isValid) {
-      log.warn('Invalid webhook signature');
+      console.error('Invalid webhook signature');
       return apiError('UNAUTHORIZED', 401, 'Invalid signature');
     }
 
@@ -124,7 +122,7 @@ export async function POST(req: NextRequest) {
     const castId = await extractCastId(workflow_run.id, repository.owner.login, repository.name);
 
     if (!castId) {
-      log.warn(`[GitHub Webhook] No cast found for run ${workflow_run.id}`);
+      console.warn(`[GitHub Webhook] No cast found for run ${workflow_run.id}`);
       return apiSuccess({ message: 'No associated cast found' });
     }
 
@@ -171,7 +169,7 @@ export async function POST(req: NextRequest) {
               }
             }
           } catch (error) {
-            log.error(`[GitHub Webhook] Failed to fetch artifacts`, error as Error);
+            console.error(`[GitHub Webhook] Failed to fetch artifacts:`, error);
           }
         }
 
@@ -195,7 +193,7 @@ export async function POST(req: NextRequest) {
           try {
             await updateBudgetSpend(updatedCast.casterId, updatedCast.costCents);
           } catch (error) {
-            log.error(`[GitHub Webhook] Failed to update budget`, error as Error);
+            console.error(`[GitHub Webhook] Failed to update budget:`, error);
             // Don't fail the webhook if budget update fails
           }
         }
@@ -209,7 +207,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess({ message: 'Webhook processed successfully' });
   } catch (error) {
-    log.error('[GitHub Webhook] Error', error as Error);
+    console.error('[GitHub Webhook] Error:', error);
     return apiError('INTERNAL', 500, 'Failed to process webhook');
   }
 }
