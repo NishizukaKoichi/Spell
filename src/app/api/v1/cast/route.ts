@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiErrorCode, apiError, apiSuccess } from '@/lib/api-response';
-import { validateApiKey } from '@/lib/api-key';
+import { requireApiKey, enforceRateLimit, requireIdempotencyKey } from '@/lib/api-middleware';
 import {
   GitHubAppError,
   GitHubConfigError,
@@ -9,45 +9,10 @@ import {
   getLatestWorkflowRun,
   getGitHubWorkflowConfig,
 } from '@/lib/github-app';
-import { rateLimitMiddleware } from '@/lib/rate-limit';
-import { checkBudget } from '@/lib/budget';
-import {
-  initIdempotencyKey,
-  persistIdempotencyResult,
-  IdempotencyReplay,
-  IdempotencyMismatchError,
-} from '@/lib/idempotency';
+import { createQueuedCastTransaction } from '@/lib/cast-service';
+import { persistIdempotencyResult, IdempotencyMismatchError } from '@/lib/idempotency';
 
 const IDEMPOTENCY_ENDPOINT = 'POST /api/v1/cast';
-
-type ErrorResult = {
-  status: number;
-  code: ApiErrorCode;
-  message: string;
-  details?: Record<string, unknown>;
-  headers?: Record<string, string>;
-};
-
-type TransactionResult =
-  | { kind: 'replay'; replay: IdempotencyReplay }
-  | { kind: 'pending' }
-  | { kind: 'error'; error: ErrorResult }
-  | {
-      kind: 'success';
-      cast: {
-        id: string;
-        status: string;
-        costCents: number;
-        createdAt: Date;
-      };
-      spell: {
-        id: string;
-        key: string;
-        name: string;
-        executionMode: string;
-        priceAmountCents: number;
-      };
-    };
 
 async function persistIdempotencySafe(params: {
   key: string;
@@ -65,36 +30,31 @@ async function persistIdempotencySafe(params: {
 
 // POST /api/v1/cast - Public endpoint for casting spells with API key
 export async function POST(req: NextRequest) {
-  const idempotencyKey = req.headers.get('idempotency-key');
-
   try {
-    // Apply rate limiting: 60 requests per minute per API key/IP
-    const rateLimitError = await rateLimitMiddleware({
-      limit: 60,
-      window: 60,
-    })(req);
-    if (rateLimitError) {
-      return rateLimitError;
+    const apiKeyResult = await requireApiKey(req);
+    if (!apiKeyResult.ok) {
+      return apiKeyResult.response;
+    }
+    const userId = apiKeyResult.value.userId;
+
+    // Apply rate limiting after identifying userId
+    const rateLimitResponse = await enforceRateLimit(
+      req,
+      {
+        limit: 60,
+        window: 60,
+      },
+      userId
+    );
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
-    // Get API key from Authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return apiError('UNAUTHORIZED', 401, 'Missing or invalid Authorization header');
+    const idempotencyResult = requireIdempotencyKey(req);
+    if (!idempotencyResult.ok) {
+      return idempotencyResult.response;
     }
-
-    const apiKey = authHeader.substring(7); // Remove "Bearer " prefix
-
-    // Validate API key
-    const validation = await validateApiKey(apiKey);
-    if (!validation) {
-      return apiError('UNAUTHORIZED', 401, 'Invalid or inactive API key');
-    }
-    const userId = validation.userId;
-
-    if (!idempotencyKey) {
-      return apiError('VALIDATION_ERROR', 400, 'Idempotency-Key header is required');
-    }
+    const idempotencyKey = idempotencyResult.value;
 
     // Parse request body
     const body = await req.json();
@@ -107,120 +67,13 @@ export async function POST(req: NextRequest) {
     const serializedInput = input ? JSON.stringify(input) : '{}';
     const inputHash = input ? serializedInput : null;
 
-    const transactionResult = await prisma.$transaction<TransactionResult>(async (tx) => {
-      const requestPayload = { spell_key, input };
-
-      const initResult = await initIdempotencyKey(
-        {
-          key: idempotencyKey,
-          endpoint: IDEMPOTENCY_ENDPOINT,
-          scope: userId,
-          requestPayload,
-        },
-        tx
-      );
-
-      if (initResult.state === 'replay') {
-        return { kind: 'replay', replay: initResult.replay };
-      }
-
-      if (initResult.state === 'pending') {
-        return { kind: 'pending' };
-      }
-
-      const spell = await tx.spell.findUnique({
-        where: { key: spell_key },
-        select: {
-          id: true,
-          key: true,
-          name: true,
-          status: true,
-          executionMode: true,
-          priceAmountCents: true,
-        },
-      });
-
-      if (!spell) {
-        return {
-          kind: 'error',
-          error: {
-            status: 404,
-            code: 'WORKFLOW_NOT_FOUND',
-            message: 'Spell not found',
-          },
-        };
-      }
-
-      if (spell.status !== 'active') {
-        return {
-          kind: 'error',
-          error: {
-            status: 422,
-            code: 'VALIDATION_ERROR',
-            message: 'Spell is not active',
-          },
-        };
-      }
-
-      const budgetCheck = await checkBudget(userId, spell.priceAmountCents, tx);
-
-      if (!budgetCheck.allowed) {
-        return {
-          kind: 'error',
-          error: {
-            status: 402,
-            code: 'BUDGET_CAP_EXCEEDED',
-            message:
-              budgetCheck.reason ??
-              'Budget cap exceeded. Please increase your monthly cap to run this spell.',
-            details: {
-              budget: budgetCheck.budget,
-              estimated_cost_cents: spell.priceAmountCents,
-            },
-            headers: {
-              'Retry-After': budgetCheck.retryAfter ? budgetCheck.retryAfter.toString() : '86400',
-            },
-          },
-        };
-      }
-
-      const cast = await tx.cast.create({
-        data: {
-          spellId: spell.id,
-          casterId: userId,
-          status: 'queued',
-          costCents: spell.priceAmountCents,
-          inputHash: inputHash ?? '',
-          spellKey: spell.key,
-          spellVersion: '1',
-          idempotencyKey,
-        },
-        select: {
-          id: true,
-          status: true,
-          costCents: true,
-          createdAt: true,
-        },
-      });
-
-      await tx.spell.update({
-        where: { id: spell.id },
-        data: {
-          totalCasts: { increment: 1 },
-        },
-      });
-
-      return {
-        kind: 'success',
-        cast,
-        spell: {
-          id: spell.id,
-          key: spell.key,
-          name: spell.name,
-          executionMode: spell.executionMode,
-          priceAmountCents: spell.priceAmountCents,
-        },
-      };
+    const transactionResult = await createQueuedCastTransaction({
+      userId,
+      spellKey: spell_key,
+      rawInput: input,
+      serializedInput,
+      inputHash,
+      idempotencyKey,
     });
 
     if (transactionResult.kind === 'replay') {

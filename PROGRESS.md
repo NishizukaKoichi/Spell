@@ -46,26 +46,31 @@ Last Updated: 2025-11-09
 ### Phase 2: API Implementation
 
 #### Authentication & Authorization
+
 - ⬜ **TKT-001**: POST /v1/auth/register - User registration
 - ⬜ **TKT-002**: POST /v1/auth/login - User authentication
 - ⬜ **TKT-003**: GET /v1/auth/me - Current user info
 - ⬜ **TKT-004**: POST /v1/auth/refresh - Token refresh
 
 #### API Keys Management
+
 - ⬜ **TKT-007**: POST /v1/keys - Create API key
 - ⬜ **TKT-008**: GET /v1/keys - List API keys
 - ⬜ **TKT-009**: DELETE /v1/keys/:id - Revoke API key
 
 #### Spell Management
+
 - ⬜ **TKT-010**: POST /v1/spells - Create spell
 - ⬜ **TKT-011**: GET /v1/spells/:key - Get spell details
 
 #### Cast Execution
+
 - ⬜ **TKT-016**: POST /v1/casts - Execute cast (trigger workflow)
 - ⬜ **TKT-017**: GET /v1/casts/:id - Get cast status
 - ⬜ **TKT-018**: GET /v1/casts/:id/result - Get cast result
 
 ### Phase 3: Webhooks & Monitoring
+
 - ⬜ **TKT-021**: Stripe webhook handler
 - ⬜ **TKT-022**: GitHub webhook handler
 - ⬜ **TKT-023**: Health check endpoints
@@ -76,6 +81,7 @@ Last Updated: 2025-11-09
 ### セッションを再開する際の手順
 
 1. **現在の状態確認**
+
    ```bash
    git status
    git branch
@@ -91,6 +97,7 @@ Last Updated: 2025-11-09
    - 依存関係を考慮して選択
 
 4. **作業開始**
+
    ```bash
    # ブランチ作成
    git checkout -b feat/TKT-XXX
@@ -117,6 +124,7 @@ Last Updated: 2025-11-09
 ## Technical Notes
 
 ### 実装済みの基盤機能
+
 - ✅ エラーハンドリング (SpellError, ErrorCatalog)
 - ✅ 予算トラッキング (getBudgetStatus, checkBudgetLimit)
 - ✅ べき等性管理 (IdempotencyManager)
@@ -126,6 +134,7 @@ Last Updated: 2025-11-09
 - ✅ 構造化ログ (logger, createRequestLogger)
 
 ### 統合ポイント
+
 - 全APIエンドポイントでloggerを使用
 - 全APIエンドポイントでエラーハンドリング (handleError)
 - POST/PUT/PATCHでvalidateRequestを使用
@@ -135,6 +144,7 @@ Last Updated: 2025-11-09
 ## Test Coverage
 
 Current test suite: 60 tests passing
+
 - Error Catalog: 8 tests
 - Budget: 8 tests
 - Configuration: 4 tests
@@ -146,9 +156,10 @@ Current test suite: 60 tests passing
 ## Environment Setup
 
 Required environment variables (see `.env.example`):
+
 - DATABASE_URL
 - NEXTAUTH_URL
 - AUTH_SECRET
-- GITHUB_APP_* (6 variables)
-- STRIPE_* (3 variables)
-- Optional: UPSTASH_REDIS_* (2 variables)
+- GITHUB*APP*\* (6 variables)
+- STRIPE\_\* (3 variables)
+- Optional: UPSTASH*REDIS*\* (2 variables)
