@@ -9,6 +9,7 @@ The Spell Platform uses a two-tier authentication system:
 ### 1. WebAuthn (Passkey) Authentication
 
 For web interface access, the platform uses WebAuthn (Passkeys) via NextAuth:
+
 - **Login**: Biometric authentication (Face ID, Touch ID, Windows Hello, etc.)
 - **Security**: FIDO2-compliant, phishing-resistant authentication
 - **Session**: Cookie-based session management for web UI
@@ -24,6 +25,7 @@ Authorization: Bearer sk_live_your_api_key_here
 ```
 
 **How to get an API key:**
+
 1. Log in to the web interface using your Passkey
 2. Navigate to Settings → API Keys
 3. Create a new API key

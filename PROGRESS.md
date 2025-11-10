@@ -87,6 +87,7 @@ Last Updated: 2025-11-10
 **TKT-001/002/003/004 (Authentication Endpoints)** - DEFERRED ⏸️
 
 These tickets were originally planned for implementing additional auth endpoints, but per architectural decision:
+
 - **Current approach**: WebAuthn (Passkey) + API Keys authentication is working and complete
 - **Status**: Kept as-is, no changes needed
 - **Future work**: User will implement E-Key (Ephemeral Proof-Bound Capability Key) architecture later
@@ -135,12 +136,14 @@ All other tickets from the original roadmap have been completed.
 ### Current Architecture Status
 
 **Authentication**:
+
 - ✅ WebAuthn (Passkey) implemented via NextAuth
 - ✅ API Keys for programmatic access
 - ⏸️ No additional auth endpoints needed (TKT-001~004 deferred)
 - 🔮 Future: E-Key architecture (to be implemented by project owner)
 
 **Implementation Status**: All planned tickets completed (16/20 original tickets)
+
 - Remaining 4 tickets (TKT-001~004) deferred due to architecture decision
 
 ## Technical Notes
