@@ -1,10 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Spell Detail Operations - TKT-011
+// SPEC Reference: Section 10 (Spell Management)
+
+import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth/config';
+import { createRequestLogger } from '@/lib/logger';
+import { ErrorCatalog, handleError, apiSuccess } from '@/lib/api-response';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// GET /api/spells/[id] - Get spell details
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const requestLogger = createRequestLogger(randomUUID(), `/api/spells/${id}`, 'GET');
+
   try {
-    const { id } = await params;
+    requestLogger.info('Fetching spell details', { spellId: id });
+
     const spell = await prisma.spell.findUnique({
       where: { id },
       include: {
@@ -19,34 +30,55 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     if (!spell) {
-      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
+      requestLogger.warn('Spell not found', { spellId: id });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        id: ['Spell not found'],
+      });
     }
 
-    return NextResponse.json(spell);
+    requestLogger.info('Spell fetched successfully', { spellId: id, spellKey: spell.key });
+
+    return apiSuccess(spell);
   } catch (error) {
-    console.error('Failed to fetch spell:', error);
-    return NextResponse.json({ error: 'Failed to fetch spell' }, { status: 500 });
+    requestLogger.error('Failed to fetch spell', error as Error, { spellId: id });
+    return handleError(error);
   }
 }
 
+// PATCH /api/spells/[id] - Update spell
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const requestLogger = createRequestLogger(randomUUID(), `/api/spells/${id}`, 'PATCH');
+
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+      requestLogger.warn('Unauthorized spell update attempt', { spellId: id });
+      throw ErrorCatalog.UNAUTHORIZED();
     }
 
-    const { id } = await params;
+    requestLogger.info('Updating spell', { userId: session.user.id, spellId: id });
+
     const spell = await prisma.spell.findUnique({
       where: { id },
     });
 
     if (!spell) {
-      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
+      requestLogger.warn('Spell not found', { spellId: id });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        id: ['Spell not found'],
+      });
     }
 
     if (spell.authorId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      requestLogger.warn('Forbidden: User is not spell author', {
+        userId: session.user.id,
+        spellId: id,
+        authorId: spell.authorId,
+      });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        id: ['You do not have permission to update this spell'],
+      });
     }
 
     const body = await req.json();
@@ -69,10 +101,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       priceAmountCents !== undefined &&
       (!Number.isInteger(priceAmountCents) || priceAmountCents < 0)
     ) {
-      return NextResponse.json(
-        { error: 'priceAmountCents must be a non-negative integer' },
-        { status: 400 }
-      );
+      requestLogger.warn('Invalid priceAmountCents', { priceAmountCents });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        priceAmountCents: ['Price must be a non-negative integer'],
+      });
     }
 
     const updatedSpell = await prisma.spell.update({
@@ -93,21 +125,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
 
-    return NextResponse.json(updatedSpell);
+    requestLogger.info('Spell updated successfully', {
+      userId: session.user.id,
+      spellId: id,
+      spellKey: updatedSpell.key,
+    });
+
+    return apiSuccess(updatedSpell);
   } catch (error) {
-    console.error('Failed to update spell:', error);
-    return NextResponse.json({ error: 'Failed to update spell' }, { status: 500 });
+    requestLogger.error('Failed to update spell', error as Error, {
+      userId: (await auth())?.user?.id,
+      spellId: id,
+    });
+    return handleError(error);
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// DELETE /api/spells/[id] - Delete spell
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const requestLogger = createRequestLogger(randomUUID(), `/api/spells/${id}`, 'DELETE');
+
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+      requestLogger.warn('Unauthorized spell deletion attempt', { spellId: id });
+      throw ErrorCatalog.UNAUTHORIZED();
     }
 
-    const { id } = await params;
+    requestLogger.info('Deleting spell', { userId: session.user.id, spellId: id });
+
     const spell = await prisma.spell.findUnique({
       where: { id },
       include: {
@@ -120,11 +167,21 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     if (!spell) {
-      return NextResponse.json({ error: 'Spell not found' }, { status: 404 });
+      requestLogger.warn('Spell not found', { spellId: id });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        id: ['Spell not found'],
+      });
     }
 
     if (spell.authorId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      requestLogger.warn('Forbidden: User is not spell author', {
+        userId: session.user.id,
+        spellId: id,
+        authorId: spell.authorId,
+      });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        id: ['You do not have permission to delete this spell'],
+      });
     }
 
     // Soft delete by setting status to inactive if there are casts
@@ -137,7 +194,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         },
       });
 
-      return NextResponse.json({
+      requestLogger.info('Spell archived (soft deleted)', {
+        userId: session.user.id,
+        spellId: id,
+        castsCount: spell._count.casts,
+      });
+
+      return apiSuccess({
         message: 'Spell archived (soft deleted due to existing casts)',
       });
     }
@@ -147,9 +210,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       where: { id },
     });
 
-    return NextResponse.json({ message: 'Spell deleted' });
+    requestLogger.info('Spell deleted (hard delete)', {
+      userId: session.user.id,
+      spellId: id,
+    });
+
+    return apiSuccess({ message: 'Spell deleted' });
   } catch (error) {
-    console.error('Failed to delete spell:', error);
-    return NextResponse.json({ error: 'Failed to delete spell' }, { status: 500 });
+    requestLogger.error('Failed to delete spell', error as Error, {
+      userId: (await auth())?.user?.id,
+      spellId: id,
+    });
+    return handleError(error);
   }
 }
