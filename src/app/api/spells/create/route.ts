@@ -1,13 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
+// POST /api/spells/create - Create spell - TKT-010
+// SPEC Reference: Section 10 (Spell Management)
+
+import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
+import { createRequestLogger } from '@/lib/logger';
+import { ErrorCatalog, handleError, apiSuccess } from '@/lib/api-response';
 
 export async function POST(req: NextRequest) {
+  const requestLogger = createRequestLogger(randomUUID(), '/api/spells/create', 'POST');
+
   try {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      requestLogger.warn('Unauthorized spell creation attempt');
+      throw ErrorCatalog.UNAUTHORIZED();
     }
 
     const body = await req.json();
@@ -26,20 +35,37 @@ export async function POST(req: NextRequest) {
       outputSchema,
     } = body;
 
+    requestLogger.info('Creating spell', {
+      userId: session.user.id,
+      spellKey: key,
+      name,
+    });
+
     // Validation
-    if (!name || !key || !description || priceAmountCents === undefined || !tags) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const missingFields: Record<string, string[]> = {};
+    if (!name) missingFields.name = ['Name is required'];
+    if (!key) missingFields.key = ['Key is required'];
+    if (!description) missingFields.description = ['Description is required'];
+    if (priceAmountCents === undefined) missingFields.priceAmountCents = ['Price is required'];
+    if (!tags) missingFields.tags = ['Tags are required'];
+
+    if (Object.keys(missingFields).length > 0) {
+      requestLogger.warn('Missing required fields', { name, key, description, priceAmountCents, tags });
+      throw ErrorCatalog.VALIDATION_ERROR(missingFields);
     }
 
     if (!Number.isInteger(priceAmountCents) || priceAmountCents < 0) {
-      return NextResponse.json(
-        { error: 'priceAmountCents must be a non-negative integer' },
-        { status: 400 }
-      );
+      requestLogger.warn('Invalid priceAmountCents', { priceAmountCents });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        priceAmountCents: ['Price must be a non-negative integer'],
+      });
     }
 
     if (tags.length === 0) {
-      return NextResponse.json({ error: 'At least one tag is required' }, { status: 400 });
+      requestLogger.warn('No tags provided');
+      throw ErrorCatalog.VALIDATION_ERROR({
+        tags: ['At least one tag is required'],
+      });
     }
 
     // Check if spell key already exists
@@ -48,7 +74,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingSpell) {
-      return NextResponse.json({ error: 'A spell with this key already exists' }, { status: 409 });
+      requestLogger.warn('Spell key already exists', { key });
+      throw ErrorCatalog.VALIDATION_ERROR({
+        key: ['A spell with this key already exists'],
+      });
     }
 
     // Create spell
@@ -75,12 +104,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    requestLogger.info('Spell created successfully', {
+      userId: session.user.id,
+      spellId: spell.id,
+      spellKey: spell.key,
+    });
+
+    return apiSuccess({
       spell,
       message: 'Spell created successfully',
-    });
+    }, 201);
   } catch (error) {
-    console.error('Create spell error:', error);
-    return NextResponse.json({ error: 'Failed to create spell' }, { status: 500 });
+    requestLogger.error('Failed to create spell', error as Error, {
+      userId: (await auth())?.user?.id,
+    });
+    return handleError(error);
   }
 }

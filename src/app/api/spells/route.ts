@@ -1,7 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+// GET /api/spells - List and search spells - TKT-011
+// SPEC Reference: Section 10 (Spell Management)
+
+import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { createRequestLogger } from '@/lib/logger';
+import { handleError, apiSuccess } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
+  const requestLogger = createRequestLogger(randomUUID(), '/api/spells', 'GET');
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const search = searchParams.get('search');
@@ -14,7 +22,16 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
 
-    const where: any = {
+    requestLogger.info('Fetching spells', {
+      search,
+      category,
+      tags,
+      sortBy,
+      page,
+      limit,
+    });
+
+    const where: Record<string, unknown> = {
       status: 'active',
     };
 
@@ -43,10 +60,14 @@ export async function GET(req: NextRequest) {
     if (minPrice || maxPrice) {
       where.priceAmountCents = {};
       if (minPrice) {
-        where.priceAmountCents.gte = Math.round(parseFloat(minPrice) * 100); // Convert dollars to cents
+        (where.priceAmountCents as Record<string, number>).gte = Math.round(
+          parseFloat(minPrice) * 100
+        );
       }
       if (maxPrice) {
-        where.priceAmountCents.lte = Math.round(parseFloat(maxPrice) * 100); // Convert dollars to cents
+        (where.priceAmountCents as Record<string, number>).lte = Math.round(
+          parseFloat(maxPrice) * 100
+        );
       }
     }
 
@@ -56,7 +77,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Sorting
-    let orderBy: any = { totalCasts: 'desc' }; // Default: popularity
+    let orderBy: Record<string, string> = { totalCasts: 'desc' }; // Default: popularity
     switch (sortBy) {
       case 'rating':
         orderBy = { rating: 'desc' };
@@ -100,11 +121,16 @@ export async function GET(req: NextRequest) {
       where: { status: 'active' },
       select: { tags: true },
     });
-    const allTags = Array.from(
-      new Set(allSpells.flatMap((s: { tags: string[] }) => s.tags))
-    ).sort();
+    const allTags = Array.from(new Set(allSpells.flatMap((s: { tags: string[] }) => s.tags))).sort();
 
-    return NextResponse.json({
+    requestLogger.info('Spells fetched successfully', {
+      count: spells.length,
+      total,
+      page,
+      limit,
+    });
+
+    return apiSuccess({
       spells,
       pagination: {
         page,
@@ -113,15 +139,12 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
       filters: {
-        categories: categories
-          .map((c: { category: string | null }) => c.category)
-          .filter(Boolean)
-          .sort(),
+        categories: categories.map((c: { category: string | null }) => c.category).filter(Boolean).sort(),
         tags: allTags,
       },
     });
   } catch (error) {
-    console.error('Failed to fetch spells:', error);
-    return NextResponse.json({ error: 'Failed to fetch spells' }, { status: 500 });
+    requestLogger.error('Failed to fetch spells', error as Error);
+    return handleError(error);
   }
 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
-import { prisma } from '@/lib/prisma';
-import { getBudgetStatus } from '@/lib/budget';
+import { getBudgetStatus, setMonthlyCap } from '@/lib/budget';
 
 // GET /api/budget - Get user's budget
 export async function GET(_req: NextRequest) {
@@ -44,26 +43,12 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const budget = await prisma.budgets.upsert({
-      where: { userId: session.user.id },
-      update: {
-        monthlyCapCents,
-        updatedAt: new Date(),
-      },
-      create: {
-        id: `budget_${session.user.id}`,
-        userId: session.user.id,
-        monthlyCapCents,
-        currentMonthCents: 0,
-        periodStart: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    const updated = await setMonthlyCap(session.user.id, monthlyCapCents);
 
     return NextResponse.json({
-      monthlyCapCents: budget.monthlyCapCents,
-      currentMonthCents: budget.currentMonthCents,
-      remainingCents: (budget.monthlyCapCents ?? 0) - budget.currentMonthCents,
+      monthlyCapCents: updated.monthlyCapCents,
+      currentMonthCents: updated.currentMonthCents,
+      remainingCents: updated.remainingCents,
     });
   } catch (error) {
     console.error('Failed to update budget:', error);
