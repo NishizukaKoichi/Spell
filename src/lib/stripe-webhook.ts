@@ -25,7 +25,7 @@ export function parseStripeWebhookEvent(
 
   try {
     return stripeClient.webhooks.constructEvent(rawBody, signature, secret);
-  } catch (error) {
+  } catch {
     throw new StripeWebhookError('Invalid Stripe signature', 400);
   }
 }
