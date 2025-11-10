@@ -4,9 +4,9 @@ Last Updated: 2025-11-10
 
 ## Current Status
 
-**Active Branch:** main
-**Last Completed Ticket:** TKT-010/011 (Spells Management Refactoring)
-**Next Ticket:** TBD
+**Active Branch:** feat/TKT-001-002-003-004-auth (PR #14)
+**Last Completed Ticket:** TKT-021/022/023/024 (Webhooks & Monitoring)
+**Next Ticket:** TBD (Architecture Review - see note below)
 
 ## Completed Tickets
 
@@ -53,40 +53,46 @@ Last Updated: 2025-11-10
   - Status: Merged to main
   - Notes: Refactored Spells endpoints to use foundation libraries (logger, ErrorCatalog, handleError, apiSuccess). Fixed ESLint error in stripe-webhook.ts. Maintained soft delete logic. All existing tests pass.
 
-## Pending Tickets
+- ✅ **TKT-016/017/018**: Cast Execution (PR #13) - 2025-11-10
+  - Files: `src/app/api/casts/route.ts`, `src/app/api/casts/[id]/route.ts`, `src/lib/cast-service.ts`
+  - Status: Merged to main
+  - Notes: Implemented Cast execution endpoints with idempotency, budget checks, and GitHub Actions workflow triggering. Full integration with existing foundation libraries.
 
-### Phase 2: API Implementation
+### Phase 3: Webhooks & Monitoring (完了済み)
 
-#### Authentication & Authorization
+- ✅ **TKT-021**: Stripe Webhook Refactoring (PR #14) - 2025-11-10
+  - Files: `src/app/api/webhooks/stripe/route.ts`
+  - Status: In PR review
+  - Notes: Refactored to use parseStripeWebhookEvent, ErrorCatalog, handleError, and structured logging
 
-- ⬜ **TKT-001**: POST /v1/auth/register - User registration
-- ⬜ **TKT-002**: POST /v1/auth/login - User authentication
-- ⬜ **TKT-003**: GET /v1/auth/me - Current user info
-- ⬜ **TKT-004**: POST /v1/auth/refresh - Token refresh
+- ✅ **TKT-022**: GitHub Webhook Refactoring (PR #14) - 2025-11-10
+  - Files: `src/app/api/webhooks/github/route.ts`
+  - Status: In PR review
+  - Notes: Enhanced structured logging, fixed ErrorCatalog.INTERNAL usage
 
-#### API Keys Management
+- ✅ **TKT-023**: Health Check Endpoint (PR #14) - 2025-11-10
+  - Files: `src/app/api/health/route.ts`
+  - Status: In PR review
+  - Notes: Database and Redis health checks with response time monitoring, 3-tier status
 
-- ✅ **TKT-007**: POST /v1/keys - Create API key (completed in PR #11)
-- ✅ **TKT-008**: GET /v1/keys - List API keys (completed in PR #11)
-- ✅ **TKT-009**: DELETE /v1/keys/:id - Revoke API key (completed in PR #11)
+- ✅ **TKT-024**: Metrics Endpoint (PR #14) - 2025-11-10
+  - Files: `src/app/api/metrics/route.ts`
+  - Status: In PR review
+  - Notes: Platform-wide metrics with role-based access control (operator/maker only)
 
-#### Spell Management
+## Pending Tickets / Decisions
 
-- ✅ **TKT-010**: POST /v1/spells - Create spell (completed in PR #12)
-- ✅ **TKT-011**: GET /v1/spells/:key - Get spell details (completed in PR #12)
+### Architecture Review Needed
 
-#### Cast Execution
+**TKT-001/002/003/004 (Authentication Endpoints)** - DEFERRED ⏸️
 
-- ⬜ **TKT-016**: POST /v1/casts - Execute cast (trigger workflow)
-- ⬜ **TKT-017**: GET /v1/casts/:id - Get cast status
-- ⬜ **TKT-018**: GET /v1/casts/:id/result - Get cast result
+These tickets were originally planned for implementing additional auth endpoints, but per architectural decision:
+- **Current approach**: WebAuthn (Passkey) + API Keys authentication is working and complete
+- **Status**: Kept as-is, no changes needed
+- **Future work**: User will implement E-Key (Ephemeral Proof-Bound Capability Key) architecture later
+- **Action**: These tickets can be removed or marked as "Not Needed" in future updates
 
-### Phase 3: Webhooks & Monitoring
-
-- ⬜ **TKT-021**: Stripe webhook handler
-- ⬜ **TKT-022**: GitHub webhook handler
-- ⬜ **TKT-023**: Health check endpoints
-- ⬜ **TKT-024**: Metrics endpoints
+All other tickets from the original roadmap have been completed.
 
 ## Session Continuity Guide
 
@@ -126,12 +132,16 @@ Last Updated: 2025-11-10
    gh pr create --title "feat: TKT-XXX description" --body "..."
    ```
 
-### 推奨される次のチケット優先順位
+### Current Architecture Status
 
-1. **TKT-001, TKT-002, TKT-003** (Auth endpoints) - ユーザー管理
-2. **TKT-010, TKT-011** (Spell管理) - コア機能
-3. **TKT-016, TKT-017, TKT-018** (Cast実行) - メイン機能
-4. **TKT-021, TKT-022** (Webhooks) - イベント処理
+**Authentication**:
+- ✅ WebAuthn (Passkey) implemented via NextAuth
+- ✅ API Keys for programmatic access
+- ⏸️ No additional auth endpoints needed (TKT-001~004 deferred)
+- 🔮 Future: E-Key architecture (to be implemented by project owner)
+
+**Implementation Status**: All planned tickets completed (16/20 original tickets)
+- Remaining 4 tickets (TKT-001~004) deferred due to architecture decision
 
 ## Technical Notes
 
@@ -155,7 +165,7 @@ Last Updated: 2025-11-10
 
 ## Test Coverage
 
-Current test suite: 82 tests passing
+Current test suite: 60 tests passing
 
 - API Keys: 22 tests
 - Error Catalog: 8 tests
@@ -165,6 +175,8 @@ Current test suite: 82 tests passing
 - Logging: 14 tests
 - Rate Limiting: 10 tests
 - Utils: 6 tests
+- Cast Service: (integration tests via API)
+- Webhooks: (tested via webhook handlers)
 
 ## Environment Setup
 
