@@ -1,9 +1,14 @@
+// GitHub Webhook Handler - TKT-022
+// SPEC Reference: Section 13 (Webhooks & Monitoring)
+
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { apiError, apiSuccess } from '@/lib/api-response';
+import { ErrorCatalog, handleError, apiSuccess } from '@/lib/api-response';
 import { listRunArtifactsWithRepo } from '@/lib/github-app';
 import { updateBudgetSpend } from '@/lib/budget';
+import { createRequestLogger } from '@/lib/logger';
 
 /**
  * GitHub Webhook Handler
@@ -88,41 +93,58 @@ async function extractCastId(runId: number, _owner: string, _repo: string): Prom
 }
 
 export async function POST(req: NextRequest) {
+  const requestLogger = createRequestLogger(randomUUID(), '/webhooks/github', 'POST');
+
   try {
     // Verify webhook secret
     const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error('GITHUB_WEBHOOK_SECRET is not configured');
-      return apiError('INTERNAL', 500, 'Webhook secret not configured');
+      requestLogger.error('GITHUB_WEBHOOK_SECRET is not configured');
+      throw ErrorCatalog.INTERNAL('Webhook secret not configured');
     }
 
     const signature = req.headers.get('x-hub-signature-256');
     if (!signature) {
-      return apiError('UNAUTHORIZED', 401, 'Missing signature');
+      requestLogger.warn('Missing webhook signature');
+      throw ErrorCatalog.UNAUTHORIZED();
     }
 
     const rawBody = await req.text();
     const isValid = verifySignature(rawBody, signature, webhookSecret);
     if (!isValid) {
-      console.error('Invalid webhook signature');
-      return apiError('UNAUTHORIZED', 401, 'Invalid signature');
+      requestLogger.warn('Invalid webhook signature');
+      throw ErrorCatalog.UNAUTHORIZED();
     }
 
     // Parse event type
     const eventType = req.headers.get('x-github-event');
+    requestLogger.info('GitHub webhook received', {
+      eventType,
+      hasSignature: !!signature,
+    });
+
     if (eventType !== 'workflow_run') {
-      // Ignore non-workflow_run events
+      requestLogger.info('Event type not handled', { eventType });
       return apiSuccess({ message: 'Event type not handled' });
     }
 
     const payload = JSON.parse(rawBody) as WorkflowRunPayload;
     const { action, workflow_run, repository } = payload;
 
+    requestLogger.info('Processing workflow_run event', {
+      action,
+      runId: workflow_run.id,
+      status: workflow_run.status,
+      conclusion: workflow_run.conclusion,
+    });
+
     // Extract cast_id
     const castId = await extractCastId(workflow_run.id, repository.owner.login, repository.name);
 
     if (!castId) {
-      console.warn(`[GitHub Webhook] No cast found for run ${workflow_run.id}`);
+      requestLogger.warn('No cast found for workflow run', {
+        runId: workflow_run.id,
+      });
       return apiSuccess({ message: 'No associated cast found' });
     }
 
@@ -137,6 +159,11 @@ export async function POST(req: NextRequest) {
             githubRunId: workflow_run.id.toString(),
             githubRunAttempt: workflow_run.run_attempt,
           },
+        });
+
+        requestLogger.info('Cast updated to running', {
+          castId,
+          runId: workflow_run.id,
         });
         break;
 
@@ -169,7 +196,9 @@ export async function POST(req: NextRequest) {
               }
             }
           } catch (error) {
-            console.error(`[GitHub Webhook] Failed to fetch artifacts:`, error);
+            requestLogger.error('Failed to fetch artifacts', error as Error, {
+              runId: workflow_run.id,
+            });
           }
         }
 
@@ -192,22 +221,36 @@ export async function POST(req: NextRequest) {
         if (updatedCast.costCents > 0) {
           try {
             await updateBudgetSpend(updatedCast.casterId, updatedCast.costCents);
+            requestLogger.info('Budget updated', {
+              castId,
+              userId: updatedCast.casterId,
+              costCents: updatedCast.costCents,
+            });
           } catch (error) {
-            console.error(`[GitHub Webhook] Failed to update budget:`, error);
+            requestLogger.error('Failed to update budget', error as Error, {
+              castId,
+              userId: updatedCast.casterId,
+            });
             // Don't fail the webhook if budget update fails
           }
         }
+
+        requestLogger.info('Cast updated to final status', {
+          castId,
+          status,
+          runId: workflow_run.id,
+        });
         break;
       }
 
       default:
-        // Ignore other actions (requested, etc.)
+        requestLogger.info('Ignoring workflow action', { action });
         break;
     }
 
     return apiSuccess({ message: 'Webhook processed successfully' });
   } catch (error) {
-    console.error('[GitHub Webhook] Error:', error);
-    return apiError('INTERNAL', 500, 'Failed to process webhook');
+    requestLogger.error('GitHub webhook handler error', error as Error);
+    return handleError(error);
   }
 }
