@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { apiError, apiSuccess } from '@/lib/api-response';
+import { ApiErrorCode, apiError, apiSuccess } from '@/lib/api-response';
 import { requireApiKey, enforceRateLimit, requireIdempotencyKey } from '@/lib/api-middleware';
 import {
   GitHubAppError,
