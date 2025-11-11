@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Plus, X, Eye, Code2, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, X, Eye, Code2, Check, AlertCircle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -64,9 +65,24 @@ const EXAMPLE_OUTPUT_SCHEMA = {
 
 export default function NewSpellPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+
+  // Check if user has maker role
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session) {
+      router.push('/auth/signin?callbackUrl=/my-spells/new');
+      return;
+    }
+
+    if (session.user.role !== 'maker') {
+      router.push('/marketplace');
+    }
+  }, [session, status, router]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -196,6 +212,50 @@ export default function NewSpellPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-white/20 border-t-white rounded-full mx-auto" />
+            <p className="text-white/60">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show permission denied if user is not a maker
+  if (session && session.user.role !== 'maker') {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-16">
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                  <Lock className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Access Restricted</h2>
+                  <p className="text-white/60">
+                    Only spell makers have permission to create spells.
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <Button onClick={() => router.push('/marketplace')} variant="outline">
+                    Go to Marketplace
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
