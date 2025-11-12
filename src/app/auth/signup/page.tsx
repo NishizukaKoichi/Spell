@@ -2,32 +2,22 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Zap } from 'lucide-react';
-import Link from 'next/link';
 import { startRegistration } from '@simplewebauthn/browser';
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'processing' | 'authenticated'>('idle');
   const [error, setError] = useState('');
 
   const handleSignUp = async () => {
-    if (!email) {
-      setError('Email is required');
-      return;
-    }
-
-    setLoading(true);
+    setStatus('processing');
     setError('');
 
     try {
-      // Get registration options
+      // Get registration options (passkey only, no email needed)
       const optionsResponse = await fetch('/api/webauthn/register-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({}),
       });
 
       if (!optionsResponse.ok) {
@@ -56,77 +46,43 @@ export default function SignUpPage() {
 
       await verifyResponse.json();
 
+      setStatus('authenticated');
+
       // Redirect to home page (user is now logged in automatically)
       window.location.href = '/';
     } catch (err) {
       console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
-      setLoading(false);
+      setStatus('idle');
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-black via-black to-black p-4">
-      <Card className="w-full max-w-md border-white/10">
-        <CardHeader className="space-y-4 text-center">
-          <Link href="/" className="mx-auto flex items-center gap-2">
-            <Zap className="h-8 w-8 text-white" />
-            <span className="text-2xl font-bold">Spell</span>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Create your account</h1>
-            <p className="text-sm text-white/60">
-              Register with a passkey for secure authentication
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="min-h-screen bg-black text-white font-mono flex items-center justify-center p-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Authentication Button */}
+        <div className="border border-white p-8 text-center">
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+            <div className="mb-6 p-3 border border-red-500 bg-red-500/10 text-red-400 text-sm">
               {error}
             </div>
           )}
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-white text-black/5 border-white/10"
-              disabled={loading}
-            />
-          </div>
-
           <Button
             onClick={handleSignUp}
-            disabled={loading}
-            className="w-full bg-white hover:bg-white text-black/90"
+            disabled={status === 'processing'}
+            className="w-full border border-white bg-black text-white hover:bg-white hover:text-black transition-all py-6 text-lg font-mono"
           >
-            {loading ? 'Creating account...' : 'Sign up with Passkey'}
+            {status === 'processing' ? 'PROCESSING...' : 'AUTHENTICATE'}
           </Button>
+        </div>
 
-          <div className="text-center text-sm">
-            <span className="text-white/60">Already have an account? </span>
-            <Link href="/auth/signin" className="text-white/80 hover:text-white">
-              Sign in
-            </Link>
-          </div>
-
-          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-xs text-blue-400">
-            <p className="font-semibold mb-1">What is a passkey?</p>
-            <p>
-              A passkey is a secure, passwordless way to sign in. It uses your device's biometric
-              authentication (like fingerprint or face recognition) or PIN.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Info */}
+        <div className="text-center text-xs text-white/50 space-y-1">
+          <div>Uses device biometric authentication</div>
+          <div>Auto-register if new / Auto-login if existing</div>
+        </div>
+      </div>
     </div>
   );
 }

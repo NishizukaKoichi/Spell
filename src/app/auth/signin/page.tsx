@@ -2,16 +2,14 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Fingerprint, Loader2 } from 'lucide-react';
 import { startAuthentication } from '@simplewebauthn/browser';
 
 export default function SignInPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'processing' | 'authenticated'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const handlePasskeySignIn = async () => {
-    setIsLoading(true);
+    setStatus('processing');
     setError(null);
 
     try {
@@ -52,7 +50,9 @@ export default function SignInPage() {
 
       await verifyResponse.json();
 
-      // Redirect to home page (splash screen will redirect to dashboard)
+      setStatus('authenticated');
+
+      // Redirect to home page
       window.location.href = '/';
     } catch (err) {
       console.error('[SignIn] Passkey authentication error:', err);
@@ -71,51 +71,35 @@ export default function SignInPage() {
       } else {
         setError(errorMessage);
       }
-    } finally {
-      setIsLoading(false);
+      setStatus('idle');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8">
-        <Card className="p-8 space-y-6 border-border bg-card">
-          <div className="space-y-2 text-center">
-            <h2 className="text-2xl font-semibold text-card-foreground">Sign In</h2>
-            <p className="text-muted-foreground text-sm">Use biometrics or device PIN</p>
-          </div>
-
+    <div className="min-h-screen bg-black text-white font-mono flex items-center justify-center p-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Authentication Button */}
+        <div className="border border-white p-8 text-center">
           {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="text-sm text-destructive text-center">{error}</p>
+            <div className="mb-6 p-3 border border-red-500 bg-red-500/10 text-red-400 text-sm">
+              {error}
             </div>
           )}
 
           <Button
             onClick={handlePasskeySignIn}
-            disabled={isLoading}
-            size="lg"
-            className="w-full h-12 text-base font-medium"
+            disabled={status === 'processing'}
+            className="w-full border border-white bg-black text-white hover:bg-white hover:text-black transition-all py-6 text-lg font-mono"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Authenticating...
-              </>
-            ) : (
-              <>
-                <Fingerprint className="mr-2 h-5 w-5" />
-                Sign in with Passkey
-              </>
-            )}
+            {status === 'processing' ? 'PROCESSING...' : 'AUTHENTICATE'}
           </Button>
+        </div>
 
-          <div className="pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              Passwordless authentication using fingerprint, face, or device PIN
-            </p>
-          </div>
-        </Card>
+        {/* Info */}
+        <div className="text-center text-xs text-white/50 space-y-1">
+          <div>Uses device biometric authentication</div>
+          <div>Auto-register if new / Auto-login if existing</div>
+        </div>
       </div>
     </div>
   );
