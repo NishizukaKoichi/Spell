@@ -46,7 +46,6 @@ export function IdentityView() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedItem, setSelectedItem] = useState<any>(null)
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
   const [newPasskeyName, setNewPasskeyName] = useState("")
   const [isAddingPasskey, setIsAddingPasskey] = useState(false)
 
@@ -85,32 +84,6 @@ export function IdentityView() {
       permissions: ["email", "profile"],
     },
   ])
-
-  const toggleKeyVisibility = (keyId: string) => {
-    setVisibleKeys((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(keyId)) {
-        newSet.delete(keyId)
-      } else {
-        newSet.add(keyId)
-      }
-      return newSet
-    })
-  }
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: "Copied",
-      description: `${label} copied to clipboard`,
-      duration: 2000,
-    })
-  }
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 12) return "••••••••••••"
-    return key.slice(0, 8) + "••••••••••••" + key.slice(-4)
-  }
 
   const handleDelete = () => {
     if (activeTab === "passkeys" && passkeys.length <= 1) {
@@ -171,7 +144,7 @@ export function IdentityView() {
 
       setShowAddDialog(false)
       setNewPasskeyName("")
-    } catch (error) {
+    } catch {
       toast({
         title: t.identity.error,
         description: t.identity.failedToAddPasskey,

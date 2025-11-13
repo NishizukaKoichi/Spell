@@ -78,7 +78,7 @@ function PaymentMethodForm({ onSuccess }: { onSuccess: () => void }) {
         })
         onSuccess()
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to add payment method",
@@ -116,7 +116,7 @@ export function BillingView() {
     try {
       const { paymentMethods: methods } = await getPaymentMethods()
       setPaymentMethods(methods)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load payment methods",
@@ -130,7 +130,7 @@ export function BillingView() {
       const { clientSecret } = await createSetupIntent()
       setClientSecret(clientSecret!)
       setShowAddCard(true)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to initialize card setup",
@@ -147,7 +147,7 @@ export function BillingView() {
         description: "Payment method removed",
       })
       loadPaymentMethods()
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove payment method",
