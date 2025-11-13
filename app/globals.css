@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Complete monochrome design system inspired by passkey auth UI */
+@theme {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+
+  /* Monochrome light mode tokens */
+  --color-background: oklch(1 0 0); /* Pure white */
+  --color-foreground: oklch(0.145 0 0); /* Pure black */
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.145 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0 0);
+  --color-primary: oklch(0.145 0 0); /* Black primary */
+  --color-primary-foreground: oklch(1 0 0); /* White text on black */
+  --color-secondary: oklch(0.96 0 0);
+  --color-secondary-foreground: oklch(0.145 0 0);
+  --color-muted: oklch(0.96 0 0);
+  --color-muted-foreground: oklch(0.5 0 0);
+  --color-accent: oklch(0.96 0 0);
+  --color-accent-foreground: oklch(0.145 0 0);
+  --color-destructive: oklch(0.5 0 0);
+  --color-destructive-foreground: oklch(1 0 0);
+  --color-border: oklch(0.145 0 0); /* Black borders */
+  --color-input: oklch(0.9 0 0);
+  --color-ring: oklch(0.145 0 0);
+  --color-sidebar: oklch(1 0 0);
+  --color-sidebar-foreground: oklch(0.145 0 0);
+  --color-sidebar-border: oklch(0.145 0 0);
+  --color-sidebar-accent: oklch(0.96 0 0);
+  --color-sidebar-accent-foreground: oklch(0.145 0 0);
+
+  --radius-sm: 0rem; /* Minimal rounding for terminal aesthetic */
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+}
+
+@layer theme {
+  .dark {
+    /* Monochrome dark mode tokens */
+    --color-background: oklch(0.145 0 0); /* Pure black */
+    --color-foreground: oklch(1 0 0); /* Pure white */
+    --color-card: oklch(0.145 0 0);
+    --color-card-foreground: oklch(1 0 0);
+    --color-popover: oklch(0.145 0 0);
+    --color-popover-foreground: oklch(1 0 0);
+    --color-primary: oklch(1 0 0); /* White primary */
+    --color-primary-foreground: oklch(0.145 0 0); /* Black text on white */
+    --color-secondary: oklch(0.22 0 0);
+    --color-secondary-foreground: oklch(1 0 0);
+    --color-muted: oklch(0.25 0 0);
+    --color-muted-foreground: oklch(0.65 0 0);
+    --color-accent: oklch(0.22 0 0);
+    --color-accent-foreground: oklch(1 0 0);
+    --color-destructive: oklch(0.5 0 0);
+    --color-destructive-foreground: oklch(1 0 0);
+    --color-border: oklch(1 0 0); /* White borders */
+    --color-input: oklch(0.25 0 0);
+    --color-ring: oklch(1 0 0);
+    --color-sidebar: oklch(0.145 0 0);
+    --color-sidebar-foreground: oklch(1 0 0);
+    --color-sidebar-border: oklch(1 0 0);
+    --color-sidebar-accent: oklch(0.22 0 0);
+    --color-sidebar-accent-foreground: oklch(1 0 0);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-mono; /* Using monospace font for terminal aesthetic */
+    font-size: 1rem;
+  }
+}
+
+/* Blinking cursor animation for terminal aesthetic */
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s infinite;
+}
