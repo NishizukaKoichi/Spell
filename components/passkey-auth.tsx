@@ -9,7 +9,6 @@ interface PasskeyAuthProps {
 
 export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
   const [status, setStatus] = useState<"idle" | "processing" | "authenticated">("idle")
-  const [username, setUsername] = useState<string>("")
 
   const handlePasskey = async () => {
     setStatus("processing")
@@ -33,7 +32,6 @@ export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
 
         if (credential) {
           const authenticatedUsername = "user_authenticated"
-          setUsername(authenticatedUsername)
           setStatus("authenticated")
           onAuthenticated(authenticatedUsername)
           return
@@ -66,7 +64,6 @@ export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
 
         if (credential) {
           const newUsername = "new_user"
-          setUsername(newUsername)
           setStatus("authenticated")
           onAuthenticated(newUsername)
         }
