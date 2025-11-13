@@ -13,8 +13,14 @@ export function LanguageSelection({ onLanguageSelected }: LanguageSelectionProps
   const languages = [
     { code: "en", label: "English" },
     { code: "ja", label: "日本語" },
-    { code: "zh", label: "中文" },
     { code: "es", label: "Español" },
+    { code: "fr", label: "Français" },
+    { code: "de", label: "Deutsch" },
+    { code: "ko", label: "한국어" },
+    { code: "pt", label: "Português" },
+    { code: "ru", label: "Русский" },
+    { code: "hi", label: "हिन्दी" },
+    { code: "it", label: "Italiano" },
   ]
 
   const handleConfirm = () => {
