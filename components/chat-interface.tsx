@@ -1,22 +1,22 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState } from "react"
-import { useToast } from "@/hooks/use-toast"
-import { ChatSidebar } from "./chat-sidebar"
-import { ChatMessages } from "./chat-messages"
-import { ChatInput } from "./chat-input"
-import { BazaarMarketplace } from "./bazaar-marketplace"
-import { TransactionsView } from "./transactions-view"
-import { LicensesView } from "./licenses-view"
-import { ArtifactsView } from "./artifacts-view"
-import { IdentityView } from "./identity-view"
-import { SettingsView } from "./settings-view" // Added import for SettingsView
-import { BillingView } from "./billing-view" // Added import for BillingView
-import { Button } from "./ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "./ui/tooltip"
-import { AlignJustifyIcon, Play, X } from "lucide-react"
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { ChatSidebar } from './chat-sidebar';
+import { ChatMessages } from './chat-messages';
+import { ChatInput } from './chat-input';
+import { BazaarMarketplace } from './bazaar-marketplace';
+import { TransactionsView } from './transactions-view';
+import { LicensesView } from './licenses-view';
+import { ArtifactsView } from './artifacts-view';
+import { IdentityView } from './identity-view';
+import { SettingsView } from './settings-view'; // Added import for SettingsView
+import { BillingView } from './billing-view'; // Added import for BillingView
+import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
+import { AlignJustifyIcon, Play, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,57 +26,58 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog"
-import { ScrollArea } from "./ui/scroll-area"
+} from './ui/alert-dialog';
+import { ScrollArea } from './ui/scroll-area';
 
 interface SpellMetadata {
-  name: string
-  author: string
-  description?: string
-  category?: string
-  createdAt?: string
-  cost?: number
-  artifactType?: string // Added artifactType to SpellMetadata
+  name: string;
+  author: string;
+  description?: string;
+  category?: string;
+  createdAt?: string;
+  cost?: number;
+  artifactType?: string; // Added artifactType to SpellMetadata
 }
 
 interface ExecutionResult {
-  spellName: string
-  timestamp: string
-  response: string
-  ui?: React.ReactNode
+  spellName: string;
+  timestamp: string;
+  response: string;
+  ui?: React.ReactNode;
 }
 
 interface SelectedItem {
-  type: string
-  name: string
-  data?: any
+  type: string;
+  name: string;
+  data?: any;
 }
 
 export function ChatInterface() {
-  const { toast } = useToast() // Initialize toast hook
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [selectedSpell, setSelectedSpell] = useState<SpellMetadata | null>(null)
-  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [pendingSpellContent, setPendingSpellContent] = useState("")
-  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
+  const { toast } = useToast(); // Initialize toast hook
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedSpell, setSelectedSpell] = useState<SpellMetadata | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingSpellContent, setPendingSpellContent] = useState('');
+  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleExecuteSpell = (content: string) => {
     if (selectedSpell && selectedSpell.cost && selectedSpell.cost > 0) {
-      setPendingSpellContent(content)
-      setShowConfirmDialog(true)
+      setPendingSpellContent(content);
+      setShowConfirmDialog(true);
     } else {
-      executeSpell(content)
+      executeSpell(content);
     }
-  }
+  };
 
   const executeSpell = (content: string) => {
-    console.log("[v0] Executing spell:", content)
+    console.log('[v0] Executing spell:', content);
     const result: ExecutionResult = {
       spellName: selectedSpell?.name || content,
       timestamp: new Date().toISOString(),
-      response: "Spell execution completed successfully. This is a sample response from the spell execution.",
+      response:
+        'Spell execution completed successfully. This is a sample response from the spell execution.',
       ui: (
         <div className="space-y-4">
           <div className="rounded-lg border border-white/20 bg-white/5 p-4">
@@ -85,57 +86,61 @@ export function ChatInterface() {
           </div>
         </div>
       ),
-    }
-    setExecutionResult(result)
+    };
+    setExecutionResult(result);
 
     // Check if the selected spell has artifactType (generates an artifact)
     if (selectedSpell && selectedSpell.artifactType) {
       toast({
-        title: "Artifact saved successfully",
+        title: 'Artifact saved successfully',
         description: `${selectedSpell.name} has been saved to Artifacts`,
         duration: 5000,
-        className: "cursor-pointer",
+        className: 'cursor-pointer',
         onClick: () => {
           // Navigate to Artifacts view when toast is clicked
-          handleItemSelect({ type: "vaults", name: "Artifacts" })
+          handleItemSelect({ type: 'vaults', name: 'Artifacts' });
         },
-      })
+      });
     }
-  }
+  };
 
   const handleConfirmExecute = () => {
-    executeSpell(pendingSpellContent)
-    setShowConfirmDialog(false)
-    setPendingSpellContent("")
-  }
+    executeSpell(pendingSpellContent);
+    setShowConfirmDialog(false);
+    setPendingSpellContent('');
+  };
 
   const handleCancelExecute = () => {
-    setShowConfirmDialog(false)
-    setPendingSpellContent("")
-  }
+    setShowConfirmDialog(false);
+    setPendingSpellContent('');
+  };
 
   const handleSpellSelect = (spell: SpellMetadata) => {
-    setSelectedSpell(spell)
-  }
+    setSelectedSpell(spell);
+  };
 
   const handleItemSelect = (item: SelectedItem) => {
-    console.log("[v0] Item selected:", item)
-    setSelectedItem(item)
+    console.log('[v0] Item selected:', item);
+    setSelectedItem(item);
     // モバイルでサイドバーを閉じる
     if (window.innerWidth < 768) {
-      setSidebarOpen(false)
+      setSidebarOpen(false);
     }
-  }
+  };
 
   const handleOpenPreview = () => {
     if (executionResult) {
-      setShowPreview(true)
+      setShowPreview(true);
     }
-  }
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      <ChatSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onItemSelect={handleItemSelect} />
+      <ChatSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onItemSelect={handleItemSelect}
+      />
 
       {sidebarOpen && (
         <div
@@ -161,7 +166,7 @@ export function ChatInterface() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p>{sidebarOpen ? "閉じる" : "開く"}</p>
+                <p>{sidebarOpen ? '閉じる' : '開く'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -180,31 +185,31 @@ export function ChatInterface() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p>{executionResult ? "実行結果を表示" : "実行結果なし"}</p>
+                <p>{executionResult ? '実行結果を表示' : '実行結果なし'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </header>
 
-        {selectedItem?.type === "vaults" && selectedItem?.name === "Transactions" ? (
+        {selectedItem?.type === 'vaults' && selectedItem?.name === 'Transactions' ? (
           <TransactionsView />
-        ) : selectedItem?.type === "vaults" && selectedItem?.name === "Licenses" ? (
+        ) : selectedItem?.type === 'vaults' && selectedItem?.name === 'Licenses' ? (
           <LicensesView />
-        ) : selectedItem?.type === "vaults" && selectedItem?.name === "Artifacts" ? (
+        ) : selectedItem?.type === 'vaults' && selectedItem?.name === 'Artifacts' ? (
           <ArtifactsView />
-        ) : selectedItem?.type === "bazaar" ? (
+        ) : selectedItem?.type === 'bazaar' ? (
           <BazaarMarketplace mode="bazaar" />
-        ) : selectedItem?.type === "grimoire" && selectedItem?.name === "All Spells" ? (
+        ) : selectedItem?.type === 'grimoire' && selectedItem?.name === 'All Spells' ? (
           <BazaarMarketplace mode="grimoire" />
-        ) : selectedItem?.type === "grimoire" && selectedItem?.name === "Folders" ? (
+        ) : selectedItem?.type === 'grimoire' && selectedItem?.name === 'Folders' ? (
           <BazaarMarketplace mode="folders" />
-        ) : selectedItem?.type === "grimoire" && selectedItem?.name === "Bookmarks" ? (
+        ) : selectedItem?.type === 'grimoire' && selectedItem?.name === 'Bookmarks' ? (
           <BazaarMarketplace mode="bookmarks" />
-        ) : selectedItem?.type === "caster" && selectedItem?.name === "Identity" ? (
+        ) : selectedItem?.type === 'caster' && selectedItem?.name === 'Identity' ? (
           <IdentityView />
-        ) : selectedItem?.type === "caster" && selectedItem?.name === "Settings" ? (
+        ) : selectedItem?.type === 'caster' && selectedItem?.name === 'Settings' ? (
           <SettingsView />
-        ) : selectedItem?.type === "caster" && selectedItem?.name === "Billing" ? (
+        ) : selectedItem?.type === 'caster' && selectedItem?.name === 'Billing' ? (
           <BillingView />
         ) : (
           <>
@@ -277,5 +282,5 @@ export function ChatInterface() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

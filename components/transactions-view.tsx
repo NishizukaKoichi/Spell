@@ -1,166 +1,174 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { ScrollArea } from "./ui/scroll-area"
-import { Activity, Calendar, Filter, Scroll, CheckCircle, XCircle, Loader2, Ban } from "lucide-react"
-import { Button } from "./ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog"
-import { useToast } from "@/hooks/use-toast"
-import { useLanguage } from "@/lib/i18n/language-provider"
+import { useState } from 'react';
+import { Card } from './ui/card';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
+import {
+  Activity,
+  Calendar,
+  Filter,
+  Scroll,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Ban,
+} from 'lucide-react';
+import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/lib/i18n/language-provider';
 
 interface SpellExecution {
-  id: string
-  spellName: string
-  category: "Productivity" | "Creative" | "Analytics" | "Collaboration"
-  executedAt: string
-  status: "success" | "failed" | "processing"
-  image?: string
-  type: "one-time" | "subscription" // Added type property for subscription support
+  id: string;
+  spellName: string;
+  category: 'Productivity' | 'Creative' | 'Analytics' | 'Collaboration';
+  executedAt: string;
+  status: 'success' | 'failed' | 'processing';
+  image?: string;
+  type: 'one-time' | 'subscription'; // Added type property for subscription support
 }
 
 const sampleExecutions: SpellExecution[] = [
   {
-    id: "exec-001",
-    spellName: "Time Acceleration Spell",
-    category: "Productivity",
-    executedAt: "2025-10-31T14:30:00",
-    status: "success",
-    image: "/time-acceleration-magic-clock.jpg",
-    type: "subscription", // Subscription type spell
+    id: 'exec-001',
+    spellName: 'Time Acceleration Spell',
+    category: 'Productivity',
+    executedAt: '2025-10-31T14:30:00',
+    status: 'success',
+    image: '/time-acceleration-magic-clock.jpg',
+    type: 'subscription', // Subscription type spell
   },
   {
-    id: "exec-002",
-    spellName: "Creative Flames",
-    category: "Creative",
-    executedAt: "2025-10-31T13:45:00",
-    status: "processing",
-    image: "/creative-flames-fire-art.jpg",
-    type: "one-time",
+    id: 'exec-002',
+    spellName: 'Creative Flames',
+    category: 'Creative',
+    executedAt: '2025-10-31T13:45:00',
+    status: 'processing',
+    image: '/creative-flames-fire-art.jpg',
+    type: 'one-time',
   },
   {
-    id: "exec-003",
-    spellName: "Focus Barrier",
-    category: "Productivity",
-    executedAt: "2025-10-31T12:30:00",
-    status: "success",
-    type: "one-time",
+    id: 'exec-003',
+    spellName: 'Focus Barrier',
+    category: 'Productivity',
+    executedAt: '2025-10-31T12:30:00',
+    status: 'success',
+    type: 'one-time',
   },
   {
-    id: "exec-004",
-    spellName: "Data Analysis Eye",
-    category: "Analytics",
-    executedAt: "2025-10-31T11:00:00",
-    status: "success",
-    image: "/data-analytics-eye-visualization.jpg",
-    type: "one-time",
+    id: 'exec-004',
+    spellName: 'Data Analysis Eye',
+    category: 'Analytics',
+    executedAt: '2025-10-31T11:00:00',
+    status: 'success',
+    image: '/data-analytics-eye-visualization.jpg',
+    type: 'one-time',
   },
   {
-    id: "exec-005",
-    spellName: "Communication Bridge",
-    category: "Collaboration",
-    executedAt: "2025-10-30T18:40:00",
-    status: "failed",
-    type: "one-time",
+    id: 'exec-005',
+    spellName: 'Communication Bridge',
+    category: 'Collaboration',
+    executedAt: '2025-10-30T18:40:00',
+    status: 'failed',
+    type: 'one-time',
   },
   {
-    id: "exec-006",
-    spellName: "Automation Spirit",
-    category: "Productivity",
-    executedAt: "2025-10-30T16:25:00",
-    status: "success",
-    image: "/automation-spirit-robot-assistant.jpg",
-    type: "one-time",
+    id: 'exec-006',
+    spellName: 'Automation Spirit',
+    category: 'Productivity',
+    executedAt: '2025-10-30T16:25:00',
+    status: 'success',
+    image: '/automation-spirit-robot-assistant.jpg',
+    type: 'one-time',
   },
   {
-    id: "exec-007",
-    spellName: "Time Acceleration Spell",
-    category: "Productivity",
-    executedAt: "2025-10-30T10:15:00",
-    status: "success",
-    image: "/time-acceleration-magic-clock.jpg",
-    type: "subscription",
+    id: 'exec-007',
+    spellName: 'Time Acceleration Spell',
+    category: 'Productivity',
+    executedAt: '2025-10-30T10:15:00',
+    status: 'success',
+    image: '/time-acceleration-magic-clock.jpg',
+    type: 'subscription',
   },
   {
-    id: "exec-008",
-    spellName: "Creative Flames",
-    category: "Creative",
-    executedAt: "2025-10-29T14:10:00",
-    status: "success",
-    image: "/creative-flames-fire-art.jpg",
-    type: "one-time",
+    id: 'exec-008',
+    spellName: 'Creative Flames',
+    category: 'Creative',
+    executedAt: '2025-10-29T14:10:00',
+    status: 'success',
+    image: '/creative-flames-fire-art.jpg',
+    type: 'one-time',
   },
-]
+];
 
 export function TransactionsView() {
-  const { t } = useLanguage()
-  const [filterCategory, setFilterCategory] = useState<"all" | SpellExecution["category"]>("all")
-  const [selectedExecution, setSelectedExecution] = useState<SpellExecution | null>(null)
-  const { toast } = useToast() // Added toast hook
+  const { t } = useLanguage();
+  const [filterCategory, setFilterCategory] = useState<'all' | SpellExecution['category']>('all');
+  const [selectedExecution, setSelectedExecution] = useState<SpellExecution | null>(null);
+  const { toast } = useToast(); // Added toast hook
 
   const filteredExecutions =
-    filterCategory === "all"
+    filterCategory === 'all'
       ? sampleExecutions
-      : sampleExecutions.filter((execution) => execution.category === filterCategory)
+      : sampleExecutions.filter((execution) => execution.category === filterCategory);
 
-
-  const getStatusBadge = (status: SpellExecution["status"]) => {
+  const getStatusBadge = (status: SpellExecution['status']) => {
     switch (status) {
-      case "success":
-        return <Badge variant="default">{t.transactions.success}</Badge>
-      case "failed":
-        return <Badge variant="destructive">{t.transactions.failed}</Badge>
-      case "processing":
-        return <Badge variant="secondary">{t.transactions.processing}</Badge>
+      case 'success':
+        return <Badge variant="default">{t.transactions.success}</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">{t.transactions.failed}</Badge>;
+      case 'processing':
+        return <Badge variant="secondary">{t.transactions.processing}</Badge>;
     }
-  }
+  };
 
-  const getStatusDescription = (status: SpellExecution["status"]) => {
+  const getStatusDescription = (status: SpellExecution['status']) => {
     switch (status) {
-      case "success":
-        return t.transactions.spellExecutedSuccessfully
-      case "failed":
-        return t.transactions.spellExecutionFailed
-      case "processing":
-        return t.transactions.spellIsExecuting
+      case 'success':
+        return t.transactions.spellExecutedSuccessfully;
+      case 'failed':
+        return t.transactions.spellExecutionFailed;
+      case 'processing':
+        return t.transactions.spellIsExecuting;
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
-  const successCount = sampleExecutions.filter((exec) => exec.status === "success").length
-  const processingCount = sampleExecutions.filter((exec) => exec.status === "processing").length
-  const failedCount = sampleExecutions.filter((exec) => exec.status === "failed").length
+  const successCount = sampleExecutions.filter((exec) => exec.status === 'success').length;
+  const processingCount = sampleExecutions.filter((exec) => exec.status === 'processing').length;
+  const failedCount = sampleExecutions.filter((exec) => exec.status === 'failed').length;
 
-  const getStatusIcon = (status: SpellExecution["status"]) => {
+  const getStatusIcon = (status: SpellExecution['status']) => {
     switch (status) {
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />
-      case "processing":
-        return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'processing':
+        return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />;
     }
-  }
+  };
 
   const handleCancelSubscription = (execution: SpellExecution) => {
     toast({
       title: t.transactions.subscriptionCancelled,
       description: `${execution.spellName} ${t.transactions.subscriptionCancelledDesc}`,
-    })
-    setSelectedExecution(null)
-  }
+    });
+    setSelectedExecution(null);
+  };
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -199,7 +207,7 @@ export function TransactionsView() {
               <Button variant="outline" size="sm" className="gap-2 bg-transparent text-foreground">
                 <Filter className="h-4 w-4" />
                 <span className="hidden sm:inline">{t.transactions.category}</span>
-                {filterCategory !== "all" && (
+                {filterCategory !== 'all' && (
                   <Badge variant="secondary" className="ml-1">
                     1
                   </Badge>
@@ -209,42 +217,42 @@ export function TransactionsView() {
             <PopoverContent className="w-48" align="start">
               <div className="space-y-1">
                 <Button
-                  variant={filterCategory === "all" ? "secondary" : "ghost"}
+                  variant={filterCategory === 'all' ? 'secondary' : 'ghost'}
                   size="sm"
                   className="w-full justify-start text-foreground"
-                  onClick={() => setFilterCategory("all")}
+                  onClick={() => setFilterCategory('all')}
                 >
                   {t.transactions.all}
                 </Button>
                 <Button
-                  variant={filterCategory === "Productivity" ? "secondary" : "ghost"}
+                  variant={filterCategory === 'Productivity' ? 'secondary' : 'ghost'}
                   size="sm"
                   className="w-full justify-start text-foreground"
-                  onClick={() => setFilterCategory("Productivity")}
+                  onClick={() => setFilterCategory('Productivity')}
                 >
                   {t.transactions.productivity}
                 </Button>
                 <Button
-                  variant={filterCategory === "Creative" ? "secondary" : "ghost"}
+                  variant={filterCategory === 'Creative' ? 'secondary' : 'ghost'}
                   size="sm"
                   className="w-full justify-start text-foreground"
-                  onClick={() => setFilterCategory("Creative")}
+                  onClick={() => setFilterCategory('Creative')}
                 >
                   {t.transactions.creative}
                 </Button>
                 <Button
-                  variant={filterCategory === "Analytics" ? "secondary" : "ghost"}
+                  variant={filterCategory === 'Analytics' ? 'secondary' : 'ghost'}
                   size="sm"
                   className="w-full justify-start text-foreground"
-                  onClick={() => setFilterCategory("Analytics")}
+                  onClick={() => setFilterCategory('Analytics')}
                 >
                   {t.transactions.analytics}
                 </Button>
                 <Button
-                  variant={filterCategory === "Collaboration" ? "secondary" : "ghost"}
+                  variant={filterCategory === 'Collaboration' ? 'secondary' : 'ghost'}
                   size="sm"
                   className="w-full justify-start text-foreground"
-                  onClick={() => setFilterCategory("Collaboration")}
+                  onClick={() => setFilterCategory('Collaboration')}
                 >
                   {t.transactions.collaboration}
                 </Button>
@@ -270,7 +278,7 @@ export function TransactionsView() {
                   <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                     {execution.image ? (
                       <img
-                        src={execution.image || "/placeholder.svg"}
+                        src={execution.image || '/placeholder.svg'}
                         alt={execution.spellName}
                         className="h-full w-full object-cover"
                       />
@@ -300,7 +308,10 @@ export function TransactionsView() {
         </div>
       </ScrollArea>
 
-      <Dialog open={!!selectedExecution} onOpenChange={(open) => !open && setSelectedExecution(null)}>
+      <Dialog
+        open={!!selectedExecution}
+        onOpenChange={(open) => !open && setSelectedExecution(null)}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl">{t.transactions.executionDetails}</DialogTitle>
@@ -312,7 +323,7 @@ export function TransactionsView() {
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10">
                   {selectedExecution.image ? (
                     <img
-                      src={selectedExecution.image || "/placeholder.svg"}
+                      src={selectedExecution.image || '/placeholder.svg'}
                       alt={selectedExecution.spellName}
                       className="h-full w-full object-cover"
                     />
@@ -321,11 +332,15 @@ export function TransactionsView() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-foreground">{selectedExecution.spellName}</h3>
+                  <h3 className="text-xl font-bold text-foreground">
+                    {selectedExecution.spellName}
+                  </h3>
                   <div className="mt-2 flex items-center gap-2">
                     {getStatusIcon(selectedExecution.status)}
                     {getStatusBadge(selectedExecution.status)}
-                    <span className="text-sm text-muted-foreground">{selectedExecution.category}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedExecution.category}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -354,16 +369,22 @@ export function TransactionsView() {
 
                 <div>
                   <p className="text-sm text-muted-foreground">{t.transactions.description}</p>
-                  <p className="text-foreground">{getStatusDescription(selectedExecution.status)}</p>
+                  <p className="text-foreground">
+                    {getStatusDescription(selectedExecution.status)}
+                  </p>
                 </div>
               </div>
 
               <div className="rounded-lg border border-border bg-card p-4">
-                <h4 className="mb-2 font-semibold text-foreground">{t.transactions.aboutExecutionStatus}</h4>
-                <p className="text-sm text-muted-foreground">{t.transactions.aboutExecutionStatusDesc}</p>
+                <h4 className="mb-2 font-semibold text-foreground">
+                  {t.transactions.aboutExecutionStatus}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {t.transactions.aboutExecutionStatusDesc}
+                </p>
               </div>
 
-              {selectedExecution.type === "subscription" && (
+              {selectedExecution.type === 'subscription' && (
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="destructive"
@@ -380,5 +401,5 @@ export function TransactionsView() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

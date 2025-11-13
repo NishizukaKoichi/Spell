@@ -1,89 +1,89 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { ScrollArea } from "./ui/scroll-area"
-import { Settings, User, Upload } from "lucide-react"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { useLanguage, type Language } from "@/lib/i18n/language-provider"
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { ScrollArea } from './ui/scroll-area';
+import { Settings, User, Upload } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useLanguage, type Language } from '@/lib/i18n/language-provider';
 
 export function SettingsView() {
-  const { toast } = useToast()
-  const { language, setLanguage, t } = useLanguage()
-  const [displayName, setDisplayName] = useState("Arcane Wizard")
-  const [avatarUrl, setAvatarUrl] = useState("")
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast();
+  const { language, setLanguage, t } = useLanguage();
+  const [displayName, setDisplayName] = useState('Arcane Wizard');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedName = localStorage.getItem("caster_profile_name")
-    const savedAvatar = localStorage.getItem("caster_profile_avatar")
+    const savedName = localStorage.getItem('caster_profile_name');
+    const savedAvatar = localStorage.getItem('caster_profile_avatar');
 
     if (savedName) {
-      setDisplayName(savedName)
+      setDisplayName(savedName);
     }
     if (savedAvatar) {
-      setAvatarUrl(savedAvatar)
+      setAvatarUrl(savedAvatar);
     }
-  }, [])
+  }, []);
 
   const handleAvatarChange = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith("image/")) {
+      if (!file.type.startsWith('image/')) {
         toast({
-          title: "Invalid File",
-          description: "Please select an image file",
-          variant: "destructive",
+          title: 'Invalid File',
+          description: 'Please select an image file',
+          variant: 'destructive',
           duration: 3000,
-        })
-        return
+        });
+        return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "File Too Large",
-          description: "Please select an image smaller than 5MB",
-          variant: "destructive",
+          title: 'File Too Large',
+          description: 'Please select an image smaller than 5MB',
+          variant: 'destructive',
           duration: 3000,
-        })
-        return
+        });
+        return;
       }
 
       // Read and preview the image
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (event) => {
-        setAvatarUrl(event.target?.result as string)
+        setAvatarUrl(event.target?.result as string);
         toast({
-          title: "Avatar Updated",
-          description: "Your profile image has been changed",
+          title: 'Avatar Updated',
+          description: 'Your profile image has been changed',
           duration: 3000,
-        })
-      }
-      reader.readAsDataURL(file)
+        });
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleSave = () => {
-    localStorage.setItem("caster_profile_name", displayName)
-    localStorage.setItem("caster_profile_avatar", avatarUrl)
+    localStorage.setItem('caster_profile_name', displayName);
+    localStorage.setItem('caster_profile_avatar', avatarUrl);
 
     toast({
-      title: t.settings.changesSaved.split(" ")[0],
+      title: t.settings.changesSaved.split(' ')[0],
       description: t.settings.changesSaved,
       duration: 3000,
-    })
-  }
+    });
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -112,7 +112,7 @@ export function SettingsView() {
               <div className="flex items-center gap-4">
                 <div className="group relative cursor-pointer" onClick={handleAvatarChange}>
                   <Avatar className="h-20 w-20 border-2 border-border/50 transition-all group-hover:border-primary/50">
-                    <AvatarImage src={avatarUrl || "/placeholder.svg"} />
+                    <AvatarImage src={avatarUrl || '/placeholder.svg'} />
                     <AvatarFallback className="bg-primary/10 text-foreground">
                       <User className="h-8 w-8" />
                     </AvatarFallback>
@@ -125,7 +125,13 @@ export function SettingsView() {
                   <p className="text-sm font-medium text-foreground">{t.settings.avatar}</p>
                   <p className="text-xs text-muted-foreground">{t.settings.clickToUpload}</p>
                 </div>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </div>
 
               <div className="h-px bg-border/50" />
@@ -207,5 +213,5 @@ export function SettingsView() {
         </div>
       </ScrollArea>
     </div>
-  )
+  );
 }

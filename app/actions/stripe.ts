@@ -1,17 +1,17 @@
-"use server"
+'use server';
 
-import { stripe } from "@/lib/stripe"
+import { stripe } from '@/lib/stripe';
 
 export async function createSetupIntent() {
   try {
     const setupIntent = await stripe.setupIntents.create({
-      payment_method_types: ["card"],
-    })
+      payment_method_types: ['card'],
+    });
 
-    return { clientSecret: setupIntent.client_secret }
+    return { clientSecret: setupIntent.client_secret };
   } catch (error) {
-    console.error("[v0] Error creating setup intent:", error)
-    throw new Error("Failed to create setup intent")
+    console.error('[v0] Error creating setup intent:', error);
+    throw new Error('Failed to create setup intent');
   }
 }
 
@@ -22,28 +22,28 @@ export async function getPaymentMethods() {
     return {
       paymentMethods: [
         {
-          id: "pm_demo_1",
+          id: 'pm_demo_1',
           card: {
-            brand: "visa",
-            last4: "4242",
+            brand: 'visa',
+            last4: '4242',
             exp_month: 12,
             exp_year: 2025,
           },
         },
       ],
-    }
+    };
   } catch (error) {
-    console.error("[v0] Error fetching payment methods:", error)
-    throw new Error("Failed to fetch payment methods")
+    console.error('[v0] Error fetching payment methods:', error);
+    throw new Error('Failed to fetch payment methods');
   }
 }
 
 export async function removePaymentMethod(paymentMethodId: string) {
   try {
-    await stripe.paymentMethods.detach(paymentMethodId)
-    return { success: true }
+    await stripe.paymentMethods.detach(paymentMethodId);
+    return { success: true };
   } catch (error) {
-    console.error("[v0] Error removing payment method:", error)
-    throw new Error("Failed to remove payment method")
+    console.error('[v0] Error removing payment method:', error);
+    throw new Error('Failed to remove payment method');
   }
 }

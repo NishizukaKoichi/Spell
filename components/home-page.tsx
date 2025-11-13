@@ -1,18 +1,18 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface HomePageProps {
-  username: string
+  username: string;
 }
 
 export function HomePage({ username }: HomePageProps) {
-  const [currentTime] = useState(new Date().toLocaleString())
+  const [currentTime] = useState(new Date().toLocaleString());
 
   const handleLogout = () => {
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono flex items-center justify-center p-8">
@@ -26,7 +26,7 @@ export function HomePage({ username }: HomePageProps) {
             </div>
             <span className="text-xs">{currentTime}</span>
           </div>
-          <h1 className="text-3xl mb-2">{">"} SECURE_TERMINAL</h1>
+          <h1 className="text-3xl mb-2">{'>'} SECURE_TERMINAL</h1>
           <p className="text-xs text-muted-foreground">[Authenticated Session]</p>
         </div>
 
@@ -53,5 +53,5 @@ export function HomePage({ username }: HomePageProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }

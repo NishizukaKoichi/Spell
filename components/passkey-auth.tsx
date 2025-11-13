@@ -1,23 +1,23 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface PasskeyAuthProps {
-  onAuthenticated: (username: string) => void
+  onAuthenticated: (username: string) => void;
 }
 
 export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
-  const [status, setStatus] = useState<"idle" | "processing" | "authenticated">("idle")
+  const [status, setStatus] = useState<'idle' | 'processing' | 'authenticated'>('idle');
 
   const handlePasskey = async () => {
-    setStatus("processing")
+    setStatus('processing');
 
     try {
       if (!window.PublicKeyCredential) {
-        alert("WebAuthn not supported")
-        setStatus("idle")
-        return
+        alert('WebAuthn not supported');
+        setStatus('idle');
+        return;
       }
 
       try {
@@ -25,54 +25,54 @@ export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
           publicKey: {
             challenge: new Uint8Array(32),
             rpId: window.location.hostname,
-            userVerification: "required",
+            userVerification: 'required',
             timeout: 60000,
           },
-        })
+        });
 
         if (credential) {
-          const authenticatedUsername = "user_authenticated"
-          setStatus("authenticated")
-          onAuthenticated(authenticatedUsername)
-          return
+          const authenticatedUsername = 'user_authenticated';
+          setStatus('authenticated');
+          onAuthenticated(authenticatedUsername);
+          return;
         }
       } catch {
         const credential = await navigator.credentials.create({
           publicKey: {
             challenge: new Uint8Array(32),
             rp: {
-              name: "Secure Auth System",
+              name: 'Secure Auth System',
               id: window.location.hostname,
             },
             user: {
               id: new Uint8Array(16),
               name: `user_${Date.now()}`,
-              displayName: "New User",
+              displayName: 'New User',
             },
             pubKeyCredParams: [
-              { alg: -7, type: "public-key" },
-              { alg: -257, type: "public-key" },
+              { alg: -7, type: 'public-key' },
+              { alg: -257, type: 'public-key' },
             ],
             authenticatorSelection: {
-              authenticatorAttachment: "platform",
-              userVerification: "required",
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
             },
             timeout: 60000,
-            attestation: "none",
+            attestation: 'none',
           },
-        })
+        });
 
         if (credential) {
-          const newUsername = "new_user"
-          setStatus("authenticated")
-          onAuthenticated(newUsername)
+          const newUsername = 'new_user';
+          setStatus('authenticated');
+          onAuthenticated(newUsername);
         }
       }
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
-      setStatus("idle")
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setStatus('idle');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono flex items-center justify-center p-8">
@@ -81,10 +81,10 @@ export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
         <div className="border border-foreground p-8 text-center">
           <Button
             onClick={handlePasskey}
-            disabled={status === "processing"}
+            disabled={status === 'processing'}
             className="w-full border border-foreground bg-background text-foreground hover:bg-foreground hover:text-background transition-all py-6 text-lg"
           >
-            {status === "processing" ? "PROCESSING..." : "AUTHENTICATE"}
+            {status === 'processing' ? 'PROCESSING...' : 'AUTHENTICATE'}
           </Button>
         </div>
 
@@ -95,5 +95,5 @@ export function PasskeyAuth({ onAuthenticated }: PasskeyAuthProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
