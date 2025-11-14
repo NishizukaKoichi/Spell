@@ -66,7 +66,9 @@ export default function SplashScreen() {
   if (showLanguageSelect) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white p-4">
-        <div className={`max-w-2xl w-full transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          className={`max-w-2xl w-full transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
           <div className="text-center mb-8">
             <Image
               src="/logo.png"
