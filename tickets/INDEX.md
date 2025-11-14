@@ -12,6 +12,25 @@
 
 ---
 
+## UIレス Spell イニシアチブ（2025-11）
+
+| Ticket    | Title                                       | Priority | Notes                         |
+| --------- | ------------------------------------------- | -------- | ----------------------------- |
+| UL-TKT-001 | Next.js UI撤去とAPIベースラインへの移行      | CRITICAL | 画面資産削除 + API-only build |
+| UL-TKT-002 | Spell Core Runtime (固定呪文セット)          | CRITICAL | WASM-first 呪文実行エンジン   |
+| UL-TKT-003 | ChatGPT Apps SDK / MCP ツール実装            | CRITICAL | `spell.execute/list/estimate` |
+| UL-TKT-004 | Spell CLI (auth/list/run)                   | HIGH     | CLI で認証/実行/ Rune         |
+| UL-TKT-005 | Passkey Identity & Token Service            | CRITICAL | WebAuthn + token issuance     |
+| UL-TKT-006 | 課金・決済ハンドシェイク (ChatGPT連携)      | HIGH     | Stripe 連携 & usage 記録      |
+| UL-TKT-007 | Spell Engine HTTP API (execute/list/rune)   | CRITICAL | CLI/Apps SDK 共通 API         |
+| UL-TKT-008 | Rune β: 呪文作成・登録フロー                | MEDIUM   | 高信頼ユーザー作成機能        |
+| UL-TKT-009 | BAN・信頼スコアサービス                     | HIGH     | Rune/有料呪文のガードレール   |
+| UL-TKT-010 | Observability & 実行監査ログ                 | MEDIUM   | OTel + audit logging          |
+
+詳細は `tickets/ui-less/` の各チケットを参照。
+
+---
+
 ## Foundation (TKT-001 to TKT-020)
 
 | ID      | Title                                   | Priority | Complexity | Status | Dependencies              |
