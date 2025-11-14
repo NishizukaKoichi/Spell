@@ -56,4 +56,3 @@ spell rune create --from spec.yml  # Rune が開放されているユーザー
 ```
 
 CLI は HTTP API の薄いラッパーとして設計する。
-

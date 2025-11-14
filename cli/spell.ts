@@ -17,7 +17,11 @@ Usage:
 `);
 }
 
-function parseOptions(argv: string[]): { command: string | null; spellId?: string; options: CliOptions } {
+function parseOptions(argv: string[]): {
+  command: string | null;
+  spellId?: string;
+  options: CliOptions;
+} {
   if (argv.length === 0 || argv.includes('--help') || argv.includes('-h')) {
     return { command: null, options: getDefaultOptions() };
   }
@@ -63,7 +67,9 @@ function parseOptions(argv: string[]): { command: string | null; spellId?: strin
             throw new Error('Input must be a JSON object');
           }
         } catch (error) {
-          throw new Error(`Failed to parse --input JSON: ${error instanceof Error ? error.message : error}`);
+          throw new Error(
+            `Failed to parse --input JSON: ${error instanceof Error ? error.message : error}`
+          );
         }
         i += 1;
         break;

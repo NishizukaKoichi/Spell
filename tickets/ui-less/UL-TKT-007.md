@@ -48,4 +48,3 @@ M
 
 - すべての API で idempotency key と rate limit を必須にする
 - Rune API のリクエスト body を schema で厳密に検証
-

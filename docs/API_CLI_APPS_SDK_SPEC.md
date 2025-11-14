@@ -6,13 +6,13 @@
 
 ## 2. MCP / Apps SDK ツール（概念）
 
-| ツール名 | 概要 | 主な引数 | 権限 |
-| --- | --- | --- | --- |
-| `spell.execute` | 指定呪文を実行 | `spell_id`, `inputs` | 一般 |
-| `spell.list_spells` | 利用可能な呪文一覧 | なし | 一般 |
-| `spell.estimate_cost` | 入力に対する料金見積 | `spell_id`, `inputs` | 一般 |
-| `rune.create_spell` | 新しい呪文定義を登録 | `spec`, `code` | Rune |
-| `admin.ban_user` | 指定ユーザーを BAN | `user_id`, `reason` | 管理者 |
+| ツール名              | 概要                 | 主な引数             | 権限   |
+| --------------------- | -------------------- | -------------------- | ------ |
+| `spell.execute`       | 指定呪文を実行       | `spell_id`, `inputs` | 一般   |
+| `spell.list_spells`   | 利用可能な呪文一覧   | なし                 | 一般   |
+| `spell.estimate_cost` | 入力に対する料金見積 | `spell_id`, `inputs` | 一般   |
+| `rune.create_spell`   | 新しい呪文定義を登録 | `spec`, `code`       | Rune   |
+| `admin.ban_user`      | 指定ユーザーを BAN   | `user_id`, `reason`  | 管理者 |
 
 Apps SDK にはユーザーロールを渡し、Spell 側で最終権限チェックを行う。
 
@@ -72,4 +72,3 @@ spell rune create --from spec.yml  # Rune ユーザーのみ
 ```
 
 CLI は HTTP API の薄いラッパーとして設計し、Apps SDK と共通の権限モデルを使う。
-

@@ -47,4 +47,3 @@ M
 
 - ツール実行時に `user_id` と BAN 状態を検証
 - payment-required 呪文の場合 `payment_status: ok` を必須にする
-

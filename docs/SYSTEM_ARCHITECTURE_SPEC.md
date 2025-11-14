@@ -28,4 +28,3 @@
 - API Gateway: Edge/Workers 層に配置し、低レイテンシを実現。
 - 認証・課金システム: マネージドサービス（Passkey IdP, Stripe 等）と連携。
 - 監査ログ・メトリクス: OpenTelemetry + Prometheus/Grafana で外部観測。
-
