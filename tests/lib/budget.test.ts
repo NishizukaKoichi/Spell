@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach, afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkBudget, updateBudgetSpend, resetBudget, getBudgetStatus } from '@/lib/budget';
 import { prisma } from '@/lib/prisma';
@@ -19,7 +19,14 @@ import { prisma } from '@/lib/prisma';
 
 const TEST_USER_ID = 'test-user-budget-cents';
 
-describe('Budget (Cents-based)', () => {
+const HAS_DATABASE = Boolean(process.env.DATABASE_URL);
+
+if (!HAS_DATABASE) {
+  test('Budget (Cents-based) requires DATABASE_URL', { skip: true }, () => {
+    // CI environments without Neon/Postgres should skip these integration tests.
+  });
+} else {
+  describe('Budget (Cents-based)', () => {
   beforeEach(async () => {
     // Clean up test user before each test
     await prisma.budgets.deleteMany({
@@ -248,4 +255,5 @@ describe('Budget (Cents-based)', () => {
     assert.equal(result.allowed, true); // Should reset and allow
     assert.equal(result.budget.currentMonthCents, 0); // Reset to 0
   });
-});
+  });
+}
