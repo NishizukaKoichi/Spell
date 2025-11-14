@@ -1,12 +1,36 @@
 # Development Progress Tracker
 
-Last Updated: 2025-11-10
+Last Updated: 2025-11-14
 
 ## Current Status
 
-**Active Branch:** feat/TKT-001-002-003-004-auth (PR #14)
-**Last Completed Ticket:** TKT-021/022/023/024 (Webhooks & Monitoring)
-**Next Ticket:** TBD (Architecture Review - see note below)
+**Active Branch:** N/A（UIレス転換の計画フェーズ）
+**Last Completed Work:** Spell Execute MVP（固定呪文 + HTTP API + CLI）
+**Next Ticket:** UL-TKT-001（Next.js UI撤去とAPIベースラインへの移行）
+
+## UIレス Spell イニシアチブ（2025-11）
+
+- ✅ プロダクト文書 5 点を `docs/` に追加
+  - `docs/PRODUCT_UX_SPEC.md`
+  - `docs/SYSTEM_ARCHITECTURE_SPEC.md`
+  - `docs/AUTH_ACCOUNT_BAN_SPEC.md`
+  - `docs/API_CLI_APPS_SDK_SPEC.md`
+  - `docs/ROADMAP.md`
+- ✅ 必要機能を `UL-TKT-001` ～ `UL-TKT-010` に分解し `tickets/ui-less/` に配置
+- ▶️ 次手順: UL-TKT-001 ブランチを切って UI 資産削除 / API-only ビルドを確認
+
+---
+
+## Spell Execute MVP（2025-11-14）
+
+- ✅ `src/core/spell/` に固定呪文（`builtin.echo`）を実装
+- ✅ `POST /api/spell/execute`（`src/app/api/spell/execute/route.ts`）で API 化
+- ✅ `SpellExecutionLog` モデルを Prisma へ追加し、実行ログ/課金メモを蓄積
+- ✅ CLI (`pnpm spell execute <spell-id> --input '{"message":"hi"}'`) で API 呼び出しを確認
+- ✅ Spec v1.3 従い UI コードと Tailwind 系依存を削除、`page.tsx` は API 仕様案内のみ
+- ℹ️ `pnpm test` は Neon DB への接続が無い環境では `tests/lib/budget.test.ts` が失敗するため、DB 接続が無い状態では無視して良い
+
+---
 
 ## Completed Tickets
 

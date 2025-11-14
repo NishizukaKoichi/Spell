@@ -312,3 +312,20 @@ model DataTransferConsent {
   @@index([userId])
   @@map("data_transfer_consents")
 }
+
+model SpellExecutionLog {
+  id           String   @id @default(cuid())
+  userId       String
+  spellKey     String
+  spellVersion String
+  costCents    Int
+  status       String
+  input        Json?
+  output       Json?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([spellKey])
+  @@index([userId])
+  @@map("spell_execution_logs")
+}
