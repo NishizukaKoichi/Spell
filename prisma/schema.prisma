@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  stripeCustomerId   String?         @unique @map("stripe_customer_id")
+  status             UserStatus      @default(ACTIVE)
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  spells             Spell[]
+  billingRecords     BillingRecord[]
+  bans               Ban?
+
+  @@map("users")
+}
+
+model Spell {
+  id             String         @id @default(uuid())
+  slug           String         @unique
+  description    String
+  runtime        SpellRuntime
+  config         Json
+  priceAmount    Int            @map("price_amount")
+  visibility     SpellVisibility
+  createdBy      String         @map("created_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  user           User           @relation(fields: [createdBy], references: [id])
+  runeArtifacts  RuneArtifact[]
+  billingRecords BillingRecord[]
+
+  @@map("spells")
+}
+
+model RuneArtifact {
+  id           String   @id @default(uuid())
+  spellId      String   @map("spell_id")
+  wasmBinary   Bytes?   @map("wasm_binary")
+  metadata     Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  spell        Spell    @relation(fields: [spellId], references: [id])
+
+  @@map("rune_artifacts")
+}
+
+model BillingRecord {
+  id              String             @id @default(uuid())
+  userId          String             @map("user_id")
+  spellId         String             @map("spell_id")
+  amount          Int
+  currency        String
+  paymentIntentId String             @map("payment_intent_id")
+  status          BillingStatus
+  createdAt       DateTime           @default(now()) @map("created_at")
+
+  user            User               @relation(fields: [userId], references: [id])
+  spell           Spell              @relation(fields: [spellId], references: [id])
+
+  @@map("billing_records")
+}
+
+model Ban {
+  userId    String   @id @map("user_id")
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("bans")
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+
+  @@map("user_status")
+}
+
+enum SpellRuntime {
+  BUILTIN
+  API
+  WASM
+
+  @@map("spell_runtime")
+}
+
+enum SpellVisibility {
+  PUBLIC
+  TEAM
+  PRIVATE
+
+  @@map("spell_visibility")
+}
+
+enum BillingStatus {
+  SUCCEEDED
+  FAILED
+
+  @@map("billing_status")
+}
