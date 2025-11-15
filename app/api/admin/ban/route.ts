@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest, assertAdminAccess } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { UserStatus } from '@prisma/client'
 
 type BanAction = 'ban' | 'unban'
 
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'unban') {
       await prisma.ban.delete({ where: { userId } }).catch(() => null)
-      await prisma.user.update({ where: { id: userId }, data: { status: UserStatus.ACTIVE } })
+      await prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } })
 
       return NextResponse.json({ message: 'User unbanned' })
     }
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { status: UserStatus.BANNED }
+      data: { status: 'BANNED' }
     })
 
     return NextResponse.json({ message: 'User banned' })

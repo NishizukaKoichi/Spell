@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { SpellRuntime, SpellVisibility } from '@prisma/client'
 
-const visibilityValues = new Set(Object.values(SpellVisibility))
-const runtimeValues = new Set(Object.values(SpellRuntime))
+type SpellVisibility = 'PUBLIC' | 'TEAM' | 'PRIVATE'
+type SpellRuntime = 'BUILTIN' | 'API' | 'WASM'
+
+const visibilityValues = new Set<SpellVisibility>(['PUBLIC', 'TEAM', 'PRIVATE'])
+const runtimeValues = new Set<SpellRuntime>(['BUILTIN', 'API', 'WASM'])
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
       runtime,
       config,
       priceAmount = 0,
-      visibility = SpellVisibility.PUBLIC,
+      visibility = 'PUBLIC',
       wasmBinary,
       metadata = {}
     } = body
@@ -49,19 +51,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'metadata must be an object' }, { status: 400 })
     }
 
+    const normalizedRuntime = runtime as SpellRuntime
+    const normalizedVisibility = visibility as SpellVisibility
+
     const spell = await prisma.spell.create({
       data: {
         slug,
         description,
-        runtime: runtime as SpellRuntime,
+        runtime: normalizedRuntime,
         config,
         priceAmount,
-        visibility: visibility as SpellVisibility,
+        visibility: normalizedVisibility,
         createdBy: userId
       }
     })
 
-    if (runtime === SpellRuntime.WASM || wasmBinary) {
+    if (normalizedRuntime === 'WASM' || wasmBinary) {
       await prisma.runeArtifact.create({
         data: {
           spellId: spell.id,

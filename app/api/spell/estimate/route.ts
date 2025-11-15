@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { SpellVisibility } from '@prisma/client'
 
 interface SpellAccess {
   createdBy: string
-  visibility: SpellVisibility
+  visibility: 'PUBLIC' | 'TEAM' | 'PRIVATE'
 }
 
 function canAccessSpell(userId: string, spell: SpellAccess) {
