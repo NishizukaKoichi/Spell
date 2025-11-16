@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest, assertAdminAccess } from '@/lib/auth'
+import { assertAdminAccess, getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 type BanAction = 'ban' | 'unban'
 
 export async function POST(request: NextRequest) {
   try {
-    const adminId = await authenticateRequest(request.headers)
+    const adminId = getUserIdFromHeaders(request.headers)
     assertAdminAccess(adminId)
 
     const { userId, reason, action = 'ban' } = await request.json()

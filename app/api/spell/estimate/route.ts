@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 interface SpellAccess {
@@ -22,7 +22,7 @@ function canAccessSpell(userId: string, spell: SpellAccess) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
     const { spellId } = await request.json()
 
     if (!spellId || typeof spellId !== 'string') {

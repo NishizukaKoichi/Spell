@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { executeSpell } from '@/lib/spell-engine'
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
     const { spellId, parameters } = await request.json()
 
     if (!spellId || typeof spellId !== 'string') {

@@ -1,35 +1,17 @@
-import { jwtVerify, JWTPayload } from 'jose'
 import { prisma } from '@/lib/prisma'
+import {
+  BannedUserError,
+  extractBearerToken,
+  USER_ID_HEADER,
+  verifyJwt
+} from '@/lib/auth-shared'
 
-export interface AuthPayload extends JWTPayload {
-  sub: string // user_id
-}
+export { AuthError, InvalidTokenError } from '@/lib/auth-shared'
 
-/**
- * Verify JWT token and return user_id
- */
 export async function verifyToken(token: string): Promise<string> {
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET)
-
-  try {
-    const { payload } = await jwtVerify(token, secret)
-
-    if (!payload.sub) {
-      throw new Error('Invalid token: missing sub claim')
-    }
-
-    return payload.sub
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid token: missing sub claim') {
-      throw error
-    }
-    throw new Error('Token verification failed')
-  }
+  return verifyJwt(token)
 }
 
-/**
- * Check if user is banned
- */
 export async function checkBanStatus(userId: string): Promise<boolean> {
   const ban = await prisma.ban.findUnique({
     where: { userId }
@@ -38,23 +20,29 @@ export async function checkBanStatus(userId: string): Promise<boolean> {
   return ban !== null
 }
 
-/**
- * Get user from request headers
- */
 export async function authenticateRequest(headers: Headers): Promise<string> {
-  const authHeader = headers.get('Authorization')
+  const forwardedUserId = headers.get(USER_ID_HEADER)
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Missing or invalid Authorization header')
+  if (forwardedUserId) {
+    return forwardedUserId
   }
 
-  const token = authHeader.substring(7)
+  const token = extractBearerToken(headers)
   const userId = await verifyToken(token)
 
-  // Check if user is banned
   const isBanned = await checkBanStatus(userId)
   if (isBanned) {
-    throw new Error('User is banned')
+    throw new BannedUserError()
+  }
+
+  return userId
+}
+
+export function getUserIdFromHeaders(headers: Headers): string {
+  const userId = headers.get(USER_ID_HEADER)
+
+  if (!userId) {
+    throw new Error('Missing authenticated user context')
   }
 
   return userId

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { getStripeClient } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    await authenticateRequest(request.headers)
+    getUserIdFromHeaders(request.headers)
     const { paymentIntentId } = await request.json()
 
     if (!paymentIntentId || typeof paymentIntentId !== 'string') {
