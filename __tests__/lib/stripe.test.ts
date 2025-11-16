@@ -1,46 +1,70 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
-import {
-  getOrCreateCustomer,
-  createCheckoutSession,
-  createPaymentIntent,
-  createPortalSession
-} from '@/lib/stripe'
-import { prisma } from '@/lib/prisma'
-import { stripe } from '@/lib/stripe'
 
-// Mock dependencies
-jest.mock('@/lib/prisma')
-jest.mock('stripe', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      customers: {
-        create: jest.fn(),
-        retrieve: jest.fn()
-      },
-      checkout: {
-        sessions: {
-          create: jest.fn()
-        }
-      },
-      paymentIntents: {
-        create: jest.fn()
-      },
-      billingPortal: {
-        sessions: {
-          create: jest.fn()
-        }
-      }
-    }))
+jest.mock('@/lib/prisma', () => jest.requireActual('../../__mocks__/lib/prisma'))
+
+const createStripeMockInstance = () => ({
+  customers: {
+    create: jest.fn(),
+    retrieve: jest.fn()
+  },
+  checkout: {
+    sessions: {
+      create: jest.fn()
+    }
+  },
+  paymentIntents: {
+    create: jest.fn()
+  },
+  billingPortal: {
+    sessions: {
+      create: jest.fn()
+    }
   }
 })
+
+const stripeMockInstance = createStripeMockInstance()
+
+const resetStripeMock = () => {
+  stripeMockInstance.customers.create.mockReset()
+  stripeMockInstance.customers.retrieve.mockReset()
+  stripeMockInstance.checkout.sessions.create.mockReset()
+  stripeMockInstance.paymentIntents.create.mockReset()
+  stripeMockInstance.billingPortal.sessions.create.mockReset()
+}
+
+jest.mock('stripe', () => ({
+  __esModule: true,
+  default: jest.fn(() => stripeMockInstance)
+}))
 
 process.env.STRIPE_SECRET_KEY = 'sk_test_fake_key'
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
 
+const {
+  prisma,
+  resetPrismaMock
+} = jest.requireMock('@/lib/prisma') as {
+  prisma: {
+    user: {
+      findUnique: jest.Mock
+      update: jest.Mock
+    }
+  }
+  resetPrismaMock: () => void
+}
+
+const stripeLib = require('@/lib/stripe') as typeof import('@/lib/stripe')
+const {
+  getOrCreateCustomer,
+  createCheckoutSession,
+  createPaymentIntent,
+  createPortalSession
+} = stripeLib
+
 describe('Stripe Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    resetPrismaMock()
+    resetStripeMock()
   })
 
   describe('getOrCreateCustomer', () => {
@@ -70,10 +94,7 @@ describe('Stripe Integration', () => {
         status: 'ACTIVE'
       })
 
-      // Mock stripe.customers.create
-      const mockStripe = require('stripe')
-      const mockInstance = mockStripe.default.mock.results[0].value
-      mockInstance.customers.create.mockResolvedValue({
+      stripeMockInstance.customers.create.mockResolvedValue({
         id: newCustomerId
       })
 
@@ -84,7 +105,7 @@ describe('Stripe Integration', () => {
 
       const result = await getOrCreateCustomer(userId)
 
-      expect(mockInstance.customers.create).toHaveBeenCalledWith({
+      expect(stripeMockInstance.customers.create).toHaveBeenCalledWith({
         metadata: { userId }
       })
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -114,16 +135,14 @@ describe('Stripe Integration', () => {
         stripeCustomerId: customerId
       })
 
-      const mockStripe = require('stripe')
-      const mockInstance = mockStripe.default.mock.results[0].value
-      mockInstance.checkout.sessions.create.mockResolvedValue({
+      stripeMockInstance.checkout.sessions.create.mockResolvedValue({
         url: checkoutUrl
       })
 
       const result = await createCheckoutSession(userId)
 
       expect(result).toBe(checkoutUrl)
-      expect(mockInstance.checkout.sessions.create).toHaveBeenCalledWith({
+      expect(stripeMockInstance.checkout.sessions.create).toHaveBeenCalledWith({
         customer: customerId,
         mode: 'setup',
         success_url: 'http://localhost:3000/billing/success',
@@ -144,17 +163,14 @@ describe('Stripe Integration', () => {
         stripeCustomerId: customerId
       })
 
-      const mockStripe = require('stripe')
-      const mockInstance = mockStripe.default.mock.results[0].value
-
-      mockInstance.customers.retrieve.mockResolvedValue({
+      stripeMockInstance.customers.retrieve.mockResolvedValue({
         id: customerId,
         invoice_settings: {
           default_payment_method: paymentMethodId
         }
       })
 
-      mockInstance.paymentIntents.create.mockResolvedValue({
+      stripeMockInstance.paymentIntents.create.mockResolvedValue({
         id: 'pi_123',
         status: 'succeeded',
         amount
@@ -163,7 +179,7 @@ describe('Stripe Integration', () => {
       const result = await createPaymentIntent(userId, amount, 'usd')
 
       expect(result.id).toBe('pi_123')
-      expect(mockInstance.paymentIntents.create).toHaveBeenCalledWith({
+      expect(stripeMockInstance.paymentIntents.create).toHaveBeenCalledWith({
         amount,
         currency: 'usd',
         customer: customerId,
@@ -185,10 +201,7 @@ describe('Stripe Integration', () => {
         stripeCustomerId: customerId
       })
 
-      const mockStripe = require('stripe')
-      const mockInstance = mockStripe.default.mock.results[0].value
-
-      mockInstance.customers.retrieve.mockResolvedValue({
+      stripeMockInstance.customers.retrieve.mockResolvedValue({
         id: customerId,
         invoice_settings: {
           default_payment_method: null
@@ -212,17 +225,14 @@ describe('Stripe Integration', () => {
         stripeCustomerId: customerId
       })
 
-      const mockStripe = require('stripe')
-      const mockInstance = mockStripe.default.mock.results[0].value
-
-      mockInstance.billingPortal.sessions.create.mockResolvedValue({
+      stripeMockInstance.billingPortal.sessions.create.mockResolvedValue({
         url: portalUrl
       })
 
       const result = await createPortalSession(userId)
 
       expect(result).toBe(portalUrl)
-      expect(mockInstance.billingPortal.sessions.create).toHaveBeenCalledWith({
+      expect(stripeMockInstance.billingPortal.sessions.create).toHaveBeenCalledWith({
         customer: customerId,
         return_url: 'http://localhost:3000/billing'
       })

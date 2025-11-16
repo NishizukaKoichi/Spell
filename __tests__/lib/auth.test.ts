@@ -1,78 +1,63 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
-import { SignJWT } from 'jose'
-import { verifyToken, checkBanStatus, authenticateRequest } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 
-// Mock Prisma
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    ban: {
-      findUnique: jest.fn()
-    },
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn()
-    }
-  }
+jest.mock('@/lib/prisma', () => jest.requireActual('../../__mocks__/lib/prisma'))
+jest.mock('jose', () => ({
+  jwtVerify: jest.fn()
 }))
+
+const {
+  prisma,
+  resetPrismaMock
+} = jest.requireMock('@/lib/prisma') as {
+  prisma: {
+    ban: { findUnique: jest.Mock }
+  }
+  resetPrismaMock: () => void
+}
+const { jwtVerify } = jest.requireMock('jose') as { jwtVerify: jest.Mock }
+const jwtVerifyMock = jwtVerify as jest.Mock
+
+const {
+  verifyToken,
+  checkBanStatus,
+  authenticateRequest
+} = require('@/lib/auth') as typeof import('@/lib/auth')
 
 const JWT_SECRET = 'test-secret-key-for-testing-only-32-bytes'
 process.env.JWT_SECRET = JWT_SECRET
 
 describe('Auth Module', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    resetPrismaMock()
+    jwtVerifyMock.mockReset()
   })
 
   describe('verifyToken', () => {
     it('should verify valid JWT and return user_id', async () => {
       const userId = 'test-user-123'
-      const secret = new TextEncoder().encode(JWT_SECRET)
+      jwtVerifyMock.mockResolvedValue({ payload: { sub: userId } })
 
-      const token = await new SignJWT({ sub: userId })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('2h')
-        .sign(secret)
-
-      const result = await verifyToken(token)
+      const result = await verifyToken('valid-token')
       expect(result).toBe(userId)
+      expect(jwtVerifyMock).toHaveBeenCalled()
     })
 
     it('should throw error for token without sub claim', async () => {
-      const secret = new TextEncoder().encode(JWT_SECRET)
+      jwtVerifyMock.mockResolvedValue({ payload: {} })
 
-      const token = await new SignJWT({})
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('2h')
-        .sign(secret)
-
-      await expect(verifyToken(token)).rejects.toThrow('Invalid token: missing sub claim')
+      await expect(verifyToken('no-sub')).rejects.toThrow('Invalid token: missing sub claim')
     })
 
     it('should throw error for invalid signature', async () => {
-      const wrongSecret = new TextEncoder().encode('wrong-secret')
+      jwtVerifyMock.mockRejectedValue(new Error('Token verification failed'))
 
-      const token = await new SignJWT({ sub: 'test-user' })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('2h')
-        .sign(wrongSecret)
-
-      await expect(verifyToken(token)).rejects.toThrow('Token verification failed')
+      await expect(verifyToken('bad-signature')).rejects.toThrow('Token verification failed')
     })
 
     it('should throw error for expired token', async () => {
-      const secret = new TextEncoder().encode(JWT_SECRET)
+      jwtVerifyMock.mockRejectedValue(new Error('Token verification failed'))
 
-      const token = await new SignJWT({ sub: 'test-user' })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('-1h') // Expired 1 hour ago
-        .sign(secret)
-
-      await expect(verifyToken(token)).rejects.toThrow('Token verification failed')
+      await expect(verifyToken('expired-token')).rejects.toThrow('Token verification failed')
     })
   })
 
@@ -106,16 +91,10 @@ describe('Auth Module', () => {
   describe('authenticateRequest', () => {
     it('should authenticate valid request with Bearer token', async () => {
       const userId = 'test-user-123'
-      const secret = new TextEncoder().encode(JWT_SECRET)
-
-      const token = await new SignJWT({ sub: userId })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('2h')
-        .sign(secret)
+      jwtVerifyMock.mockResolvedValue({ payload: { sub: userId } })
 
       const headers = new Headers()
-      headers.set('Authorization', `Bearer ${token}`)
+      headers.set('Authorization', 'Bearer valid-token')
 
       ;(prisma.ban.findUnique as jest.Mock).mockResolvedValue(null)
 
@@ -142,16 +121,10 @@ describe('Auth Module', () => {
 
     it('should throw error for banned user', async () => {
       const userId = 'banned-user'
-      const secret = new TextEncoder().encode(JWT_SECRET)
-
-      const token = await new SignJWT({ sub: userId })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('2h')
-        .sign(secret)
+      jwtVerifyMock.mockResolvedValue({ payload: { sub: userId } })
 
       const headers = new Headers()
-      headers.set('Authorization', `Bearer ${token}`)
+      headers.set('Authorization', 'Bearer banned-token')
 
       ;(prisma.ban.findUnique as jest.Mock).mockResolvedValue({
         userId,

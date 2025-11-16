@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { prisma } from './prisma'
+import { prisma } from '@/lib/prisma'
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined')

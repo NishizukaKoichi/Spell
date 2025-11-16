@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'unban') {
       await prisma.ban.delete({ where: { userId } }).catch(() => null)
-      await prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } })
+      await prisma.user.update({ where: { id: userId }, data: { status: 'active' } })
 
       return NextResponse.json({ message: 'User unbanned' })
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { status: 'BANNED' }
+      data: { status: 'banned' }
     })
 
     return NextResponse.json({ message: 'User banned' })

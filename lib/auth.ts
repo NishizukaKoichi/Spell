@@ -1,5 +1,5 @@
 import { jwtVerify, JWTPayload } from 'jose'
-import { prisma } from './prisma'
+import { prisma } from '@/lib/prisma'
 
 export interface AuthPayload extends JWTPayload {
   sub: string // user_id
@@ -20,6 +20,9 @@ export async function verifyToken(token: string): Promise<string> {
 
     return payload.sub
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid token: missing sub claim') {
+      throw error
+    }
     throw new Error('Token verification failed')
   }
 }
