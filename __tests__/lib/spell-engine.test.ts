@@ -1,28 +1,50 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
-import { executeSpell, estimateSpellCost } from '@/lib/spell-engine'
-import { prisma } from '@/lib/prisma'
-import { createPaymentIntent } from '@/lib/stripe'
-import { SpellRuntime, SpellVisibility, BillingStatus } from '@prisma/client'
+import { describe, it, expect, beforeEach, beforeAll, jest } from '@jest/globals'
 
-// Mock dependencies
-jest.mock('@/lib/prisma')
-jest.mock('@/lib/stripe')
+jest.mock('@/lib/prisma', () => jest.requireActual('../../__mocks__/lib/prisma'))
+jest.mock('@/lib/stripe', () => ({
+  __esModule: true,
+  createPaymentIntent: jest.fn()
+}))
+
+const {
+  prisma,
+  resetPrismaMock
+} = jest.requireMock('@/lib/prisma') as {
+  prisma: {
+    spell: { findUnique: jest.Mock }
+    billingRecord: { create: jest.Mock }
+    runeArtifact: { findFirst: jest.Mock }
+  }
+  resetPrismaMock: () => void
+}
+const { createPaymentIntent } = jest.requireMock('@/lib/stripe') as {
+  createPaymentIntent: jest.Mock
+}
+
+const { executeSpell, estimateSpellCost } = require('@/lib/spell-engine') as typeof import('@/lib/spell-engine')
 
 const mockSpell = {
   id: 'spell-123',
   slug: 'test-spell',
   description: 'Test spell',
-  runtime: SpellRuntime.BUILTIN,
+  runtime: 'builtin',
   config: { handler: 'test-handler' },
   priceAmount: 0,
-  visibility: SpellVisibility.PUBLIC,
+  visibility: 'public',
   createdBy: 'user-123',
   createdAt: new Date()
 }
 
 describe('Spell Engine', () => {
+  beforeAll(() => {
+    global.WebAssembly = {
+      instantiate: jest.fn().mockResolvedValue({ exports: {} })
+    } as unknown as typeof WebAssembly
+  })
+
   beforeEach(() => {
-    jest.clearAllMocks()
+    resetPrismaMock()
+    createPaymentIntent.mockReset()
   })
 
   describe('executeSpell', () => {
@@ -56,7 +78,7 @@ describe('Spell Engine', () => {
     it('should enforce visibility for private spells', async () => {
       const privateSpell = {
         ...mockSpell,
-        visibility: SpellVisibility.PRIVATE,
+        visibility: 'private',
         createdBy: 'owner-user'
       }
 
@@ -75,7 +97,7 @@ describe('Spell Engine', () => {
     it('should allow owner to execute private spell', async () => {
       const privateSpell = {
         ...mockSpell,
-        visibility: SpellVisibility.PRIVATE,
+        visibility: 'private',
         createdBy: 'owner-user'
       }
 
@@ -108,7 +130,7 @@ describe('Spell Engine', () => {
         amount: 500,
         currency: 'usd',
         paymentIntentId: 'pi_test_123',
-        status: BillingStatus.SUCCEEDED
+        status: 'succeeded'
       })
 
       const result = await executeSpell({
@@ -134,7 +156,7 @@ describe('Spell Engine', () => {
       )
       ;(prisma.billingRecord.create as jest.Mock).mockResolvedValue({
         id: 'billing-failed-123',
-        status: BillingStatus.FAILED
+        status: 'failed'
       })
 
       const result = await executeSpell({
@@ -147,7 +169,7 @@ describe('Spell Engine', () => {
       expect(result.error).toContain('Payment failed')
       expect(prisma.billingRecord.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          status: BillingStatus.FAILED,
+          status: 'failed',
           paymentIntentId: 'failed'
         })
       })
@@ -156,7 +178,7 @@ describe('Spell Engine', () => {
     it('should execute BUILTIN runtime spell', async () => {
       const builtinSpell = {
         ...mockSpell,
-        runtime: SpellRuntime.BUILTIN,
+        runtime: 'builtin',
         config: { handler: 'echo' }
       }
 
@@ -179,7 +201,7 @@ describe('Spell Engine', () => {
     it('should execute API runtime spell', async () => {
       const apiSpell = {
         ...mockSpell,
-        runtime: SpellRuntime.API,
+        runtime: 'api',
         config: {
           url: 'https://api.example.com/process',
           method: 'POST'
@@ -214,7 +236,7 @@ describe('Spell Engine', () => {
     it('should handle API runtime errors', async () => {
       const apiSpell = {
         ...mockSpell,
-        runtime: SpellRuntime.API,
+        runtime: 'api',
         config: {
           url: 'https://api.example.com/process',
           method: 'POST'
@@ -241,19 +263,12 @@ describe('Spell Engine', () => {
     it('should execute WASM runtime spell', async () => {
       const wasmSpell = {
         ...mockSpell,
-        runtime: SpellRuntime.WASM,
-        config: { version: '1.0' }
+        runtime: 'wasm'
       }
-
-      const wasmBinary = new Uint8Array([0, 97, 115, 109]) // Mock WASM binary
 
       ;(prisma.spell.findUnique as jest.Mock).mockResolvedValue(wasmSpell)
       ;(prisma.runeArtifact.findFirst as jest.Mock).mockResolvedValue({
-        id: 'artifact-123',
-        spellId: 'spell-123',
-        wasmBinary: Buffer.from(wasmBinary),
-        metadata: {},
-        createdAt: new Date()
+        wasmBinary: new Uint8Array([0x00])
       })
 
       const result = await executeSpell({
@@ -272,7 +287,7 @@ describe('Spell Engine', () => {
     it('should handle missing WASM artifact', async () => {
       const wasmSpell = {
         ...mockSpell,
-        runtime: SpellRuntime.WASM
+        runtime: 'wasm'
       }
 
       ;(prisma.spell.findUnique as jest.Mock).mockResolvedValue(wasmSpell)

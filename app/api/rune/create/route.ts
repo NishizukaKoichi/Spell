@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-type SpellVisibility = 'PUBLIC' | 'TEAM' | 'PRIVATE'
-type SpellRuntime = 'BUILTIN' | 'API' | 'WASM'
+type SpellVisibility = 'public' | 'team' | 'private'
+type SpellRuntime = 'builtin' | 'api' | 'wasm'
 
-const visibilityValues = new Set<SpellVisibility>(['PUBLIC', 'TEAM', 'PRIVATE'])
-const runtimeValues = new Set<SpellRuntime>(['BUILTIN', 'API', 'WASM'])
+const visibilityValues = new Set<SpellVisibility>(['public', 'team', 'private'])
+const runtimeValues = new Set<SpellRuntime>(['builtin', 'api', 'wasm'])
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       runtime,
       config,
       priceAmount = 0,
-      visibility = 'PUBLIC',
+      visibility = 'public',
       wasmBinary,
       metadata = {}
     } = body
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!runtime || typeof runtime !== 'string' || !runtimeValues.has(runtime as SpellRuntime)) {
-      return NextResponse.json({ error: 'runtime must be BUILTIN, API, or WASM' }, { status: 400 })
+      return NextResponse.json({ error: 'runtime must be builtin, api, or wasm' }, { status: 400 })
     }
 
     if (typeof config !== 'object' || config === null) {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (typeof visibility !== 'string' || !visibilityValues.has(visibility as SpellVisibility)) {
-      return NextResponse.json({ error: 'visibility must be PUBLIC, TEAM, or PRIVATE' }, { status: 400 })
+      return NextResponse.json({ error: 'visibility must be public, team, or private' }, { status: 400 })
     }
 
     if (typeof metadata !== 'object' || metadata === null) {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    if (normalizedRuntime === 'WASM' || wasmBinary) {
+    if (normalizedRuntime === 'wasm' || wasmBinary) {
       await prisma.runeArtifact.create({
         data: {
           spellId: spell.id,

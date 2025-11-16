@@ -1,6 +1,6 @@
-import { prisma } from './prisma'
-import { createPaymentIntent } from './stripe'
-import { SpellRuntime, Spell, BillingStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { createPaymentIntent } from '@/lib/stripe'
+import { Spell } from '@prisma/client'
 
 export interface SpellExecutionInput {
   userId: string
@@ -60,7 +60,7 @@ export async function executeSpell(input: SpellExecutionInput): Promise<SpellExe
           amount: spell.priceAmount,
           currency: 'usd',
           paymentIntentId: paymentIntent.id,
-          status: BillingStatus.SUCCEEDED
+          status: 'succeeded'
         }
       })
 
@@ -74,7 +74,7 @@ export async function executeSpell(input: SpellExecutionInput): Promise<SpellExe
           amount: spell.priceAmount,
           currency: 'usd',
           paymentIntentId: 'failed',
-          status: BillingStatus.FAILED
+          status: 'failed'
         }
       })
 
@@ -107,11 +107,11 @@ export async function executeSpell(input: SpellExecutionInput): Promise<SpellExe
  * Check if user can access spell based on visibility
  */
 function canAccessSpell(userId: string, spell: Spell): boolean {
-  if (spell.visibility === 'PUBLIC') {
+  if (spell.visibility === 'public') {
     return true
   }
 
-  if (spell.visibility === 'PRIVATE') {
+  if (spell.visibility === 'private') {
     return spell.createdBy === userId
   }
 
@@ -127,13 +127,13 @@ async function executeSpellRuntime(
   parameters: Record<string, unknown>
 ): Promise<unknown> {
   switch (spell.runtime) {
-    case SpellRuntime.BUILTIN:
+    case 'builtin':
       return executeBuiltinSpell(spell, parameters)
 
-    case SpellRuntime.API:
+    case 'api':
       return executeApiSpell(spell, parameters)
 
-    case SpellRuntime.WASM:
+    case 'wasm':
       return executeWasmSpell(spell, parameters)
 
     default:

@@ -4,15 +4,15 @@ import { prisma } from '@/lib/prisma'
 
 interface SpellAccess {
   createdBy: string
-  visibility: 'PUBLIC' | 'TEAM' | 'PRIVATE'
+  visibility: 'public' | 'team' | 'private'
 }
 
 function canAccessSpell(userId: string, spell: SpellAccess) {
-  if (spell.visibility === 'PUBLIC') {
+  if (spell.visibility === 'public') {
     return true
   }
 
-  if (spell.visibility === 'PRIVATE') {
+  if (spell.visibility === 'private') {
     return spell.createdBy === userId
   }
 
