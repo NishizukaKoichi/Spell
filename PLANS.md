@@ -322,7 +322,9 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 - Middleware sanitizes and forward-fills `x-spell-user-id` to avoid re-verifying JWT/bans in each handler, keeping consistent auth state for downstream logic.
 
 ### Outcomes & Retrospective
-- _Pending completion._
+- Added centralized authentication middleware with uniform JWT/BAN enforcement across all API routes, plus internal ban-check endpoint to keep Prisma on Node runtime.
+- All `/api/*` handlers now rely on forwarded `x-spell-user-id`, and Jest coverage ensures auth failures return structured error codes.
+- Remaining work: Phase A-003 (spell execute pipeline) now unblocked; monitor env rollout (`JWT_ISSUER`, `JWT_AUDIENCE`, `INTERNAL_AUTH_SECRET`) before staging deploy.
 
 ---
 
