@@ -384,7 +384,9 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 - Standardized spell execution error codes (`SPELL_NOT_FOUND`, `VISIBILITY_DENIED`, `BILLING_FAILED`, `RUNTIME_ERROR`) and mapped them to HTTP responses so clients receive actionable failures.
 
 ### Outcomes & Retrospective
-- _Pending completion._
+- Implemented deterministic spell execution pipeline: spell lookup, visibility enforcement, billing (Stripe PaymentIntent + Prisma records), and runtime dispatch with structured success/error responses.
+- `/api/spell/execute` now emits consistent HTTP statuses + error codes so Apps SDK/CLI can react to billing or visibility failures, and test coverage guards regressions.
+- Next focus: Phase A-004 (Stripe customer sync + billing foundation) building on the now-stable execution engine; monitor future TODOs (team visibility, WASM sandbox) as follow-ups.
 
 ---
 
