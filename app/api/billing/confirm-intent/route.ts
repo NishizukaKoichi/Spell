@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth'
-import { stripe } from '@/lib/stripe'
+import { getStripeClient } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId)
+    const paymentIntent = await getStripeClient().paymentIntents.confirm(paymentIntentId)
 
     return NextResponse.json({
       id: paymentIntent.id,

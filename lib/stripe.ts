@@ -1,13 +1,23 @@
 import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not defined')
-}
+let stripeSingleton: Stripe | null = null
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia'
-})
+export function getStripeClient(): Stripe {
+  if (stripeSingleton) {
+    return stripeSingleton
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not defined')
+  }
+
+  stripeSingleton = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-02-24.acacia'
+  })
+
+  return stripeSingleton
+}
 
 /**
  * Get or create Stripe customer for user
@@ -26,7 +36,7 @@ export async function getOrCreateCustomer(userId: string): Promise<string> {
   }
 
   // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await getStripeClient().customers.create({
     metadata: {
       userId
     }
@@ -47,7 +57,7 @@ export async function getOrCreateCustomer(userId: string): Promise<string> {
 export async function createCheckoutSession(userId: string): Promise<string> {
   const customerId = await getOrCreateCustomer(userId)
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripeClient().checkout.sessions.create({
     customer: customerId,
     mode: 'setup',
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/success`,
@@ -68,13 +78,13 @@ export async function createPaymentIntent(
   const customerId = await getOrCreateCustomer(userId)
 
   // Get default payment method
-  const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
+  const customer = await getStripeClient().customers.retrieve(customerId) as Stripe.Customer
 
   if (!customer.invoice_settings?.default_payment_method) {
     throw new Error('No payment method on file')
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripeClient().paymentIntents.create({
     amount,
     currency,
     customer: customerId,
@@ -95,7 +105,7 @@ export async function createPaymentIntent(
 export async function createPortalSession(userId: string): Promise<string> {
   const customerId = await getOrCreateCustomer(userId)
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripeClient().billingPortal.sessions.create({
     customer: customerId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
   })
