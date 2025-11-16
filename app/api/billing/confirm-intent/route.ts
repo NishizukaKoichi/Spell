@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromHeaders } from '@/lib/auth'
-import { getStripeClient } from '@/lib/stripe'
+import {
+  confirmPaymentIntentForUser,
+  PaymentIntentOwnershipError
+} from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    getUserIdFromHeaders(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
     const { paymentIntentId } = await request.json()
 
     if (!paymentIntentId || typeof paymentIntentId !== 'string') {
@@ -14,7 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const paymentIntent = await getStripeClient().paymentIntents.confirm(paymentIntentId)
+    const paymentIntent = await confirmPaymentIntentForUser(userId, paymentIntentId)
 
     return NextResponse.json({
       id: paymentIntent.id,
@@ -22,6 +25,16 @@ export async function POST(request: NextRequest) {
       amount: paymentIntent.amount
     })
   } catch (error) {
+    if (
+      error instanceof PaymentIntentOwnershipError ||
+      (error instanceof Error && error.message.includes('does not belong'))
+    ) {
+      return NextResponse.json(
+        { error: error.message, code: 'INTENT_CUSTOMER_MISMATCH' },
+        { status: 403 }
+      )
+    }
+
     const message = error instanceof Error ? error.message : 'Internal server error'
     const status = message.includes('No such payment_intent') ? 404 : 500
 

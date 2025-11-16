@@ -78,7 +78,7 @@ Spell 開発は、次のような構造で進む：
 | A-001 | DB schema: users/spells/billing/bans | wt/db-schema | CI_GREEN | - | Prisma schema aligned w/ Spec v1.0 + Jest infra stabilised |
 | A-002 | JWT verify + BAN middleware | wt/auth-mw | MERGED | A-001 | Middleware + shared auth errors |
 | A-003 | Spell execute pipeline (/api/spell/execute) | wt/spell-exec | MERGED | A-002 | Spell engine + API contract implemented |
-| A-004 | Billing foundation (Stripe Customer sync) | wt/billing-core | OPEN | A-001 | |
+| A-004 | Billing foundation (Stripe Customer sync) | wt/billing-core | IN_PROGRESS | A-001 | ExecPlan drafted; implementing Stripe customer sync + billing APIs |
 | A-005 | Webhook handling (Stripe) | wt/webhook | OPEN | A-004 | |
 
 ### Phase B — Integration Layer
