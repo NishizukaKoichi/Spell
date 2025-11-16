@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 type SpellVisibility = 'public' | 'team' | 'private'
@@ -10,7 +10,7 @@ const runtimeValues = new Set<SpellRuntime>(['builtin', 'api', 'wasm'])
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
     const body = await request.json()
     const {
       slug,

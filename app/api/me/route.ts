@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const userId = await authenticateRequest(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
 
     // Get user info
     const user = await prisma.user.findUnique({

@@ -273,4 +273,57 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 
 ---
 
+## ExecPlan: A-002 — Auth Middleware & BAN Enforcement
+
+### Overview
+- Introduce a centralized authentication layer for `/api/**` routes so every handler receives a verified `user_id` and consistent BAN enforcement without duplicating logic per route.
+- Ensure Apps SDK / CLI clients can rely on uniform error codes when JWT validation fails or when a user has been banned, satisfying the security requirements in Spec.md §7 and §11.
+
+### Constraints & Invariants
+- Spell remains UI-less; middleware must only guard API routes.
+- JWT boundary: only accept bearer tokens signed with `JWT_SECRET`; never issue tokens.
+- BAN logic must run before any billing or spell execution, and banned users must not be charged.
+- Middleware must be edge-compatible (Next.js 16) and avoid blocking `/_next` assets.
+- No natural language parsing; responses stay structured JSON errors.
+
+### Milestones & Checklist
+1. Define error primitives in `lib/auth` (e.g., `AuthError`, `BanError`) to distinguish failure reasons.
+2. Implement `middleware.ts` (or route handler wrapper) that verifies JWT, checks BAN, and injects `x-spell-user-id` into the request headers for downstream handlers.
+3. Update existing route handlers to read the injected header instead of calling `authenticateRequest` manually (remove duplication, but keep helper for tests).
+4. Add Jest coverage for: successful pass-through, missing token, invalid token, banned user.
+5. Update docs (`Spec.md`/`PLANS.md`) if API error shapes change.
+
+### Implementation Steps
+- Extend `lib/auth.ts` with typed errors and a helper to serialize auth failures.
+- Add `middleware.ts` at the repo root configured to run on `/api/:path*`, skip `/_next` and `/_static`.
+- Inside middleware: parse Authorization, call `authenticateRequest`, attach user id to `requestHeaders` (e.g., `requestHeaders.set('x-spell-user-id', userId)`), and forward; on error, short-circuit with JSON response.
+- Update each API route to read `request.headers.get('x-spell-user-id')` (fallback to `authenticateRequest` for non-middleware contexts such as tests).
+- Adjust tests to mock the middleware header injection.
+
+### Validation & Tests
+- Unit tests for `lib/auth` error types and happy/ban paths.
+- Middleware tests via Next's `NextRequest` mock verifying header injection and error JSON.
+- Re-run `pnpm test` and `vercel build --yes` to ensure middleware compiles for both Node and Edge runtimes.
+
+### Risk & Rollback
+- Risk: middleware intercept might break unauthenticated endpoints; mitigate via matcher configuration.
+- Rollback: remove `middleware.ts`, revert API header changes, reinstall per-route `authenticateRequest` before release.
+
+### Progress Log
+- 2025-01-15 — Drafted ExecPlan for A-002 (auth middleware & BAN enforcement).
+- 2025-01-16 — Implemented shared auth helpers + Next middleware that injects `x-spell-user-id`, added internal BAN-check endpoint, and updated every API handler to trust the forwarded header.
+- 2025-01-16 — Added middleware + auth unit tests, documented new env vars, and ran `pnpm test`.
+
+### Surprises & Discoveries
+- Next.js middleware executes in the Edge runtime, so Prisma cannot run there; needed an internal authenticated API to ask the Node runtime for BAN status.
+
+### Decision Log
+- Added `/api/internal/auth/ban-check` gated by `INTERNAL_AUTH_SECRET` so middleware can enforce bans without embedding Prisma in the Edge bundle.
+- Middleware sanitizes and forward-fills `x-spell-user-id` to avoid re-verifying JWT/bans in each handler, keeping consistent auth state for downstream logic.
+
+### Outcomes & Retrospective
+- _Pending completion._
+
+---
+
 End of PLANS.md — Spell Platform Autonomous Execution Plans (v2)

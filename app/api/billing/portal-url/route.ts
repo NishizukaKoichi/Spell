@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth'
+import { getUserIdFromHeaders } from '@/lib/auth'
 import { createPortalSession } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request.headers)
+    const userId = getUserIdFromHeaders(request.headers)
     const url = await createPortalSession(userId)
 
     return NextResponse.json({ url })

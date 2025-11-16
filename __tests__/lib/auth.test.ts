@@ -25,6 +25,8 @@ const {
 
 const JWT_SECRET = 'test-secret-key-for-testing-only-32-bytes'
 process.env.JWT_SECRET = JWT_SECRET
+process.env.JWT_ISSUER = 'test-issuer'
+process.env.JWT_AUDIENCE = 'test-audience'
 
 describe('Auth Module', () => {
   beforeEach(() => {
@@ -89,6 +91,16 @@ describe('Auth Module', () => {
   })
 
   describe('authenticateRequest', () => {
+    it('should return forwarded user id without revalidating token', async () => {
+      const userId = 'forwarded-user'
+      const headers = new Headers()
+      headers.set('x-spell-user-id', userId)
+
+      const result = await authenticateRequest(headers)
+      expect(result).toBe(userId)
+      expect(jwtVerifyMock).not.toHaveBeenCalled()
+    })
+
     it('should authenticate valid request with Bearer token', async () => {
       const userId = 'test-user-123'
       jwtVerifyMock.mockResolvedValue({ payload: { sub: userId } })

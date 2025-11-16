@@ -76,7 +76,7 @@ Spell 開発は、次のような構造で進む：
 | Ticket ID | Title | Worktree/Branch | Status | Depends On | Notes |
 |-----------|--------|------------------|---------|-------------|--------|
 | A-001 | DB schema: users/spells/billing/bans | wt/db-schema | CI_GREEN | - | Prisma schema aligned w/ Spec v1.0 + Jest infra stabilised |
-| A-002 | JWT verify + BAN middleware | wt/auth-mw | OPEN | A-001 | |
+| A-002 | JWT verify + BAN middleware | wt/auth-mw | IN_PROGRESS | A-001 | Middleware + shared auth errors |
 | A-003 | Spell execute pipeline (/api/spell/execute) | wt/spell-exec | OPEN | A-002 | |
 | A-004 | Billing foundation (Stripe Customer sync) | wt/billing-core | OPEN | A-001 | |
 | A-005 | Webhook handling (Stripe) | wt/webhook | OPEN | A-004 | |
@@ -105,7 +105,7 @@ Spell 開発は、次のような構造で進む：
 ここに全体状況を定期的に記録する（AI にも更新させる）。
 
 ```markdown
-### Summary (Last Updated: 2025-01-15)
+### Summary (Last Updated: 2025-01-16)
 
 Phase A: 0 / 5 MERGED
 Phase B: 0 / 3 MERGED
@@ -114,7 +114,7 @@ Phase C: 0 / 3 MERGED
 Total Tickets: 11
 Overall Completion: ~0%
 
-Current Focus: Phase A-001 — Prisma schema alignment + test infrastructure hardening
+Current Focus: Phase A-002 — Auth middleware + BAN enforcement
 ```
 
 ---
