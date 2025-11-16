@@ -328,4 +328,64 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 
 ---
 
+## ExecPlan: A-003 — Spell Execution Pipeline
+
+### Overview
+- Deliver the first runnable Spell execution pipeline so `/api/spell/execute` enforces the Spec-defined flow: spell lookup → visibility guard → billing (PaymentIntent + billing record) → runtime dispatch (`builtin`/`api`/`wasm`) → JSON result.
+- Wire `lib/spell-engine` to Stripe + Prisma in a way that Apps SDK/CLI can rely on deterministic errors (spell not found, access denied, billing failure, runtime failure) and ensure billing happens exactly once per paid invocation.
+- This unblocks downstream Phase B integrations by guaranteeing a stable execution engine contract.
+
+### Constraints & Invariants
+- Remain API-only—no UI additions. Reuse Next.js App Router semantics.
+- Spell pipeline order is fixed (Spec §8.1). Authentication/BAN already handled by middleware; this layer must not skip visibility/billing/runtime checks.
+- Stripe Customer relationship stays 1:1 with `users`. PaymentIntent must be created with `confirm=true`, and billing records must represent success/failure accurately.
+- Forbid natural-language parsing; runtime execution is deterministic code/API/WASM.
+- Prisma operations must target Neon Postgres schema from Phase A-001.
+- Keep runtime dispatch extensible but minimal (no real WASM sandbox yet; stub allowed with TODO comments).
+
+### Milestones & Checklist
+1. Document execution contract + error enums for `executeSpell` (success/error shape, billing record expectations).
+2. Implement visibility + billing enforcement aligned with Spec (PaymentIntent helper, billing record statuses).
+3. Flesh out runtime dispatch scaffolding for builtin/api/wasm (with clear placeholders where future work plugs in).
+4. Update `/api/spell/execute` response handling + tests to cover success/failure/billing error flows.
+5. Run full Jest suite; update docs/logs (PLANS/PROGRESS) once behavior is validated.
+
+### Implementation Steps
+- `lib/spell-engine.ts`:
+  - Introduce discriminated union for `SpellExecutionResult` to encode `status`, `errorCode`, `billingRecordId`.
+  - Add helper functions `getSpellOrError`, `ensureVisibility`, `chargeSpell` (invoking `createPaymentIntent` with `confirm=true` and capturing `stripePaymentIntentId`), and `recordBilling`.
+  - Expand runtime executors: `executeBuiltinSpell`, `executeApiSpell`, `executeWasmSpell` with clear TODO boundaries; ensure API runtime respects `config.headers` and times out gracefully.
+  - Guarantee atomicity: if runtime fails after billing success, return `billingRecordId` so clients can reconcile.
+- `app/api/spell/execute/route.ts`:
+  - Ensure request body validation (spellId string, parameters object) and map `executeSpell` results to HTTP codes (200 success, 402 for billing fail, 403 for visibility, 404 for missing spell, 500 fallback).
+  - Surface consistent error JSON (`{ error, code, billingRecordId? }`).
+- Tests:
+  - Expand `__tests__/lib/spell-engine.test.ts` to mock Prisma + Stripe for each path (spell missing, visibility fail, billing success/failure, runtime error).
+  - Add API handler tests (e.g., using NextRequest mocks) if feasible; otherwise rely on engine tests plus smoke tests.
+
+### Validation & Tests
+- `pnpm test` (covers `lib/spell-engine`, middleware, stripe mocks).
+- Optional targeted test command: `pnpm test __tests__/lib/spell-engine.test.ts`.
+- Manual sanity check via `pnpm dev` + MCP inspector hitting `POST /api/spell/execute` with mocked data (document in Surprises if run).
+
+### Risk & Rollback
+- Risk: double billing or missing refunds if runtime fails. Mitigate by recording billing status and propagating PaymentIntent IDs.
+- Rollback: revert `lib/spell-engine.ts` and `app/api/spell/execute/route.ts`; rerun tests; ensure previous simple stub still executes.
+
+### Progress Log
+- 2025-01-16 — Authored ExecPlan for A-003 (Spell execution pipeline).
+- 2025-01-16 — Reworked `lib/spell-engine` to enforce visibility/billing order, return typed success/error unions, and updated `/api/spell/execute` to map errors to HTTP status.
+- 2025-01-16 — Expanded spell engine Jest coverage + full `pnpm test` to validate billing failure and runtime failure behavior.
+
+### Surprises & Discoveries
+- Existing engine returned boolean success without error codes, so API routing logic could not choose HTTP statuses; adding discriminated unions simplified response mapping.
+
+### Decision Log
+- Standardized spell execution error codes (`SPELL_NOT_FOUND`, `VISIBILITY_DENIED`, `BILLING_FAILED`, `RUNTIME_ERROR`) and mapped them to HTTP responses so clients receive actionable failures.
+
+### Outcomes & Retrospective
+- _Pending completion._
+
+---
+
 End of PLANS.md — Spell Platform Autonomous Execution Plans (v2)

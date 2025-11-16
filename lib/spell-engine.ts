@@ -2,17 +2,44 @@ import { prisma } from '@/lib/prisma'
 import { createPaymentIntent } from '@/lib/stripe'
 import { Spell } from '@prisma/client'
 
+const BILLING_CURRENCY = 'usd'
+
 export interface SpellExecutionInput {
   userId: string
   spellId: string
   parameters: Record<string, unknown>
 }
 
-export interface SpellExecutionResult {
-  success: boolean
-  output?: unknown
-  error?: string
+export type SpellExecutionErrorCode =
+  | 'SPELL_NOT_FOUND'
+  | 'VISIBILITY_DENIED'
+  | 'BILLING_FAILED'
+  | 'RUNTIME_ERROR'
+
+export type SpellExecutionResult =
+  | {
+      status: 'success'
+      output: unknown
+      billingRecordId?: string
+    }
+  | {
+      status: 'error'
+      errorCode: SpellExecutionErrorCode
+      message: string
+      billingRecordId?: string
+    }
+
+function failure(
+  errorCode: SpellExecutionErrorCode,
+  message: string,
   billingRecordId?: string
+): SpellExecutionResult {
+  return {
+    status: 'error',
+    errorCode,
+    message,
+    billingRecordId
+  }
 }
 
 /**
@@ -20,86 +47,51 @@ export interface SpellExecutionResult {
  */
 export async function executeSpell(input: SpellExecutionInput): Promise<SpellExecutionResult> {
   const { userId, spellId, parameters } = input
-
-  // Get spell
   const spell = await prisma.spell.findUnique({
     where: { id: spellId }
   })
 
   if (!spell) {
-    return {
-      success: false,
-      error: 'Spell not found'
-    }
+    return failure('SPELL_NOT_FOUND', 'Spell not found')
   }
 
-  // Check visibility
   if (!canAccessSpell(userId, spell)) {
-    return {
-      success: false,
-      error: 'Access denied'
-    }
+    return failure('VISIBILITY_DENIED', 'Access denied')
   }
 
-  // Handle billing if spell has a price
+  const safeParameters =
+    typeof parameters === 'object' && parameters !== null ? parameters : ({} as Record<string, unknown>)
+
   let billingRecordId: string | undefined
 
   if (spell.priceAmount > 0) {
-    try {
-      const paymentIntent = await createPaymentIntent(
-        userId,
-        spell.priceAmount,
-        'usd'
-      )
+    const chargeResult = await chargeSpell({
+      userId,
+      spell,
+      amount: spell.priceAmount
+    })
 
-      // Create billing record
-      const billingRecord = await prisma.billingRecord.create({
-        data: {
-          userId,
-          spellId: spell.id,
-          amount: spell.priceAmount,
-          currency: 'usd',
-          paymentIntentId: paymentIntent.id,
-          status: 'succeeded'
-        }
-      })
-
-      billingRecordId = billingRecord.id
-    } catch (error) {
-      // Create failed billing record
-      await prisma.billingRecord.create({
-        data: {
-          userId,
-          spellId: spell.id,
-          amount: spell.priceAmount,
-          currency: 'usd',
-          paymentIntentId: 'failed',
-          status: 'failed'
-        }
-      })
-
-      return {
-        success: false,
-        error: 'Payment failed: ' + (error instanceof Error ? error.message : 'Unknown error')
-      }
+    if (!chargeResult.ok) {
+      return chargeResult.error
     }
+
+    billingRecordId = chargeResult.billingRecordId
   }
 
-  // Execute spell based on runtime
   try {
-    const output = await executeSpellRuntime(spell, parameters)
+    const output = await executeSpellRuntime(spell, safeParameters)
 
     return {
-      success: true,
+      status: 'success',
       output,
       billingRecordId
     }
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Execution failed',
+    return failure(
+      'RUNTIME_ERROR',
+      error instanceof Error ? error.message : 'Execution failed',
       billingRecordId
-    }
+    )
   }
 }
 
@@ -236,6 +228,65 @@ export async function estimateSpellCost(spellId: string): Promise<{
 
   return {
     priceAmount: spell.priceAmount,
-    currency: 'usd'
+    currency: BILLING_CURRENCY
+  }
+}
+
+type ChargeSuccess = {
+  ok: true
+  billingRecordId: string
+}
+
+type ChargeFailure = {
+  ok: false
+  error: SpellExecutionResult
+}
+
+async function chargeSpell({
+  userId,
+  spell,
+  amount
+}: {
+  userId: string
+  spell: Spell
+  amount: number
+}): Promise<ChargeSuccess | ChargeFailure> {
+  try {
+    const paymentIntent = await createPaymentIntent(userId, amount, BILLING_CURRENCY)
+
+    const billingRecord = await prisma.billingRecord.create({
+      data: {
+        userId,
+        spellId: spell.id,
+        amount,
+        currency: BILLING_CURRENCY,
+        paymentIntentId: paymentIntent.id,
+        status: 'succeeded'
+      }
+    })
+
+    return {
+      ok: true,
+      billingRecordId: billingRecord.id
+    }
+  } catch (error) {
+    await prisma.billingRecord.create({
+      data: {
+        userId,
+        spellId: spell.id,
+        amount,
+        currency: BILLING_CURRENCY,
+        paymentIntentId: 'failed',
+        status: 'failed'
+      }
+    })
+
+    return {
+      ok: false,
+      error: failure(
+        'BILLING_FAILED',
+        'Payment failed: ' + (error instanceof Error ? error.message : 'Unknown error')
+      )
+    }
   }
 }
