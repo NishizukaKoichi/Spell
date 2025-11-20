@@ -445,7 +445,8 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 - Emit specific billing error codes (`PAYMENT_METHOD_EXISTS`, `NO_PAYMENT_METHOD`, `INTENT_CUSTOMER_MISMATCH`) so clients know when to redirect vs retry.
 
 ### Outcomes & Retrospective
-- _Pending completion._
+- Billing endpoints now enforce customer/payment-method invariants, emit actionable error codes, and Stripe helpers guarantee PaymentIntents belong to the requesting user; Jest coverage guards regressions.
+- Apps SDK/CLI can distinguish “card already on file”, “needs card”, or “PaymentIntent mismatch”, unblocking webhook + portal follow-up work (A-005).
 
 ---
 
