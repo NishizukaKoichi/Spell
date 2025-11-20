@@ -79,7 +79,7 @@ Spell 開発は、次のような構造で進む：
 | A-002 | JWT verify + BAN middleware | wt/auth-mw | MERGED | A-001 | Middleware + shared auth errors |
 | A-003 | Spell execute pipeline (/api/spell/execute) | wt/spell-exec | MERGED | A-002 | Spell engine + API contract implemented |
 | A-004 | Billing foundation (Stripe Customer sync) | wt/billing-core | MERGED | A-001 | Stripe customer sync + billing API errors hardened |
-| A-005 | Webhook handling (Stripe) | wt/webhook | OPEN | A-004 | |
+| A-005 | Webhook handling (Stripe) | wt/webhook | IN_PROGRESS | A-004 | ExecPlan drafted; implementing Stripe webhook endpoint |
 
 ### Phase B — Integration Layer
 
