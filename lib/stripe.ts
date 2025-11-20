@@ -19,6 +19,45 @@ export function getStripeClient(): Stripe {
   return stripeSingleton
 }
 
+export class MissingPaymentMethodError extends Error {
+  constructor(message = 'No payment method on file') {
+    super(message)
+    this.name = 'MissingPaymentMethodError'
+  }
+}
+
+export class PaymentMethodAlreadyExistsError extends Error {
+  constructor(message = 'Payment method already on file') {
+    super(message)
+    this.name = 'PaymentMethodAlreadyExistsError'
+  }
+}
+
+export class PaymentIntentOwnershipError extends Error {
+  constructor(message = 'PaymentIntent does not belong to this user') {
+    super(message)
+    this.name = 'PaymentIntentOwnershipError'
+  }
+}
+
+function assertStripeCustomer(
+  customer: Stripe.Customer | Stripe.DeletedCustomer
+): asserts customer is Stripe.Customer {
+  if ('deleted' in customer && customer.deleted) {
+    throw new Error('Stripe customer record has been deleted')
+  }
+}
+
+function extractDefaultPaymentMethodId(customer: Stripe.Customer): string | null {
+  const paymentMethod = customer.invoice_settings?.default_payment_method
+
+  if (!paymentMethod) {
+    return null
+  }
+
+  return typeof paymentMethod === 'string' ? paymentMethod : paymentMethod.id
+}
+
 /**
  * Get or create Stripe customer for user
  */
@@ -56,6 +95,15 @@ export async function getOrCreateCustomer(userId: string): Promise<string> {
  */
 export async function createCheckoutSession(userId: string): Promise<string> {
   const customerId = await getOrCreateCustomer(userId)
+  const customer = await getStripeClient().customers.retrieve(customerId, {
+    expand: ['invoice_settings.default_payment_method']
+  })
+
+  assertStripeCustomer(customer)
+
+  if (extractDefaultPaymentMethodId(customer)) {
+    throw new PaymentMethodAlreadyExistsError()
+  }
 
   const session = await getStripeClient().checkout.sessions.create({
     customer: customerId,
@@ -76,19 +124,23 @@ export async function createPaymentIntent(
   currency: string = 'usd'
 ): Promise<Stripe.PaymentIntent> {
   const customerId = await getOrCreateCustomer(userId)
+  const customer = await getStripeClient().customers.retrieve(customerId, {
+    expand: ['invoice_settings.default_payment_method']
+  })
 
-  // Get default payment method
-  const customer = await getStripeClient().customers.retrieve(customerId) as Stripe.Customer
+  assertStripeCustomer(customer)
 
-  if (!customer.invoice_settings?.default_payment_method) {
-    throw new Error('No payment method on file')
+  const paymentMethodId = extractDefaultPaymentMethodId(customer)
+
+  if (!paymentMethodId) {
+    throw new MissingPaymentMethodError()
   }
 
   const paymentIntent = await getStripeClient().paymentIntents.create({
     amount,
     currency,
     customer: customerId,
-    payment_method: customer.invoice_settings.default_payment_method as string,
+    payment_method: paymentMethodId,
     confirm: true,
     automatic_payment_methods: {
       enabled: true,
@@ -111,4 +163,31 @@ export async function createPortalSession(userId: string): Promise<string> {
   })
 
   return session.url
+}
+
+export async function confirmPaymentIntentForUser(
+  userId: string,
+  paymentIntentId: string
+): Promise<Stripe.PaymentIntent> {
+  const customerId = await getOrCreateCustomer(userId)
+  const stripe = getStripeClient()
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+
+  if (!paymentIntent) {
+    throw new Error('PaymentIntent not found')
+  }
+
+  const intentCustomer = paymentIntent.customer
+  const intentCustomerId =
+    typeof intentCustomer === 'string'
+      ? intentCustomer
+      : intentCustomer && 'id' in intentCustomer
+        ? (intentCustomer as Stripe.Customer).id
+        : null
+
+  if (!intentCustomerId || intentCustomerId !== customerId) {
+    throw new PaymentIntentOwnershipError()
+  }
+
+  return stripe.paymentIntents.confirm(paymentIntentId)
 }

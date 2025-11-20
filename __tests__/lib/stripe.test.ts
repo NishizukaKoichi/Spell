@@ -13,7 +13,9 @@ const createStripeMockInstance = () => ({
     }
   },
   paymentIntents: {
-    create: jest.fn()
+    create: jest.fn(),
+    retrieve: jest.fn(),
+    confirm: jest.fn()
   },
   billingPortal: {
     sessions: {
@@ -29,6 +31,8 @@ const resetStripeMock = () => {
   stripeMockInstance.customers.retrieve.mockReset()
   stripeMockInstance.checkout.sessions.create.mockReset()
   stripeMockInstance.paymentIntents.create.mockReset()
+  stripeMockInstance.paymentIntents.retrieve.mockReset()
+  stripeMockInstance.paymentIntents.confirm.mockReset()
   stripeMockInstance.billingPortal.sessions.create.mockReset()
 }
 
@@ -58,7 +62,11 @@ const {
   getOrCreateCustomer,
   createCheckoutSession,
   createPaymentIntent,
-  createPortalSession
+  createPortalSession,
+  confirmPaymentIntentForUser,
+  PaymentMethodAlreadyExistsError,
+  MissingPaymentMethodError,
+  PaymentIntentOwnershipError
 } = stripeLib
 
 describe('Stripe Integration', () => {
@@ -135,6 +143,13 @@ describe('Stripe Integration', () => {
         stripeCustomerId: customerId
       })
 
+      stripeMockInstance.customers.retrieve.mockResolvedValue({
+        id: customerId,
+        invoice_settings: {
+          default_payment_method: null
+        }
+      })
+
       stripeMockInstance.checkout.sessions.create.mockResolvedValue({
         url: checkoutUrl
       })
@@ -142,12 +157,36 @@ describe('Stripe Integration', () => {
       const result = await createCheckoutSession(userId)
 
       expect(result).toBe(checkoutUrl)
+      expect(stripeMockInstance.customers.retrieve).toHaveBeenCalledWith(customerId, {
+        expand: ['invoice_settings.default_payment_method']
+      })
       expect(stripeMockInstance.checkout.sessions.create).toHaveBeenCalledWith({
         customer: customerId,
         mode: 'setup',
         success_url: 'http://localhost:3000/billing/success',
         cancel_url: 'http://localhost:3000/billing/cancel'
       })
+    })
+
+    it('should throw if payment method already exists', async () => {
+      const userId = 'user-123'
+      const customerId = 'cus_123'
+
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        stripeCustomerId: customerId
+      })
+
+      stripeMockInstance.customers.retrieve.mockResolvedValue({
+        id: customerId,
+        invoice_settings: {
+          default_payment_method: 'pm_123'
+        }
+      })
+
+      await expect(createCheckoutSession(userId)).rejects.toBeInstanceOf(
+        PaymentMethodAlreadyExistsError
+      )
     })
   })
 
@@ -179,6 +218,9 @@ describe('Stripe Integration', () => {
       const result = await createPaymentIntent(userId, amount, 'usd')
 
       expect(result.id).toBe('pi_123')
+      expect(stripeMockInstance.customers.retrieve).toHaveBeenCalledWith(customerId, {
+        expand: ['invoice_settings.default_payment_method']
+      })
       expect(stripeMockInstance.paymentIntents.create).toHaveBeenCalledWith({
         amount,
         currency: 'usd',
@@ -208,8 +250,8 @@ describe('Stripe Integration', () => {
         }
       })
 
-      await expect(createPaymentIntent(userId, 1000)).rejects.toThrow(
-        'No payment method on file'
+      await expect(createPaymentIntent(userId, 1000)).rejects.toBeInstanceOf(
+        MissingPaymentMethodError
       )
     })
   })
@@ -236,6 +278,55 @@ describe('Stripe Integration', () => {
         customer: customerId,
         return_url: 'http://localhost:3000/billing'
       })
+    })
+  })
+
+  describe('confirmPaymentIntentForUser', () => {
+    it('should confirm payment intent for matching customer', async () => {
+      const userId = 'user-123'
+      const customerId = 'cus_123'
+      const paymentIntentId = 'pi_123'
+
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        stripeCustomerId: customerId
+      })
+
+      stripeMockInstance.paymentIntents.retrieve.mockResolvedValue({
+        id: paymentIntentId,
+        customer: customerId
+      })
+
+      stripeMockInstance.paymentIntents.confirm.mockResolvedValue({
+        id: paymentIntentId,
+        status: 'succeeded',
+        amount: 1000
+      })
+
+      const result = await confirmPaymentIntentForUser(userId, paymentIntentId)
+
+      expect(result.id).toBe(paymentIntentId)
+      expect(stripeMockInstance.paymentIntents.confirm).toHaveBeenCalledWith(paymentIntentId)
+    })
+
+    it('should throw if payment intent belongs to different customer', async () => {
+      const userId = 'user-123'
+      const customerId = 'cus_123'
+      const paymentIntentId = 'pi_123'
+
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        stripeCustomerId: customerId
+      })
+
+      stripeMockInstance.paymentIntents.retrieve.mockResolvedValue({
+        id: paymentIntentId,
+        customer: 'cus_other'
+      })
+
+      await expect(
+        confirmPaymentIntentForUser(userId, paymentIntentId)
+      ).rejects.toBeInstanceOf(PaymentIntentOwnershipError)
     })
   })
 })

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromHeaders } from '@/lib/auth'
-import { createCheckoutSession } from '@/lib/stripe'
+import { createCheckoutSession, PaymentMethodAlreadyExistsError } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +9,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url })
   } catch (error) {
+    if (error instanceof PaymentMethodAlreadyExistsError) {
+      return NextResponse.json(
+        { error: error.message, code: 'PAYMENT_METHOD_EXISTS' },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

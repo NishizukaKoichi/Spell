@@ -390,4 +390,63 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 
 ---
 
+## ExecPlan: A-004 — Billing Foundation & Stripe Customer Sync
+
+### Overview
+- Establish the billing substrate so every authenticated user has a synced Stripe Customer, checkout URL, and portal access, enabling reliable charging before spell execution escalates beyond MVP.
+- Harden the existing billing APIs (`/api/billing/checkout-url`, `/portal-url`, `/confirm-intent`) to enforce Spec requirements: one customer per user, no card storage, PaymentIntent confirmations via Stripe, and actionable errors for CLI/Apps SDK.
+- Provide deterministic behavior for “no payment method” vs “customer ready” cases, so Phase B integrations can direct users appropriately.
+
+### Constraints & Invariants
+- Spell never stores card data; Stripe handles payment methods. APIs may only return URLs / PaymentIntent IDs.
+- `users.stripe_customer_id` must remain the sole mapping (1:1) and be created lazily + cached.
+- All billing writes go through Prisma + Stripe SDK; no raw SQL or multiple customer records per user.
+- JWT boundary already handled earlier; billing endpoints must assume authenticated user context from middleware (`getUserIdFromHeaders`).
+- PaymentIntent creation must use `confirm=true` and avoid redirects (per Spec). No natural-language logic.
+- Code must stay App Router-friendly, server-only, and maintain deterministic JSON outputs.
+
+### Milestones & Checklist
+1. Audit current billing helpers/routes vs Spec to identify gaps (customer missing flow, error codes, confirm-intent behavior).
+2. Implement `getOrCreateCustomer` caching improvements + add explicit “no payment method” detection for checkout URL path.
+3. Update `/api/billing/*` handlers to return structured responses + align statuses (e.g., 402 when no payment method, 409 on duplicated actions).
+4. Expand Jest coverage for billing helpers/routes (checkout-url, confirm-intent, portal-url) with Prisma/Stripe mocks.
+5. Update PLANS/PROGRESS logs and document any required env vars (Stripe keys already present).
+
+### Implementation Steps
+- `lib/stripe.ts`:
+  - Ensure `getOrCreateCustomer` handles concurrent creation, uses Prisma transaction, and caches `stripe_customer_id`.
+  - Introduce helper `ensurePaymentMethod(userId)` returning boolean + error when absent.
+  - Keep Stripe client lazy-loaded, but add additional guards/logging for missing envs.
+- API routes:
+  - `/billing/checkout-url`: detect missing payment method and return new Checkout session URL; provide informative error if already has default method.
+  - `/billing/portal-url`: require existing customer and return portal URL; handle missing customer gracefully.
+  - `/billing/confirm-intent`: accept `paymentIntentId`, confirm via Stripe, and persist success/failure; map Stripe errors to HTTP statuses.
+- Tests:
+  - Use Jest mocks for Stripe & Prisma to cover success/failure per route and helper.
+
+### Validation & Tests
+- `pnpm test` (ensure new billing tests pass).
+- Optional targeted commands: `pnpm test __tests__/lib/stripe.test.ts` & new route tests.
+- Manual smoke via `pnpm dev` calling `/api/billing/*` with mocked headers if needed (log in Progress Log).
+
+### Risk & Rollback
+- Risk: creating duplicate Stripe customers or charging without a stored payment method; mitigate by guarding helper logic and tests.
+- Rollback: revert `lib/stripe.ts` + billing routes to previous state, rerun tests.
+
+### Progress Log
+- 2025-01-16 — Authored ExecPlan for A-004 (Billing foundation & Stripe customer sync).
+- 2025-01-16 — Refactored `lib/stripe` (customer/payment method helpers, new error classes, PaymentIntent ownership guard) and updated checkout/confirm routes for structured responses.
+- 2025-01-16 — Expanded Jest coverage (`lib/stripe`, new checkout-url route tests) and ran `pnpm test`.
+
+### Surprises & Discoveries
+- Stripe `customers.retrieve` may return deleted records; added guard to prevent using stale customer objects.
+
+### Decision Log
+- Emit specific billing error codes (`PAYMENT_METHOD_EXISTS`, `NO_PAYMENT_METHOD`, `INTENT_CUSTOMER_MISMATCH`) so clients know when to redirect vs retry.
+
+### Outcomes & Retrospective
+- _Pending completion._
+
+---
+
 End of PLANS.md — Spell Platform Autonomous Execution Plans (v2)
