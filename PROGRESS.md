@@ -58,9 +58,9 @@ Spell 開発は、次のような構造で進む：
 - 例：Apps SDK wiring / CLI integration / Portal URL / Checkout URL
 - Exit Criteria：外部クライアントから Spell 実行ができる
 
-### Phase C — Advanced / Runtime / Rune
-- 目的：WASM / Rune / 高度な拡張機能
-- Exit Criteria：public Spell 作成 → 即反映が完全動作
+### Phase C — Advanced Runtime & Execution
+- 目的：WASM / 実行高度化 / 即時反映
+- Exit Criteria：WASM Sandboxing と即反映パイプラインが完成
 ```
 
 ---
@@ -89,13 +89,12 @@ Spell 開発は、次のような構造で進む：
 | B-002 | CLI spell run integration | wt/cli-run | OPEN | A-003 | |
 | B-003 | Billing portal + checkout URL | wt/portal-checkout | OPEN | A-004 | |
 
-### Phase C — Rune & WASM
+### Phase C — Advanced Runtime & Execution
 
 | Ticket ID | Title | Worktree/Branch | Status | Depends On | Notes |
 |-----------|--------|------------------|---------|-------------|--------|
-| C-001 | Rune: Spell creation API (/api/rune/create) | wt/rune-create | OPEN | A-003 | |
-| C-002 | WASM runtime (sandbox) | wt/wasm-runtime | OPEN | C-001 | |
-| C-003 | Public Spell immediate reflection | wt/public-reflect | OPEN | C-001 | |
+| C-001 | WASM runtime (sandbox) | wt/wasm-runtime | OPEN | A-003 | |
+| C-002 | Public Spell immediate reflection | wt/public-reflect | OPEN | C-001 | |
 ```
 
 ---

@@ -216,7 +216,7 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 ### Overview
 - Establish the canonical Prisma schema that matches `Spec.md` for `users`, `spells`, `rune_artifacts`, `billing_records`, and `bans`.
 - Ensure enum values surfaced to API clients match the lowercase strings defined in the spec (`'public'`, `'team'`, `'private'`, etc.) so downstream clients do not need to normalize values.
-- Add safe defaults (e.g., `priceAmount = 0`, `visibility = 'public'`) to guarantee Rune-created spells become runnable immediately, satisfying the “Bazaar-less” requirement.
+- Add safe defaults (e.g., `priceAmount = 0`, `visibility = 'public'`) to guarantee newly created artifacts become runnable immediately, satisfying the “Bazaar-less” requirement.
 
 ### Constraints & Invariants
 - Spell remains UI-less; no additions outside Prisma + supporting TypeScript typings.

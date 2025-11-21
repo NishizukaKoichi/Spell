@@ -1,14 +1,14 @@
 # Spell
 
-Next.js 16 / Apps SDK 完全対応 / Stripe Unified / CLI Unified / Bazaar-less Model
+Next.js 16 / API-Only / Passkey-JWT / Stripe Pay-per-Use
 
-Spell Platform は UI を持たず、外部クライアント（ChatGPT / CLI / 他 AI）に自然言語層を委譲する API 専用の呪文実行エンジンです。認証済みユーザーからの Spell 実行要求を受け、課金・実行・結果返却までを一貫して担います。詳細な要件は [`Spec.md`](./Spec.md) を参照してください。
+Spell Platform は UI を持たない API 専用の呪文実行エンジンです。外部クライアント（ChatGPT / CLI / 他 AI）が自然言語を扱い、Spell は認証済みユーザーからの実行要求を受けて **JWT 検証 → BAN チェック → 課金 → Runtime 実行 → JSON 応答** のみを担います。詳細は [`Spec.md`](./Spec.md) を参照してください。
 
 ## 機能ハイライト
 
 - パスキー認証済み JWT の検証とユーザー識別
 - Stripe Customer 共有モデルによる課金フロー
-- Spell（builtin / API / WASM）の即時実行と Rune 経由の作成
+- Spell Artifact（builtin / API / WASM）の即時実行
 - BAN / 権限制御での完全遮断
 - ChatGPT / CLI / 他 AI クライアントとのストライプ情報共有
 
@@ -27,14 +27,11 @@ app/
     spell/
       execute/route.ts      # Spell 実行
       estimate/route.ts     # コスト見積り
-    rune/
-      create/route.ts       # Spell 生成
     billing/
       checkout-url/route.ts # Stripe Checkout URL
       confirm-intent/route.ts
       portal-url/route.ts
     me/route.ts             # ユーザー情報
-a
     admin/
       ban/route.ts          # BAN 制御
 lib/                        # 共通ユーティリティ
@@ -58,7 +55,7 @@ pnpm dev # (= vercel dev)
 
 ## CLI / クライアント
 
-CLI (`spell-cli`) は `spell auth`, `spell run`, `spell rune create`, `spell billing portal` を提供し、ChatGPT / Apps SDK と user_id / Stripe Customer を共有します。パスキー認証や課金 UI は全てクライアント側で実施し、Spell には JWT が渡されます。
+CLI (`spell-cli`) は `spell auth`, `spell run`, `spell billing portal` などのコマンドで Spell API を呼び出し、ChatGPT / Apps SDK と user_id / Stripe Customer を共有します。パスキー認証や課金 UI はすべてクライアント側で実施し、Spell には JWT が渡されます。
 
 ## 追加資料
 
