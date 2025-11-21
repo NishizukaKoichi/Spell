@@ -105,3 +105,15 @@ enum BillingStatus {
 
   @@map("billing_status")
 }
+
+model StripeWebhookEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique @map("event_id")
+  type        String
+  payload     Json
+  processedAt DateTime? @map("processed_at")
+  errorMessage String? @map("error_message")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("stripe_webhook_events")
+}

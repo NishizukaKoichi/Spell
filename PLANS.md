@@ -450,4 +450,60 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 
 ---
 
+## ExecPlan: A-005 — Stripe Webhook Processing
+
+### Overview
+- Implement Stripe webhook ingestion so billing events (Checkout Session completed, PaymentMethod updates, PaymentIntent succeeded/failed) synchronize `users` and `billing_records`, unlocking accurate charge history and ensuring Cards-on-file status is trustworthy.
+- Provide a resilient `/api/billing/webhook` endpoint that validates Stripe signatures, handles idempotency, and records outcomes without double-writing.
+- Webhook is mandatory per Spec §7.2 step 5; without it, customer states drift from Stripe.
+
+### Constraints & Invariants
+- Stripe signature verification using `STRIPE_WEBHOOK_SECRET` is required; reject any request failing verification (no natural language/LLM).
+- Endpoint must be unauthenticated from JWT perspective but restricted via signature + event type allowlist; never expose data to clients.
+- Billing pipeline invariants: one Stripe customer per user, PaymentIntent confirm path unchanged, webhook must not mutate anything outside billing.
+- Implement idempotency using Stripe `event.id` recorded server-side to prevent duplicate processing (Neon Postgres).
+- Maintain Next.js API-only structure; no UI.
+
+### Milestones & Checklist
+1. Design webhook event handling matrix (which Stripe event types map to which DB updates).
+2. Create persistence for processed events + migration if needed (e.g., `webhook_events` table) or leverage `billing_records` fields for idempotency.
+3. Implement `/api/billing/webhook` route with signature verification, event parsing, handler dispatch, and error logging.
+4. Update billing helpers/tests to ensure checkout + confirm flows interact correctly with webhook-created records.
+5. Add Jest tests (mock Stripe webhook payload + signature verification) and document operations.
+
+### Implementation Steps
+- Add Prisma model (if missing) `stripe_webhook_events` storing `idempotency_key`, `event_type`, `payload`, `processed_at`. Generate migration.
+- `app/api/billing/webhook/route.ts`: parse raw body (need `config = { api: { bodyParser: false } }` equivalent for Next 16), verify signature via Stripe SDK, handle events:
+  - `customer.created|updated`: sync `users.stripe_customer_id`.
+  - `checkout.session.completed`: mark user as having payment method.
+  - `payment_intent.succeeded|payment_intent.payment_failed`: insert/update `billing_records`.
+- Implement handler utilities under `lib/stripe-webhook.ts`.
+- Ensure logging (console) for unhandled events.
+
+### Validation & Tests
+- Unit tests mocking Stripe webhook verification.
+- Integration-style test calling route with fake event/signature.
+- `pnpm test` overall.
+- Manual: run dev server, send `stripe listen --forward-to` sample (if possible) or document as TODO.
+
+### Risk & Rollback
+- Risk: accepting forged webhooks or double processing; mitigated with signature verification + event-id storage.
+- Rollback: revert new models + route, run `prisma migrate reset` if necessary.
+
+### Progress Log
+- 2025-01-16 — Authored ExecPlan for A-005 (Stripe webhook processing).
+- 2025-01-16 — Added `stripe_webhook_events` Prisma model, implemented webhook handler + helper utilities, and wired signature verification.
+- 2025-01-16 — Added Jest coverage for webhook helpers/routes and ran `pnpm test`.
+
+### Surprises & Discoveries
+- Next.js App Router exposes raw request bodies via `request.text()` so Stripe signature verification works without custom body parser flags.
+
+### Decision Log
+- Store webhook payloads + processed timestamps in Postgres to ensure idempotency and debugging visibility.
+
+### Outcomes & Retrospective
+- _Pending completion._
+
+---
+
 End of PLANS.md — Spell Platform Autonomous Execution Plans (v2)
