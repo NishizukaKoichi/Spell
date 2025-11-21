@@ -189,7 +189,7 @@ async function executeWasmSpell(
   parameters: Record<string, unknown>
 ): Promise<unknown> {
   // Get WASM artifact
-  const artifact = await prisma.runeArtifact.findFirst({
+  const artifact = await prisma.artifact.findFirst({
     where: { spellId: spell.id },
     orderBy: { createdAt: 'desc' }
   })

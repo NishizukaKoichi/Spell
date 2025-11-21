@@ -214,7 +214,7 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
 ## ExecPlan: A-001 — Prisma Schema Alignment with Spec
 
 ### Overview
-- Establish the canonical Prisma schema that matches `Spec.md` for `users`, `spells`, `rune_artifacts`, `billing_records`, and `bans`.
+- Establish the canonical Prisma schema that matches `Spec.md` for `users`, `spells`, `artifacts`, `billing_records`, and `bans`.
 - Ensure enum values surfaced to API clients match the lowercase strings defined in the spec (`'public'`, `'team'`, `'private'`, etc.) so downstream clients do not need to normalize values.
 - Add safe defaults (e.g., `priceAmount = 0`, `visibility = 'public'`) to guarantee newly created artifacts become runnable immediately, satisfying the “Bazaar-less” requirement.
 
@@ -240,7 +240,6 @@ ExecPlan で完了したら、PROGRESS.md の該当チケットを `MERGED` に�
   - Ensure timestamps/foreign keys still match spec.
 - Update TypeScript:
   - `lib/spell-engine.ts`: switch `SpellRuntime.BUILTIN` etc. to use `Prisma.$Enums.SpellRuntime` or literal strings.
-  - `app/api/rune/create/route.ts`: update allowed visibility/runtime sets.
   - Tests under `__tests__/` referencing enums must update to new strings.
 - Run `pnpm prisma format && pnpm prisma generate` to regenerate clients.
 

@@ -31,23 +31,24 @@ model Spell {
   createdBy   String          @map("created_by")
   createdAt   DateTime        @default(now()) @map("created_at")
 
-  user           User            @relation(fields: [createdBy], references: [id])
-  runeArtifacts  RuneArtifact[]
+  user          User         @relation(fields: [createdBy], references: [id])
+  artifacts     Artifact[]
   billingRecords BillingRecord[]
 
   @@map("spells")
 }
 
-model RuneArtifact {
-  id         String   @id @default(uuid())
-  spellId    String   @map("spell_id")
-  wasmBinary Bytes?   @map("wasm_binary")
-  metadata   Json
-  createdAt  DateTime @default(now()) @map("created_at")
+model Artifact {
+  id          String   @id @default(uuid())
+  spellId     String   @map("spell_id")
+  wasmBinary  Bytes?   @map("wasm_binary")
+  apiEndpoint String?  @map("api_endpoint")
+  metadata    Json
+  createdAt   DateTime @default(now()) @map("created_at")
 
   spell Spell @relation(fields: [spellId], references: [id])
 
-  @@map("rune_artifacts")
+  @@map("artifacts")
 }
 
 model BillingRecord {

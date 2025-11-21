@@ -7,7 +7,7 @@ const createPrismaMock = () => ({
   billingRecord: {
     create: jest.fn()
   },
-  runeArtifact: {
+  artifact: {
     findFirst: jest.fn()
   },
   ban: {
@@ -24,7 +24,7 @@ const prisma = createPrismaMock()
 export const resetPrismaMock = () => {
   prisma.spell.findUnique.mockReset()
   prisma.billingRecord.create.mockReset()
-  prisma.runeArtifact.findFirst.mockReset()
+  prisma.artifact.findFirst.mockReset()
   prisma.ban.findUnique.mockReset()
   prisma.user.findUnique.mockReset()
   prisma.user.update.mockReset()

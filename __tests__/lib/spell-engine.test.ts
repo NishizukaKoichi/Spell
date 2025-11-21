@@ -13,7 +13,7 @@ const {
   prisma: {
     spell: { findUnique: jest.Mock }
     billingRecord: { create: jest.Mock }
-    runeArtifact: { findFirst: jest.Mock }
+    artifact: { findFirst: jest.Mock }
   }
   resetPrismaMock: () => void
 }
@@ -267,7 +267,7 @@ describe('Spell Engine', () => {
       }
 
       ;(prisma.spell.findUnique as jest.Mock).mockResolvedValue(wasmSpell)
-      ;(prisma.runeArtifact.findFirst as jest.Mock).mockResolvedValue({
+      ;(prisma.artifact.findFirst as jest.Mock).mockResolvedValue({
         wasmBinary: new Uint8Array([0x00])
       })
 
@@ -291,7 +291,7 @@ describe('Spell Engine', () => {
       }
 
       ;(prisma.spell.findUnique as jest.Mock).mockResolvedValue(wasmSpell)
-      ;(prisma.runeArtifact.findFirst as jest.Mock).mockResolvedValue(null)
+      ;(prisma.artifact.findFirst as jest.Mock).mockResolvedValue(null)
 
       const result = await executeSpell({
         userId: 'user-123',
