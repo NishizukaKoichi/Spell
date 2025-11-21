@@ -16,28 +16,39 @@ export type SpellExecutionErrorCode =
   | 'BILLING_FAILED'
   | 'RUNTIME_ERROR'
 
+export type SpellExecutionError = {
+  code: SpellExecutionErrorCode
+  message: string
+  details?: Record<string, unknown>
+}
+
 export type SpellExecutionResult =
   | {
-      status: 'success'
-      output: unknown
-      billingRecordId?: string
+      ok: true
+      result: {
+        output: unknown
+        billingRecordId?: string
+      }
     }
   | {
-      status: 'error'
-      errorCode: SpellExecutionErrorCode
-      message: string
+      ok: false
+      error: SpellExecutionError
       billingRecordId?: string
     }
 
 function failure(
   errorCode: SpellExecutionErrorCode,
   message: string,
-  billingRecordId?: string
+  billingRecordId?: string,
+  details?: Record<string, unknown>
 ): SpellExecutionResult {
   return {
-    status: 'error',
-    errorCode,
-    message,
+    ok: false,
+    error: {
+      code: errorCode,
+      message,
+      ...(details ? { details } : {})
+    },
     billingRecordId
   }
 }
@@ -82,9 +93,11 @@ export async function executeSpell(input: SpellExecutionInput): Promise<SpellExe
     const output = await executeSpellRuntime(spell, safeParameters)
 
     return {
-      status: 'success',
-      output,
-      billingRecordId
+      ok: true,
+      result: {
+        output,
+        billingRecordId
+      }
     }
   } catch (error) {
     return failure(

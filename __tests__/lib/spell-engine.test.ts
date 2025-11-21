@@ -57,9 +57,9 @@ describe('Spell Engine', () => {
         parameters: { input: 'test' }
       })
 
-      expect(result.status).toBe('success')
-      expect(result.output).toBeDefined()
-      expect(result.billingRecordId).toBeUndefined()
+      expect(result.ok).toBe(true)
+      expect(result.result.output).toBeDefined()
+      expect(result.result.billingRecordId).toBeUndefined()
     })
 
     it('should return error for non-existent spell', async () => {
@@ -71,8 +71,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('error')
-      expect(result.errorCode).toBe('SPELL_NOT_FOUND')
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('SPELL_NOT_FOUND')
     })
 
     it('should enforce visibility for private spells', async () => {
@@ -90,8 +90,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('error')
-      expect(result.errorCode).toBe('VISIBILITY_DENIED')
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('VISIBILITY_DENIED')
     })
 
     it('should allow owner to execute private spell', async () => {
@@ -109,7 +109,7 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('success')
+      expect(result.ok).toBe(true)
     })
 
     it('should handle billing for paid spells', async () => {
@@ -139,8 +139,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('success')
-      expect(result.billingRecordId).toBe('billing-123')
+      expect(result.ok).toBe(true)
+      expect(result.result.billingRecordId).toBe('billing-123')
       expect(createPaymentIntent).toHaveBeenCalledWith('user-123', 500, 'usd')
     })
 
@@ -165,8 +165,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('error')
-      expect(result.errorCode).toBe('BILLING_FAILED')
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('BILLING_FAILED')
       expect(prisma.billingRecord.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           status: 'failed',
@@ -190,8 +190,8 @@ describe('Spell Engine', () => {
         parameters: { message: 'hello' }
       })
 
-      expect(result.status).toBe('success')
-      expect(result.output).toMatchObject({
+      expect(result.ok).toBe(true)
+      expect(result.result.output).toMatchObject({
         type: 'builtin',
         handler: 'echo',
         parameters: { message: 'hello' }
@@ -222,8 +222,8 @@ describe('Spell Engine', () => {
         parameters: { input: 'test' }
       })
 
-      expect(result.status).toBe('success')
-      expect(result.output).toEqual({ result: 'success' })
+      expect(result.ok).toBe(true)
+      expect(result.result.output).toEqual({ result: 'success' })
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.example.com/process',
         expect.objectContaining({
@@ -256,8 +256,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('error')
-      expect(result.errorCode).toBe('RUNTIME_ERROR')
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('RUNTIME_ERROR')
     })
 
     it('should execute WASM runtime spell', async () => {
@@ -277,8 +277,8 @@ describe('Spell Engine', () => {
         parameters: { input: 'test' }
       })
 
-      expect(result.status).toBe('success')
-      expect(result.output).toMatchObject({
+      expect(result.ok).toBe(true)
+      expect(result.result.output).toMatchObject({
         type: 'wasm',
         parameters: { input: 'test' }
       })
@@ -299,8 +299,8 @@ describe('Spell Engine', () => {
         parameters: {}
       })
 
-      expect(result.status).toBe('error')
-      expect(result.errorCode).toBe('RUNTIME_ERROR')
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('RUNTIME_ERROR')
     })
   })
 

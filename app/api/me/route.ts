@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { jsonError, jsonOk } from '@/lib/http'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,17 +20,15 @@ export async function GET(request: NextRequest) {
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+      return jsonError('USER_NOT_FOUND', 'User not found', 404)
     }
 
-    return NextResponse.json(user)
+    return jsonOk(user)
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
+    return jsonError(
+      'INTERNAL_ERROR',
+      error instanceof Error ? error.message : 'Internal server error',
+      500
     )
   }
 }

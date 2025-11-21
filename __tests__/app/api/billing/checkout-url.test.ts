@@ -34,7 +34,10 @@ describe('POST /api/billing/checkout-url', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body).toEqual({ url: 'https://checkout.stripe.com/test' })
+    expect(body).toEqual({
+      ok: true,
+      data: { url: 'https://checkout.stripe.com/test' }
+    })
     expect(mockCreateCheckoutSession).toHaveBeenCalledWith('user-123')
   })
 
@@ -52,6 +55,7 @@ describe('POST /api/billing/checkout-url', () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(body.code).toBe('PAYMENT_METHOD_EXISTS')
+    expect(body.ok).toBe(false)
+    expect(body.error.code).toBe('PAYMENT_METHOD_EXISTS')
   })
 })

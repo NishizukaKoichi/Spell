@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getUserIdFromHeaders } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { jsonError, jsonOk } from '@/lib/http'
 
 interface SpellAccess {
   createdBy: string
@@ -26,10 +27,7 @@ export async function POST(request: NextRequest) {
     const { spellId } = await request.json()
 
     if (!spellId || typeof spellId !== 'string') {
-      return NextResponse.json(
-        { error: 'spellId is required' },
-        { status: 400 }
-      )
+      return jsonError('SPELL_ID_REQUIRED', 'spellId is required', 400)
     }
 
     const spell = await prisma.spell.findUnique({
@@ -43,28 +41,23 @@ export async function POST(request: NextRequest) {
     })
 
     if (!spell) {
-      return NextResponse.json(
-        { error: 'Spell not found' },
-        { status: 404 }
-      )
+      return jsonError('SPELL_NOT_FOUND', 'Spell not found', 404)
     }
 
     if (!canAccessSpell(userId, spell)) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
+      return jsonError('VISIBILITY_DENIED', 'Access denied', 403)
     }
 
-    return NextResponse.json({
+    return jsonOk({
       spellId: spell.id,
       priceAmount: spell.priceAmount,
       currency: 'usd'
     })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
+    return jsonError(
+      'INTERNAL_ERROR',
+      error instanceof Error ? error.message : 'Internal server error',
+      500
     )
   }
 }

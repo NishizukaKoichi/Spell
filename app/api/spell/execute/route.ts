@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getUserIdFromHeaders } from '@/lib/auth'
+import { jsonError, jsonOk } from '@/lib/http'
 import { executeSpell, type SpellExecutionErrorCode } from '@/lib/spell-engine'
 
 export async function POST(request: NextRequest) {
@@ -9,10 +10,7 @@ export async function POST(request: NextRequest) {
     const spellId = payload?.spellId
 
     if (typeof spellId !== 'string' || spellId.length === 0) {
-      return NextResponse.json(
-        { error: 'spellId is required' },
-        { status: 400 }
-      )
+      return jsonError('SPELL_ID_REQUIRED', 'spellId is required', 400)
     }
 
     const result = await executeSpell({
@@ -23,23 +21,19 @@ export async function POST(request: NextRequest) {
         : {}
     })
 
-    if (result.status === 'success') {
-      return NextResponse.json(result, { status: 200 })
+    if (result.ok) {
+      return jsonOk(result.result, 200)
     }
 
-    const status = mapErrorCodeToStatus(result.errorCode)
-    return NextResponse.json(
-      {
-        error: result.message,
-        code: result.errorCode,
-        billingRecordId: result.billingRecordId
-      },
-      { status }
-    )
+    const status = mapErrorCodeToStatus(result.error.code)
+    return jsonError(result.error.code, result.error.message, status, {
+      billingRecordId: result.billingRecordId
+    })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
+    return jsonError(
+      'INTERNAL_ERROR',
+      error instanceof Error ? error.message : 'Internal server error',
+      500
     )
   }
 }
